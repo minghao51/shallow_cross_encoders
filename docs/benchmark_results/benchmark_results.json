@@ -1,0 +1,1327 @@
+{
+  "metadata": {
+    "timestamp": "2026-04-04 15:16:05",
+    "seed": 42,
+    "embedder_model": "minishlab/potion-base-32M",
+    "quick": false,
+    "data_counts": {
+      "train_pairs": 42,
+      "test_pairs": 10,
+      "train_prefs": 27,
+      "test_prefs": 7,
+      "train_contradictions": 17,
+      "test_contradictions": 7
+    }
+  },
+  "results": [
+    {
+      "experiment_name": "bm25_baseline",
+      "strategy": "bm25",
+      "configuration": {
+        "backend": "pure_python"
+      },
+      "metrics": {
+        "ndcg@10": 0.8869774714772856,
+        "ndcg@10_std": 0.07855075104627283,
+        "mrr": 1.0,
+        "mrr_std": 0.0,
+        "p@1": 1.0,
+        "p@1_std": 0.0,
+        "latency_mean_ms": 0.08829979924485087,
+        "latency_std_ms": 0.028378804581881575,
+        "n_queries_evaluated": 5
+      },
+      "latency_stats": {},
+      "ablation_info": {},
+      "n_samples": 10,
+      "embedder_model": "minishlab/potion-base-32M"
+    },
+    {
+      "experiment_name": "hybrid_baseline",
+      "strategy": "hybrid",
+      "configuration": {
+        "backend": "sklearn",
+        "adapters": [
+          "KeywordMatchAdapter"
+        ],
+        "n_estimators": 120,
+        "max_depth": 4
+      },
+      "metrics": {
+        "ndcg@10": 0.8869774714772856,
+        "ndcg@10_std": 0.07855075104627283,
+        "mrr": 1.0,
+        "mrr_std": 0.0,
+        "p@1": 1.0,
+        "p@1_std": 0.0,
+        "latency_mean_ms": 1.5623748069629073,
+        "latency_std_ms": 0.1265409111905421,
+        "n_queries_evaluated": 5
+      },
+      "latency_stats": {},
+      "ablation_info": {},
+      "n_samples": 10,
+      "embedder_model": "minishlab/potion-base-32M"
+    },
+    {
+      "experiment_name": "distilled_baseline",
+      "strategy": "distilled",
+      "configuration": {
+        "C": 1.0,
+        "max_iter": 500
+      },
+      "metrics": {
+        "accuracy": 1.0,
+        "accuracy_std": 0.0,
+        "latency_mean_ms": 0.2706724252285702,
+        "latency_std_ms": 0.044413247316738076,
+        "n_comparisons": 7
+      },
+      "latency_stats": {},
+      "ablation_info": {},
+      "n_samples": 7,
+      "embedder_model": "minishlab/potion-base-32M"
+    },
+    {
+      "experiment_name": "colbert_baseline",
+      "strategy": "late_interaction",
+      "configuration": {
+        "top_k_tokens": 128,
+        "use_salience": true
+      },
+      "metrics": {
+        "ndcg@10": 0.8869774714772856,
+        "ndcg@10_std": 0.07855075104627283,
+        "mrr": 1.0,
+        "mrr_std": 0.0,
+        "p@1": 1.0,
+        "p@1_std": 0.0,
+        "latency_mean_ms": 0.43110839324072003,
+        "latency_std_ms": 0.07241327426049139,
+        "n_queries_evaluated": 5
+      },
+      "latency_stats": {},
+      "ablation_info": {},
+      "n_samples": 10,
+      "embedder_model": "minishlab/potion-base-32M"
+    },
+    {
+      "experiment_name": "binary_baseline",
+      "strategy": "binary_reranker",
+      "configuration": {
+        "hamming_top_k": 500,
+        "bilinear_top_k": 50
+      },
+      "metrics": {
+        "ndcg@10": 0.8869774714772856,
+        "ndcg@10_std": 0.07855075104627283,
+        "mrr": 1.0,
+        "mrr_std": 0.0,
+        "p@1": 1.0,
+        "p@1_std": 0.0,
+        "latency_mean_ms": 0.4395665950141847,
+        "latency_std_ms": 0.07118803085879985,
+        "n_queries_evaluated": 5
+      },
+      "latency_stats": {},
+      "ablation_info": {},
+      "n_samples": 10,
+      "embedder_model": "minishlab/potion-base-32M"
+    },
+    {
+      "experiment_name": "consistency_baseline",
+      "strategy": "consistency",
+      "configuration": {
+        "sim_threshold": 0.95,
+        "value_tolerance": 0.01
+      },
+      "metrics": {
+        "recall": 1.0,
+        "false_positive_rate": 0.0,
+        "true_positives": 5,
+        "false_positives": 0,
+        "true_negatives": 2,
+        "false_negatives": 0,
+        "latency_mean_ms": 0.31592270326135413,
+        "latency_std_ms": 0.4259304962748092
+      },
+      "latency_stats": {},
+      "ablation_info": {},
+      "n_samples": 7,
+      "embedder_model": "minishlab/potion-base-32M"
+    },
+    {
+      "experiment_name": "pipeline_baseline",
+      "strategy": "pipeline",
+      "configuration": {
+        "stages": [
+          "bm25",
+          "binary",
+          "hybrid",
+          "colbert"
+        ],
+        "top_ks": [
+          200,
+          100,
+          50,
+          20
+        ]
+      },
+      "metrics": {
+        "ndcg@10": 0.8869774714772856,
+        "ndcg@10_std": 0.07855075104627283,
+        "mrr": 1.0,
+        "mrr_std": 0.0,
+        "p@1": 1.0,
+        "p@1_std": 0.0,
+        "latency_mean_ms": 2.4792747804895043,
+        "latency_std_ms": 0.14225348892257716,
+        "n_queries_evaluated": 5
+      },
+      "latency_stats": {},
+      "ablation_info": {},
+      "n_samples": 10,
+      "embedder_model": "minishlab/potion-base-32M"
+    },
+    {
+      "experiment_name": "multi_bm25_binary",
+      "strategy": "multi",
+      "configuration": {
+        "rerankers": [
+          "bm25",
+          "binary"
+        ],
+        "rrf_k": 60
+      },
+      "metrics": {
+        "ndcg@10": 0.8869774714772856,
+        "ndcg@10_std": 0.07855075104627283,
+        "mrr": 1.0,
+        "mrr_std": 0.0,
+        "p@1": 1.0,
+        "p@1_std": 0.0,
+        "latency_mean_ms": 0.55919160367921,
+        "latency_std_ms": 0.05504452847877176,
+        "n_queries_evaluated": 5
+      },
+      "latency_stats": {},
+      "ablation_info": {},
+      "n_samples": 10,
+      "embedder_model": "minishlab/potion-base-32M"
+    },
+    {
+      "experiment_name": "multi_hybrid_bm25",
+      "strategy": "multi",
+      "configuration": {
+        "rerankers": [
+          "hybrid",
+          "bm25"
+        ],
+        "rrf_k": 60
+      },
+      "metrics": {
+        "ndcg@10": 0.8869774714772856,
+        "ndcg@10_std": 0.07855075104627283,
+        "mrr": 1.0,
+        "mrr_std": 0.0,
+        "p@1": 1.0,
+        "p@1_std": 0.0,
+        "latency_mean_ms": 1.7344836029224098,
+        "latency_std_ms": 0.06668188198108765,
+        "n_queries_evaluated": 5
+      },
+      "latency_stats": {},
+      "ablation_info": {},
+      "n_samples": 10,
+      "embedder_model": "minishlab/potion-base-32M"
+    },
+    {
+      "experiment_name": "splade_skipped",
+      "strategy": "splade",
+      "configuration": {
+        "status": "skipped",
+        "reason": "missing dependency"
+      },
+      "metrics": {
+        "ndcg@10": 0.0,
+        "mrr": 0.0,
+        "p@1": 0.0,
+        "latency_mean_ms": 0.0
+      },
+      "latency_stats": {},
+      "ablation_info": {},
+      "n_samples": 0,
+      "embedder_model": "minishlab/potion-base-32M"
+    },
+    {
+      "experiment_name": "hybrid_ablation_no_adapters",
+      "strategy": "hybrid",
+      "configuration": {
+        "adapters": []
+      },
+      "metrics": {
+        "ndcg@10": 0.8869774714772856,
+        "ndcg@10_std": 0.07855075104627283,
+        "mrr": 1.0,
+        "mrr_std": 0.0,
+        "p@1": 1.0,
+        "p@1_std": 0.0,
+        "latency_mean_ms": 1.443733205087483,
+        "latency_std_ms": 0.1269826496353823,
+        "n_queries_evaluated": 5
+      },
+      "latency_stats": {},
+      "ablation_info": {
+        "removed": "KeywordMatchAdapter"
+      },
+      "n_samples": 10,
+      "embedder_model": "minishlab/potion-base-32M"
+    },
+    {
+      "experiment_name": "colbert_ablation_no_salience",
+      "strategy": "late_interaction",
+      "configuration": {
+        "top_k_tokens": 128,
+        "use_salience": false
+      },
+      "metrics": {
+        "ndcg@10": 0.8869774714772856,
+        "ndcg@10_std": 0.07855075104627283,
+        "mrr": 1.0,
+        "mrr_std": 0.0,
+        "p@1": 1.0,
+        "p@1_std": 0.0,
+        "latency_mean_ms": 0.4148666048422456,
+        "latency_std_ms": 0.047545889056408115,
+        "n_queries_evaluated": 5
+      },
+      "latency_stats": {},
+      "ablation_info": {
+        "removed": "TF-IDF salience weighting"
+      },
+      "n_samples": 10,
+      "embedder_model": "minishlab/potion-base-32M"
+    },
+    {
+      "experiment_name": "colbert_ablation_64_tokens",
+      "strategy": "late_interaction",
+      "configuration": {
+        "top_k_tokens": 64,
+        "use_salience": true
+      },
+      "metrics": {
+        "ndcg@10": 0.8869774714772856,
+        "ndcg@10_std": 0.07855075104627283,
+        "mrr": 1.0,
+        "mrr_std": 0.0,
+        "p@1": 1.0,
+        "p@1_std": 0.0,
+        "latency_mean_ms": 0.44567500008270144,
+        "latency_std_ms": 0.0230713878685407,
+        "n_queries_evaluated": 5
+      },
+      "latency_stats": {},
+      "ablation_info": {
+        "changed": "top_k_tokens: 128 \u2192 64"
+      },
+      "n_samples": 10,
+      "embedder_model": "minishlab/potion-base-32M"
+    },
+    {
+      "experiment_name": "binary_ablation_hamming_only",
+      "strategy": "binary_reranker",
+      "configuration": {
+        "hamming_top_k": 999999,
+        "bilinear_top_k": 0
+      },
+      "metrics": {
+        "ndcg@10": 0.8869774714772856,
+        "ndcg@10_std": 0.07855075104627283,
+        "mrr": 1.0,
+        "mrr_std": 0.0,
+        "p@1": 1.0,
+        "p@1_std": 0.0,
+        "latency_mean_ms": 0.40824979078024626,
+        "latency_std_ms": 0.06554070949030333,
+        "n_queries_evaluated": 5
+      },
+      "latency_stats": {},
+      "ablation_info": {
+        "removed": "Bilinear refinement stage"
+      },
+      "n_samples": 10,
+      "embedder_model": "minishlab/potion-base-32M"
+    },
+    {
+      "experiment_name": "binary_ablation_aggressive",
+      "strategy": "binary_reranker",
+      "configuration": {
+        "hamming_top_k": 100,
+        "bilinear_top_k": 10
+      },
+      "metrics": {
+        "ndcg@10": 0.8869774714772856,
+        "ndcg@10_std": 0.07855075104627283,
+        "mrr": 1.0,
+        "mrr_std": 0.0,
+        "p@1": 1.0,
+        "p@1_std": 0.0,
+        "latency_mean_ms": 0.4080250160768628,
+        "latency_std_ms": 0.051161974200919426,
+        "n_queries_evaluated": 5
+      },
+      "latency_stats": {},
+      "ablation_info": {
+        "changed": "hamming_top_k: 500\u2192100, bilinear_top_k: 50\u219210"
+      },
+      "n_samples": 10,
+      "embedder_model": "minishlab/potion-base-32M"
+    },
+    {
+      "experiment_name": "consistency_ablation_relaxed",
+      "strategy": "consistency",
+      "configuration": {
+        "sim_threshold": 0.9,
+        "value_tolerance": 0.01
+      },
+      "metrics": {
+        "recall": 1.0,
+        "false_positive_rate": 0.0,
+        "true_positives": 5,
+        "false_positives": 0,
+        "true_negatives": 2,
+        "false_negatives": 0,
+        "latency_mean_ms": 0.15765486750751734,
+        "latency_std_ms": 0.04370345953621332
+      },
+      "latency_stats": {},
+      "ablation_info": {
+        "changed": "sim_threshold: 0.95 \u2192 0.90"
+      },
+      "n_samples": 7,
+      "embedder_model": "minishlab/potion-base-32M"
+    },
+    {
+      "experiment_name": "consistency_ablation_strict",
+      "strategy": "consistency",
+      "configuration": {
+        "sim_threshold": 0.99,
+        "value_tolerance": 0.01
+      },
+      "metrics": {
+        "recall": 1.0,
+        "false_positive_rate": 0.0,
+        "true_positives": 5,
+        "false_positives": 0,
+        "true_negatives": 2,
+        "false_negatives": 0,
+        "latency_mean_ms": 0.14280356533293212,
+        "latency_std_ms": 0.03511679986157367
+      },
+      "latency_stats": {},
+      "ablation_info": {
+        "changed": "sim_threshold: 0.95 \u2192 0.99"
+      },
+      "n_samples": 7,
+      "embedder_model": "minishlab/potion-base-32M"
+    },
+    {
+      "experiment_name": "scaling",
+      "strategy": "scaling",
+      "configuration": {
+        "corpus_sizes": [
+          20,
+          50,
+          100,
+          200
+        ]
+      },
+      "metrics": {
+        "bm25_20ms": 0.08241704199463129,
+        "bm25_50ms": 0.06933300755918026,
+        "bm25_100ms": 0.06787502206861973,
+        "bm25_200ms": 0.08404196705669165,
+        "hybrid_20ms": 1.4535830123350024,
+        "hybrid_50ms": 1.4777500182390213,
+        "hybrid_100ms": 1.464792003389448,
+        "hybrid_200ms": 1.4716250007040799,
+        "colbert_20ms": 0.3207499976269901,
+        "colbert_50ms": 0.3625830286182463,
+        "colbert_100ms": 0.3205409739166498,
+        "colbert_200ms": 0.2997079864144325,
+        "binary_20ms": 0.3881250158883631,
+        "binary_50ms": 0.325749977491796,
+        "binary_100ms": 0.3787080058827996,
+        "binary_200ms": 0.41379203321412206
+      },
+      "latency_stats": {},
+      "ablation_info": {},
+      "n_samples": 200,
+      "embedder_model": "minishlab/potion-base-32M"
+    },
+    {
+      "experiment_name": "embedder_minishlab_potion-base-8M_dim64_hybrid",
+      "strategy": "hybrid",
+      "configuration": {
+        "model_name": "minishlab/potion-base-8M",
+        "dimension": 64,
+        "backend": "model2vec"
+      },
+      "metrics": {
+        "ndcg@10": 0.9261859507142916,
+        "ndcg@10_std": 0.14762809857141698,
+        "mrr": 0.9,
+        "mrr_std": 0.2,
+        "p@1": 0.8,
+        "p@1_std": 0.4,
+        "latency_mean_ms": 0.6088499911129475,
+        "latency_std_ms": 0.06912791201208308,
+        "n_queries_evaluated": 5
+      },
+      "latency_stats": {},
+      "ablation_info": {},
+      "n_samples": 10,
+      "embedder_model": "minishlab/potion-base-8M"
+    },
+    {
+      "experiment_name": "embedder_minishlab_potion-base-8M_dim64_binary_reranker",
+      "strategy": "binary_reranker",
+      "configuration": {
+        "model_name": "minishlab/potion-base-8M",
+        "dimension": 64,
+        "backend": "model2vec"
+      },
+      "metrics": {
+        "ndcg@10": 1.0,
+        "ndcg@10_std": 0.0,
+        "mrr": 1.0,
+        "mrr_std": 0.0,
+        "p@1": 1.0,
+        "p@1_std": 0.0,
+        "latency_mean_ms": 0.17249181400984526,
+        "latency_std_ms": 0.021713841664980683,
+        "n_queries_evaluated": 5
+      },
+      "latency_stats": {},
+      "ablation_info": {},
+      "n_samples": 10,
+      "embedder_model": "minishlab/potion-base-8M"
+    },
+    {
+      "experiment_name": "embedder_minishlab_potion-base-8M_dim64_late_interaction",
+      "strategy": "late_interaction",
+      "configuration": {
+        "model_name": "minishlab/potion-base-8M",
+        "dimension": 64,
+        "backend": "model2vec"
+      },
+      "metrics": {
+        "ndcg@10": 0.9261859507142916,
+        "ndcg@10_std": 0.14762809857141698,
+        "mrr": 0.9,
+        "mrr_std": 0.2,
+        "p@1": 0.8,
+        "p@1_std": 0.4,
+        "latency_mean_ms": 0.29494158225134015,
+        "latency_std_ms": 0.02588583556892677,
+        "n_queries_evaluated": 5
+      },
+      "latency_stats": {},
+      "ablation_info": {},
+      "n_samples": 10,
+      "embedder_model": "minishlab/potion-base-8M"
+    },
+    {
+      "experiment_name": "embedder_minishlab_potion-base-8M_dim128_hybrid",
+      "strategy": "hybrid",
+      "configuration": {
+        "model_name": "minishlab/potion-base-8M",
+        "dimension": 128,
+        "backend": "model2vec"
+      },
+      "metrics": {
+        "ndcg@10": 0.9261859507142916,
+        "ndcg@10_std": 0.14762809857141698,
+        "mrr": 0.9,
+        "mrr_std": 0.2,
+        "p@1": 0.8,
+        "p@1_std": 0.4,
+        "latency_mean_ms": 0.5864669918082654,
+        "latency_std_ms": 0.09674606051480034,
+        "n_queries_evaluated": 5
+      },
+      "latency_stats": {},
+      "ablation_info": {},
+      "n_samples": 10,
+      "embedder_model": "minishlab/potion-base-8M"
+    },
+    {
+      "experiment_name": "embedder_minishlab_potion-base-8M_dim128_binary_reranker",
+      "strategy": "binary_reranker",
+      "configuration": {
+        "model_name": "minishlab/potion-base-8M",
+        "dimension": 128,
+        "backend": "model2vec"
+      },
+      "metrics": {
+        "ndcg@10": 1.0,
+        "ndcg@10_std": 0.0,
+        "mrr": 1.0,
+        "mrr_std": 0.0,
+        "p@1": 1.0,
+        "p@1_std": 0.0,
+        "latency_mean_ms": 0.1652667997404933,
+        "latency_std_ms": 0.025691377570128612,
+        "n_queries_evaluated": 5
+      },
+      "latency_stats": {},
+      "ablation_info": {},
+      "n_samples": 10,
+      "embedder_model": "minishlab/potion-base-8M"
+    },
+    {
+      "experiment_name": "embedder_minishlab_potion-base-8M_dim128_late_interaction",
+      "strategy": "late_interaction",
+      "configuration": {
+        "model_name": "minishlab/potion-base-8M",
+        "dimension": 128,
+        "backend": "model2vec"
+      },
+      "metrics": {
+        "ndcg@10": 0.9261859507142916,
+        "ndcg@10_std": 0.14762809857141698,
+        "mrr": 0.9,
+        "mrr_std": 0.2,
+        "p@1": 0.8,
+        "p@1_std": 0.4,
+        "latency_mean_ms": 0.2329750102944672,
+        "latency_std_ms": 0.04553846088295231,
+        "n_queries_evaluated": 5
+      },
+      "latency_stats": {},
+      "ablation_info": {},
+      "n_samples": 10,
+      "embedder_model": "minishlab/potion-base-8M"
+    },
+    {
+      "experiment_name": "embedder_minishlab_potion-base-8M_dim256_hybrid",
+      "strategy": "hybrid",
+      "configuration": {
+        "model_name": "minishlab/potion-base-8M",
+        "dimension": 256,
+        "backend": "model2vec"
+      },
+      "metrics": {
+        "ndcg@10": 1.0,
+        "ndcg@10_std": 0.0,
+        "mrr": 1.0,
+        "mrr_std": 0.0,
+        "p@1": 1.0,
+        "p@1_std": 0.0,
+        "latency_mean_ms": 0.6441834033466876,
+        "latency_std_ms": 0.08475153609322918,
+        "n_queries_evaluated": 5
+      },
+      "latency_stats": {},
+      "ablation_info": {},
+      "n_samples": 10,
+      "embedder_model": "minishlab/potion-base-8M"
+    },
+    {
+      "experiment_name": "embedder_minishlab_potion-base-8M_dim256_binary_reranker",
+      "strategy": "binary_reranker",
+      "configuration": {
+        "model_name": "minishlab/potion-base-8M",
+        "dimension": 256,
+        "backend": "model2vec"
+      },
+      "metrics": {
+        "ndcg@10": 1.0,
+        "ndcg@10_std": 0.0,
+        "mrr": 1.0,
+        "mrr_std": 0.0,
+        "p@1": 1.0,
+        "p@1_std": 0.0,
+        "latency_mean_ms": 0.1579333795234561,
+        "latency_std_ms": 0.01390322832930924,
+        "n_queries_evaluated": 5
+      },
+      "latency_stats": {},
+      "ablation_info": {},
+      "n_samples": 10,
+      "embedder_model": "minishlab/potion-base-8M"
+    },
+    {
+      "experiment_name": "embedder_minishlab_potion-base-8M_dim256_late_interaction",
+      "strategy": "late_interaction",
+      "configuration": {
+        "model_name": "minishlab/potion-base-8M",
+        "dimension": 256,
+        "backend": "model2vec"
+      },
+      "metrics": {
+        "ndcg@10": 0.9261859507142916,
+        "ndcg@10_std": 0.14762809857141698,
+        "mrr": 0.9,
+        "mrr_std": 0.2,
+        "p@1": 0.8,
+        "p@1_std": 0.4,
+        "latency_mean_ms": 0.2848748117685318,
+        "latency_std_ms": 0.08399246027806362,
+        "n_queries_evaluated": 5
+      },
+      "latency_stats": {},
+      "ablation_info": {},
+      "n_samples": 10,
+      "embedder_model": "minishlab/potion-base-8M"
+    },
+    {
+      "experiment_name": "embedder_minishlab_potion-base-8M_dim512_hybrid",
+      "strategy": "hybrid",
+      "configuration": {
+        "model_name": "minishlab/potion-base-8M",
+        "dimension": 512,
+        "backend": "model2vec"
+      },
+      "metrics": {
+        "ndcg@10": 1.0,
+        "ndcg@10_std": 0.0,
+        "mrr": 1.0,
+        "mrr_std": 0.0,
+        "p@1": 1.0,
+        "p@1_std": 0.0,
+        "latency_mean_ms": 0.6320752087049186,
+        "latency_std_ms": 0.08299955045452703,
+        "n_queries_evaluated": 5
+      },
+      "latency_stats": {},
+      "ablation_info": {},
+      "n_samples": 10,
+      "embedder_model": "minishlab/potion-base-8M"
+    },
+    {
+      "experiment_name": "embedder_minishlab_potion-base-8M_dim512_binary_reranker",
+      "strategy": "binary_reranker",
+      "configuration": {
+        "model_name": "minishlab/potion-base-8M",
+        "dimension": 512,
+        "backend": "model2vec"
+      },
+      "metrics": {
+        "ndcg@10": 1.0,
+        "ndcg@10_std": 0.0,
+        "mrr": 1.0,
+        "mrr_std": 0.0,
+        "p@1": 1.0,
+        "p@1_std": 0.0,
+        "latency_mean_ms": 0.1903916010633111,
+        "latency_std_ms": 0.02563605640509681,
+        "n_queries_evaluated": 5
+      },
+      "latency_stats": {},
+      "ablation_info": {},
+      "n_samples": 10,
+      "embedder_model": "minishlab/potion-base-8M"
+    },
+    {
+      "experiment_name": "embedder_minishlab_potion-base-8M_dim512_late_interaction",
+      "strategy": "late_interaction",
+      "configuration": {
+        "model_name": "minishlab/potion-base-8M",
+        "dimension": 512,
+        "backend": "model2vec"
+      },
+      "metrics": {
+        "ndcg@10": 0.9261859507142916,
+        "ndcg@10_std": 0.14762809857141698,
+        "mrr": 0.9,
+        "mrr_std": 0.2,
+        "p@1": 0.8,
+        "p@1_std": 0.4,
+        "latency_mean_ms": 0.2551164012402296,
+        "latency_std_ms": 0.03137362895854115,
+        "n_queries_evaluated": 5
+      },
+      "latency_stats": {},
+      "ablation_info": {},
+      "n_samples": 10,
+      "embedder_model": "minishlab/potion-base-8M"
+    },
+    {
+      "experiment_name": "embedder_minishlab_potion-base-32M_dim64_hybrid",
+      "strategy": "hybrid",
+      "configuration": {
+        "model_name": "minishlab/potion-base-32M",
+        "dimension": 64,
+        "backend": "model2vec"
+      },
+      "metrics": {
+        "ndcg@10": 1.0,
+        "ndcg@10_std": 0.0,
+        "mrr": 1.0,
+        "mrr_std": 0.0,
+        "p@1": 1.0,
+        "p@1_std": 0.0,
+        "latency_mean_ms": 0.6349833915010095,
+        "latency_std_ms": 0.05509273958725671,
+        "n_queries_evaluated": 5
+      },
+      "latency_stats": {},
+      "ablation_info": {},
+      "n_samples": 10,
+      "embedder_model": "minishlab/potion-base-32M"
+    },
+    {
+      "experiment_name": "embedder_minishlab_potion-base-32M_dim64_binary_reranker",
+      "strategy": "binary_reranker",
+      "configuration": {
+        "model_name": "minishlab/potion-base-32M",
+        "dimension": 64,
+        "backend": "model2vec"
+      },
+      "metrics": {
+        "ndcg@10": 1.0,
+        "ndcg@10_std": 0.0,
+        "mrr": 1.0,
+        "mrr_std": 0.0,
+        "p@1": 1.0,
+        "p@1_std": 0.0,
+        "latency_mean_ms": 0.2355667995288968,
+        "latency_std_ms": 0.042879689863878655,
+        "n_queries_evaluated": 5
+      },
+      "latency_stats": {},
+      "ablation_info": {},
+      "n_samples": 10,
+      "embedder_model": "minishlab/potion-base-32M"
+    },
+    {
+      "experiment_name": "embedder_minishlab_potion-base-32M_dim64_late_interaction",
+      "strategy": "late_interaction",
+      "configuration": {
+        "model_name": "minishlab/potion-base-32M",
+        "dimension": 64,
+        "backend": "model2vec"
+      },
+      "metrics": {
+        "ndcg@10": 0.9261859507142916,
+        "ndcg@10_std": 0.14762809857141698,
+        "mrr": 0.9,
+        "mrr_std": 0.2,
+        "p@1": 0.8,
+        "p@1_std": 0.4,
+        "latency_mean_ms": 0.2299164072610438,
+        "latency_std_ms": 0.03343882110015171,
+        "n_queries_evaluated": 5
+      },
+      "latency_stats": {},
+      "ablation_info": {},
+      "n_samples": 10,
+      "embedder_model": "minishlab/potion-base-32M"
+    },
+    {
+      "experiment_name": "embedder_minishlab_potion-base-32M_dim128_hybrid",
+      "strategy": "hybrid",
+      "configuration": {
+        "model_name": "minishlab/potion-base-32M",
+        "dimension": 128,
+        "backend": "model2vec"
+      },
+      "metrics": {
+        "ndcg@10": 0.9261859507142916,
+        "ndcg@10_std": 0.14762809857141698,
+        "mrr": 0.9,
+        "mrr_std": 0.2,
+        "p@1": 0.8,
+        "p@1_std": 0.4,
+        "latency_mean_ms": 0.6801917916163802,
+        "latency_std_ms": 0.09121645669494333,
+        "n_queries_evaluated": 5
+      },
+      "latency_stats": {},
+      "ablation_info": {},
+      "n_samples": 10,
+      "embedder_model": "minishlab/potion-base-32M"
+    },
+    {
+      "experiment_name": "embedder_minishlab_potion-base-32M_dim128_binary_reranker",
+      "strategy": "binary_reranker",
+      "configuration": {
+        "model_name": "minishlab/potion-base-32M",
+        "dimension": 128,
+        "backend": "model2vec"
+      },
+      "metrics": {
+        "ndcg@10": 1.0,
+        "ndcg@10_std": 0.0,
+        "mrr": 1.0,
+        "mrr_std": 0.0,
+        "p@1": 1.0,
+        "p@1_std": 0.0,
+        "latency_mean_ms": 0.1893665874376893,
+        "latency_std_ms": 0.02286122468612287,
+        "n_queries_evaluated": 5
+      },
+      "latency_stats": {},
+      "ablation_info": {},
+      "n_samples": 10,
+      "embedder_model": "minishlab/potion-base-32M"
+    },
+    {
+      "experiment_name": "embedder_minishlab_potion-base-32M_dim128_late_interaction",
+      "strategy": "late_interaction",
+      "configuration": {
+        "model_name": "minishlab/potion-base-32M",
+        "dimension": 128,
+        "backend": "model2vec"
+      },
+      "metrics": {
+        "ndcg@10": 0.9261859507142916,
+        "ndcg@10_std": 0.14762809857141698,
+        "mrr": 0.9,
+        "mrr_std": 0.2,
+        "p@1": 0.8,
+        "p@1_std": 0.4,
+        "latency_mean_ms": 0.23777479073032737,
+        "latency_std_ms": 0.039129079393788506,
+        "n_queries_evaluated": 5
+      },
+      "latency_stats": {},
+      "ablation_info": {},
+      "n_samples": 10,
+      "embedder_model": "minishlab/potion-base-32M"
+    },
+    {
+      "experiment_name": "embedder_minishlab_potion-base-32M_dim256_hybrid",
+      "strategy": "hybrid",
+      "configuration": {
+        "model_name": "minishlab/potion-base-32M",
+        "dimension": 256,
+        "backend": "model2vec"
+      },
+      "metrics": {
+        "ndcg@10": 0.9261859507142916,
+        "ndcg@10_std": 0.14762809857141698,
+        "mrr": 0.9,
+        "mrr_std": 0.2,
+        "p@1": 0.8,
+        "p@1_std": 0.4,
+        "latency_mean_ms": 0.5748750059865415,
+        "latency_std_ms": 0.06862444022514759,
+        "n_queries_evaluated": 5
+      },
+      "latency_stats": {},
+      "ablation_info": {},
+      "n_samples": 10,
+      "embedder_model": "minishlab/potion-base-32M"
+    },
+    {
+      "experiment_name": "embedder_minishlab_potion-base-32M_dim256_binary_reranker",
+      "strategy": "binary_reranker",
+      "configuration": {
+        "model_name": "minishlab/potion-base-32M",
+        "dimension": 256,
+        "backend": "model2vec"
+      },
+      "metrics": {
+        "ndcg@10": 1.0,
+        "ndcg@10_std": 0.0,
+        "mrr": 1.0,
+        "mrr_std": 0.0,
+        "p@1": 1.0,
+        "p@1_std": 0.0,
+        "latency_mean_ms": 0.1826249877922237,
+        "latency_std_ms": 0.019323476223059247,
+        "n_queries_evaluated": 5
+      },
+      "latency_stats": {},
+      "ablation_info": {},
+      "n_samples": 10,
+      "embedder_model": "minishlab/potion-base-32M"
+    },
+    {
+      "experiment_name": "embedder_minishlab_potion-base-32M_dim256_late_interaction",
+      "strategy": "late_interaction",
+      "configuration": {
+        "model_name": "minishlab/potion-base-32M",
+        "dimension": 256,
+        "backend": "model2vec"
+      },
+      "metrics": {
+        "ndcg@10": 0.9261859507142916,
+        "ndcg@10_std": 0.14762809857141698,
+        "mrr": 0.9,
+        "mrr_std": 0.2,
+        "p@1": 0.8,
+        "p@1_std": 0.4,
+        "latency_mean_ms": 0.2888415940105915,
+        "latency_std_ms": 0.05058995563183565,
+        "n_queries_evaluated": 5
+      },
+      "latency_stats": {},
+      "ablation_info": {},
+      "n_samples": 10,
+      "embedder_model": "minishlab/potion-base-32M"
+    },
+    {
+      "experiment_name": "embedder_minishlab_potion-base-32M_dim512_hybrid",
+      "strategy": "hybrid",
+      "configuration": {
+        "model_name": "minishlab/potion-base-32M",
+        "dimension": 512,
+        "backend": "model2vec"
+      },
+      "metrics": {
+        "ndcg@10": 0.9261859507142916,
+        "ndcg@10_std": 0.14762809857141698,
+        "mrr": 0.9,
+        "mrr_std": 0.2,
+        "p@1": 0.8,
+        "p@1_std": 0.4,
+        "latency_mean_ms": 0.5918583832681179,
+        "latency_std_ms": 0.08234287091966563,
+        "n_queries_evaluated": 5
+      },
+      "latency_stats": {},
+      "ablation_info": {},
+      "n_samples": 10,
+      "embedder_model": "minishlab/potion-base-32M"
+    },
+    {
+      "experiment_name": "embedder_minishlab_potion-base-32M_dim512_binary_reranker",
+      "strategy": "binary_reranker",
+      "configuration": {
+        "model_name": "minishlab/potion-base-32M",
+        "dimension": 512,
+        "backend": "model2vec"
+      },
+      "metrics": {
+        "ndcg@10": 1.0,
+        "ndcg@10_std": 0.0,
+        "mrr": 1.0,
+        "mrr_std": 0.0,
+        "p@1": 1.0,
+        "p@1_std": 0.0,
+        "latency_mean_ms": 0.1985667971894145,
+        "latency_std_ms": 0.023013830511494058,
+        "n_queries_evaluated": 5
+      },
+      "latency_stats": {},
+      "ablation_info": {},
+      "n_samples": 10,
+      "embedder_model": "minishlab/potion-base-32M"
+    },
+    {
+      "experiment_name": "embedder_minishlab_potion-base-32M_dim512_late_interaction",
+      "strategy": "late_interaction",
+      "configuration": {
+        "model_name": "minishlab/potion-base-32M",
+        "dimension": 512,
+        "backend": "model2vec"
+      },
+      "metrics": {
+        "ndcg@10": 0.9261859507142916,
+        "ndcg@10_std": 0.14762809857141698,
+        "mrr": 0.9,
+        "mrr_std": 0.2,
+        "p@1": 0.8,
+        "p@1_std": 0.4,
+        "latency_mean_ms": 0.2702416037209332,
+        "latency_std_ms": 0.04905750545980294,
+        "n_queries_evaluated": 5
+      },
+      "latency_stats": {},
+      "ablation_info": {},
+      "n_samples": 10,
+      "embedder_model": "minishlab/potion-base-32M"
+    },
+    {
+      "experiment_name": "embedder_minishlab_potion-multilingual-128M_dim64_hybrid",
+      "strategy": "hybrid",
+      "configuration": {
+        "model_name": "minishlab/potion-multilingual-128M",
+        "dimension": 64,
+        "backend": "model2vec"
+      },
+      "metrics": {
+        "ndcg@10": 0.9261859507142916,
+        "ndcg@10_std": 0.14762809857141698,
+        "mrr": 0.9,
+        "mrr_std": 0.2,
+        "p@1": 0.8,
+        "p@1_std": 0.4,
+        "latency_mean_ms": 0.7038001902401447,
+        "latency_std_ms": 0.09924564778891169,
+        "n_queries_evaluated": 5
+      },
+      "latency_stats": {},
+      "ablation_info": {},
+      "n_samples": 10,
+      "embedder_model": "minishlab/potion-multilingual-128M"
+    },
+    {
+      "experiment_name": "embedder_minishlab_potion-multilingual-128M_dim64_binary_reranker",
+      "strategy": "binary_reranker",
+      "configuration": {
+        "model_name": "minishlab/potion-multilingual-128M",
+        "dimension": 64,
+        "backend": "model2vec"
+      },
+      "metrics": {
+        "ndcg@10": 0.9261859507142916,
+        "ndcg@10_std": 0.14762809857141698,
+        "mrr": 0.9,
+        "mrr_std": 0.2,
+        "p@1": 0.8,
+        "p@1_std": 0.4,
+        "latency_mean_ms": 0.3789667855016887,
+        "latency_std_ms": 0.19520125156739124,
+        "n_queries_evaluated": 5
+      },
+      "latency_stats": {},
+      "ablation_info": {},
+      "n_samples": 10,
+      "embedder_model": "minishlab/potion-multilingual-128M"
+    },
+    {
+      "experiment_name": "embedder_minishlab_potion-multilingual-128M_dim64_late_interaction",
+      "strategy": "late_interaction",
+      "configuration": {
+        "model_name": "minishlab/potion-multilingual-128M",
+        "dimension": 64,
+        "backend": "model2vec"
+      },
+      "metrics": {
+        "ndcg@10": 0.9261859507142916,
+        "ndcg@10_std": 0.14762809857141698,
+        "mrr": 0.9,
+        "mrr_std": 0.2,
+        "p@1": 0.8,
+        "p@1_std": 0.4,
+        "latency_mean_ms": 0.3303997917100787,
+        "latency_std_ms": 0.018210417364592186,
+        "n_queries_evaluated": 5
+      },
+      "latency_stats": {},
+      "ablation_info": {},
+      "n_samples": 10,
+      "embedder_model": "minishlab/potion-multilingual-128M"
+    },
+    {
+      "experiment_name": "embedder_minishlab_potion-multilingual-128M_dim128_hybrid",
+      "strategy": "hybrid",
+      "configuration": {
+        "model_name": "minishlab/potion-multilingual-128M",
+        "dimension": 128,
+        "backend": "model2vec"
+      },
+      "metrics": {
+        "ndcg@10": 0.9261859507142916,
+        "ndcg@10_std": 0.14762809857141698,
+        "mrr": 0.9,
+        "mrr_std": 0.2,
+        "p@1": 0.8,
+        "p@1_std": 0.4,
+        "latency_mean_ms": 0.6942165899090469,
+        "latency_std_ms": 0.09897612046857729,
+        "n_queries_evaluated": 5
+      },
+      "latency_stats": {},
+      "ablation_info": {},
+      "n_samples": 10,
+      "embedder_model": "minishlab/potion-multilingual-128M"
+    },
+    {
+      "experiment_name": "embedder_minishlab_potion-multilingual-128M_dim128_binary_reranker",
+      "strategy": "binary_reranker",
+      "configuration": {
+        "model_name": "minishlab/potion-multilingual-128M",
+        "dimension": 128,
+        "backend": "model2vec"
+      },
+      "metrics": {
+        "ndcg@10": 0.9261859507142916,
+        "ndcg@10_std": 0.14762809857141698,
+        "mrr": 0.9,
+        "mrr_std": 0.2,
+        "p@1": 0.8,
+        "p@1_std": 0.4,
+        "latency_mean_ms": 0.2947499859146774,
+        "latency_std_ms": 0.11409264934507206,
+        "n_queries_evaluated": 5
+      },
+      "latency_stats": {},
+      "ablation_info": {},
+      "n_samples": 10,
+      "embedder_model": "minishlab/potion-multilingual-128M"
+    },
+    {
+      "experiment_name": "embedder_minishlab_potion-multilingual-128M_dim128_late_interaction",
+      "strategy": "late_interaction",
+      "configuration": {
+        "model_name": "minishlab/potion-multilingual-128M",
+        "dimension": 128,
+        "backend": "model2vec"
+      },
+      "metrics": {
+        "ndcg@10": 0.9261859507142916,
+        "ndcg@10_std": 0.14762809857141698,
+        "mrr": 0.9,
+        "mrr_std": 0.2,
+        "p@1": 0.8,
+        "p@1_std": 0.4,
+        "latency_mean_ms": 0.30929161002859473,
+        "latency_std_ms": 0.022857887580288956,
+        "n_queries_evaluated": 5
+      },
+      "latency_stats": {},
+      "ablation_info": {},
+      "n_samples": 10,
+      "embedder_model": "minishlab/potion-multilingual-128M"
+    },
+    {
+      "experiment_name": "embedder_minishlab_potion-multilingual-128M_dim256_hybrid",
+      "strategy": "hybrid",
+      "configuration": {
+        "model_name": "minishlab/potion-multilingual-128M",
+        "dimension": 256,
+        "backend": "model2vec"
+      },
+      "metrics": {
+        "ndcg@10": 0.9261859507142916,
+        "ndcg@10_std": 0.14762809857141698,
+        "mrr": 0.9,
+        "mrr_std": 0.2,
+        "p@1": 0.8,
+        "p@1_std": 0.4,
+        "latency_mean_ms": 0.7163829868659377,
+        "latency_std_ms": 0.15041356085144317,
+        "n_queries_evaluated": 5
+      },
+      "latency_stats": {},
+      "ablation_info": {},
+      "n_samples": 10,
+      "embedder_model": "minishlab/potion-multilingual-128M"
+    },
+    {
+      "experiment_name": "embedder_minishlab_potion-multilingual-128M_dim256_binary_reranker",
+      "strategy": "binary_reranker",
+      "configuration": {
+        "model_name": "minishlab/potion-multilingual-128M",
+        "dimension": 256,
+        "backend": "model2vec"
+      },
+      "metrics": {
+        "ndcg@10": 0.9261859507142916,
+        "ndcg@10_std": 0.14762809857141698,
+        "mrr": 0.9,
+        "mrr_std": 0.2,
+        "p@1": 0.8,
+        "p@1_std": 0.4,
+        "latency_mean_ms": 0.1901164068840444,
+        "latency_std_ms": 0.02607871339164262,
+        "n_queries_evaluated": 5
+      },
+      "latency_stats": {},
+      "ablation_info": {},
+      "n_samples": 10,
+      "embedder_model": "minishlab/potion-multilingual-128M"
+    },
+    {
+      "experiment_name": "embedder_minishlab_potion-multilingual-128M_dim256_late_interaction",
+      "strategy": "late_interaction",
+      "configuration": {
+        "model_name": "minishlab/potion-multilingual-128M",
+        "dimension": 256,
+        "backend": "model2vec"
+      },
+      "metrics": {
+        "ndcg@10": 0.9261859507142916,
+        "ndcg@10_std": 0.14762809857141698,
+        "mrr": 0.9,
+        "mrr_std": 0.2,
+        "p@1": 0.8,
+        "p@1_std": 0.4,
+        "latency_mean_ms": 0.3617167938500643,
+        "latency_std_ms": 0.07354006243897376,
+        "n_queries_evaluated": 5
+      },
+      "latency_stats": {},
+      "ablation_info": {},
+      "n_samples": 10,
+      "embedder_model": "minishlab/potion-multilingual-128M"
+    },
+    {
+      "experiment_name": "embedder_minishlab_potion-multilingual-128M_dim512_hybrid",
+      "strategy": "hybrid",
+      "configuration": {
+        "model_name": "minishlab/potion-multilingual-128M",
+        "dimension": 512,
+        "backend": "model2vec"
+      },
+      "metrics": {
+        "ndcg@10": 0.9261859507142916,
+        "ndcg@10_std": 0.14762809857141698,
+        "mrr": 0.9,
+        "mrr_std": 0.2,
+        "p@1": 0.8,
+        "p@1_std": 0.4,
+        "latency_mean_ms": 0.7999000023119152,
+        "latency_std_ms": 0.05706913465263731,
+        "n_queries_evaluated": 5
+      },
+      "latency_stats": {},
+      "ablation_info": {},
+      "n_samples": 10,
+      "embedder_model": "minishlab/potion-multilingual-128M"
+    },
+    {
+      "experiment_name": "embedder_minishlab_potion-multilingual-128M_dim512_binary_reranker",
+      "strategy": "binary_reranker",
+      "configuration": {
+        "model_name": "minishlab/potion-multilingual-128M",
+        "dimension": 512,
+        "backend": "model2vec"
+      },
+      "metrics": {
+        "ndcg@10": 0.9261859507142916,
+        "ndcg@10_std": 0.14762809857141698,
+        "mrr": 0.9,
+        "mrr_std": 0.2,
+        "p@1": 0.8,
+        "p@1_std": 0.4,
+        "latency_mean_ms": 0.20896660862490535,
+        "latency_std_ms": 0.038894605834273656,
+        "n_queries_evaluated": 5
+      },
+      "latency_stats": {},
+      "ablation_info": {},
+      "n_samples": 10,
+      "embedder_model": "minishlab/potion-multilingual-128M"
+    },
+    {
+      "experiment_name": "embedder_minishlab_potion-multilingual-128M_dim512_late_interaction",
+      "strategy": "late_interaction",
+      "configuration": {
+        "model_name": "minishlab/potion-multilingual-128M",
+        "dimension": 512,
+        "backend": "model2vec"
+      },
+      "metrics": {
+        "ndcg@10": 0.9261859507142916,
+        "ndcg@10_std": 0.14762809857141698,
+        "mrr": 0.9,
+        "mrr_std": 0.2,
+        "p@1": 0.8,
+        "p@1_std": 0.4,
+        "latency_mean_ms": 0.29403341468423605,
+        "latency_std_ms": 0.04743853750412508,
+        "n_queries_evaluated": 5
+      },
+      "latency_stats": {},
+      "ablation_info": {},
+      "n_samples": 10,
+      "embedder_model": "minishlab/potion-multilingual-128M"
+    }
+  ]
+}

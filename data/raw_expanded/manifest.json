@@ -1,0 +1,45 @@
+{
+  "generated_at": "2026-04-02",
+  "description": "Expanded dataset: 73 queries, 10 domains, balanced relevance with hard negatives",
+  "seed": 42,
+  "generation_mode": "offline_expanded",
+  "datasets": {
+    "pairs": {
+      "count": 10000,
+      "unique_queries": 75,
+      "score_distribution": {
+        "0": 2500,
+        "1": 2500,
+        "2": 2500,
+        "3": 2500
+      },
+      "domains": [
+        "data_infrastructure",
+        "devops_infrastructure",
+        "education",
+        "finance",
+        "legal",
+        "machine_learning",
+        "programming_python",
+        "programming_web",
+        "real_estate_singapore",
+        "science_health",
+        "security"
+      ]
+    },
+    "preferences": {
+      "count": 1764,
+      "unique_queries": 75,
+      "preference_distribution": {
+        "A": 855,
+        "B": 909
+      }
+    },
+    "contradictions": {
+      "count": 1390,
+      "contradictions": 990,
+      "controls": 400,
+      "unique_subjects": 35
+    }
+  }
+}

@@ -1,0 +1,49 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual environments and local tool state
+.venv/
+.python-version
+
+# Test, lint, and benchmark caches
+.pytest_cache/
+.ruff_cache/
+.benchmarks/
+
+# Build and packaging outputs
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Coverage artifacts
+.coverage
+.coverage.*
+htmlcov/
+
+# Notebook checkpoints
+.ipynb_checkpoints/
+
+# Local environment files
+.env
+
+
+# Local tool directories
+.claude/
+.planning/
+
+# Generated project artifacts
+data/raw/*
+data/processed/*
+data/logs/*
+data/models/*
+
+# Preserve empty tracked directories
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/logs/.gitkeep
+!data/models/.gitkeep
+!notebooks/.gitkeep
