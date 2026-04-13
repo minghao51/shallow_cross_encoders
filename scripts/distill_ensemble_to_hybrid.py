@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from collections.abc import Mapping
 
 
-def load_beir_data(dataset_name: str = "nfcorpus") -> tuple[Mapping[str, str], Mapping[str, dict], Mapping[str, dict]]:
+def load_beir_data(dataset_name: str = "nfcorpus") -> tuple[dict, dict, dict]:
     """Load BEIR dataset for distillation.
 
     Args:
@@ -29,20 +29,21 @@ def load_beir_data(dataset_name: str = "nfcorpus") -> tuple[Mapping[str, str], M
             - corpus: Mapping from doc_id to doc dict with _id, title, text
             - qrels: Mapping from query_id to {doc_id: relevance_score}
     """
+    try:
+        from beir import util
+    except ImportError:
+        raise ImportError("BEIR not installed. Run: uv pip install beir")
+
+    settings = get_settings()
     beir_dir = Path("data/beir") / dataset_name
 
-    # Check if data exists
     if not beir_dir.exists():
-        raise FileNotFoundError(
-            f"BEIR dataset not found at {beir_dir}. "
-            f"Download it first: uv run scripts/download_beir.py {dataset_name}"
-        )
+        url = f"https://public.ukp.informatik.tu-darmstadt.de/thakur/BEIR/datasets/{dataset_name}.zip"
+        print(f"Downloading {dataset_name} from {url}")
+        util.download_and_unload(url, str(beir_dir.parent))
 
     # Parse corpus.jsonl
     corpus_file = beir_dir / "corpus.jsonl"
-    if not corpus_file.exists():
-        raise FileNotFoundError(f"Corpus file not found: {corpus_file}")
-
     corpus = {}
     with open(corpus_file) as f:
         for line in f:
@@ -55,9 +56,6 @@ def load_beir_data(dataset_name: str = "nfcorpus") -> tuple[Mapping[str, str], M
 
     # Parse queries.jsonl
     queries_file = beir_dir / "queries.jsonl"
-    if not queries_file.exists():
-        raise FileNotFoundError(f"Queries file not found: {queries_file}")
-
     queries = {}
     with open(queries_file) as f:
         for line in f:
@@ -66,9 +64,6 @@ def load_beir_data(dataset_name: str = "nfcorpus") -> tuple[Mapping[str, str], M
 
     # Parse qrels/test.tsv
     qrels_file = beir_dir / "qrels" / "test.tsv"
-    if not qrels_file.exists():
-        raise FileNotFoundError(f"Qrels file not found: {qrels_file}")
-
     qrels_dict = defaultdict(dict)
     with open(qrels_file) as f:
         # Skip header
@@ -77,12 +72,9 @@ def load_beir_data(dataset_name: str = "nfcorpus") -> tuple[Mapping[str, str], M
             parts = line.strip().split("\t")
             if len(parts) >= 3:
                 query_id, doc_id, score = parts[0], parts[1], int(parts[2])
-                if score > 0:
-                    qrels_dict[query_id][doc_id] = score
+                qrels_dict[query_id][doc_id] = score
 
     qrels = dict(qrels_dict)
-
-    print(f"Loaded {dataset_name}: {len(queries)} queries, {len(corpus)} docs, {len(qrels)} qrels")
     return queries, corpus, qrels
 
 
