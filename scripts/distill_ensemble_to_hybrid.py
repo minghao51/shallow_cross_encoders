@@ -133,6 +133,47 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def generate_ensemble_labels(
+    ensemble: FlashRankEnsemble,
+    queries: list[str],
+    corpus_docs: list[str],
+    qrels: dict,  # query_id -> {doc_id: relevance}
+    cache: EnsembleLabelCache,
+    force_regenerate: bool = False,
+) -> dict:
+    """Generate or load cached ensemble labels.
+
+    Args:
+        ensemble: FlashRank ensemble for teacher scoring.
+        queries: List of query texts.
+        corpus_docs: List of document texts.
+        qrels: Query relevance judgments (unused but kept for API consistency).
+        cache: Cache instance for persistent storage.
+        force_regenerate: If True, bypass cache and regenerate.
+
+    Returns:
+        Dict mapping (query_idx, doc_idx) -> ensemble_score
+    """
+
+    def generator_fn():
+        print(f"Generating labels for {len(queries)} queries...")
+        labels = {}
+        for q_idx, query in enumerate(queries):
+            if q_idx % 100 == 0:
+                print(f"  Processing query {q_idx}/{len(queries)}")
+            scores = ensemble.score_batch(query, corpus_docs)
+            for d_idx, score in enumerate(scores):
+                # Convert tuple key to string for JSON serialization
+                labels[f"{q_idx}_{d_idx}"] = float(score)
+        return labels
+
+    dataset_id = f"queries_{len(queries)}_docs_{len(corpus_docs)}"
+    cached_labels = cache.load_or_generate(dataset_id, ensemble.models, generator_fn, force_regenerate)
+
+    # Convert string keys back to tuples for internal use
+    return {tuple(map(int, k.split("_"))): v for k, v in cached_labels.items()}
+
+
 def main() -> None:
     """Main entry point for ensemble distillation pipeline."""
     args = parse_args()
@@ -158,6 +199,50 @@ def main() -> None:
     # Initialize ensemble and cache
     ensemble = FlashRankEnsemble(args.teachers)
     cache = EnsembleLabelCache(args.cache_dir)
+
+    # Load dataset and generate labels for BEIR or mixed datasets
+    if args.dataset in ("beir", "mixed"):
+        print("\nLoading BEIR dataset...")
+        queries_dict, corpus_dict, qrels = load_beir_data()
+
+        # Convert to lists for indexing
+        query_ids = sorted(queries_dict.keys())
+        doc_ids = sorted(corpus_dict.keys())
+
+        # Use subset for testing
+        query_ids = query_ids[:50]
+        doc_ids = doc_ids[:500]
+
+        queries = [queries_dict[qid] for qid in query_ids]
+        corpus_docs = [
+            f"{corpus_dict[did]['title']} {corpus_dict[did]['text']}".strip()
+            for did in doc_ids
+        ]
+
+        # Filter qrels to only include selected queries and docs
+        filtered_qrels = {}
+        for qid in query_ids:
+            if qid in qrels:
+                filtered_qrels[qid] = {
+                    did: score
+                    for did, score in qrels[qid].items()
+                    if did in doc_ids
+                }
+
+        print(f"Loaded {len(queries)} queries, {len(corpus_docs)} documents")
+
+        # Generate ensemble labels
+        print("\nGenerating ensemble teacher labels...")
+        labels = generate_ensemble_labels(
+            ensemble=ensemble,
+            queries=queries,
+            corpus_docs=corpus_docs,
+            qrels=filtered_qrels,
+            cache=cache,
+            force_regenerate=args.force_regenerate,
+        )
+
+        print(f"Generated {len(labels)} query-document pair scores")
 
     # Pipeline structure complete
     print("\nPipeline structure complete. Implementation continues...")
