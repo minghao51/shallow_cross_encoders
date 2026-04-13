@@ -31,10 +31,9 @@ def load_beir_data(dataset_name: str = "nfcorpus") -> tuple[dict, dict, dict]:
     """
     try:
         from beir import util
-    except ImportError:
-        raise ImportError("BEIR not installed. Run: uv pip install beir")
+    except ImportError as e:
+        raise ImportError("BEIR not installed. Run: uv pip install beir") from e
 
-    settings = get_settings()
     beir_dir = Path("data/beir") / dataset_name
 
     if not beir_dir.exists():
@@ -64,7 +63,7 @@ def load_beir_data(dataset_name: str = "nfcorpus") -> tuple[dict, dict, dict]:
 
     # Parse qrels/test.tsv
     qrels_file = beir_dir / "qrels" / "test.tsv"
-    qrels_dict = defaultdict(dict)
+    qrels_dict: defaultdict[str, dict[str, int]] = defaultdict(dict)
     with open(qrels_file) as f:
         # Skip header
         next(f)
