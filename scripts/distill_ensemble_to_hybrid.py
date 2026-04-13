@@ -1,5 +1,6 @@
-#!/usr/bin/env python3
 """Ensemble distillation: FlashRank teachers train Hybrid student."""
+
+from __future__ import annotations
 
 import argparse
 from pathlib import Path
