@@ -10,6 +10,11 @@ from reranker.strategies.flashrank_ensemble import FlashRankEnsemble
 
 @pytest.mark.unit
 class TestFlashRankEnsemble:
+    def test_init_empty_models_raises_valueerror(self):
+        """Verify ValueError is raised when models list is empty."""
+        with pytest.raises(ValueError, match="models list cannot be empty"):
+            FlashRankEnsemble(models=[])
+
     def test_init_with_models(self):
         """Verify FlashRankEnsemble initializes with model list."""
         models = ["ms-marco-TinyBERT-L-2-v2", "ms-marco-MiniLM-L-12-v2"]

@@ -43,7 +43,7 @@ class FlashRankEnsemble:
             raise ValueError("models list cannot be empty")
 
         self.models = models
-        self._rankers: list[Any] = None  # Lazy loaded
+        self._rankers: list[Any] | None = None  # Lazy loaded
 
     def _load_rankers(self) -> None:
         """Lazy load FlashRank rankers.
@@ -107,9 +107,6 @@ class FlashRankEnsemble:
             all_scores.append(scores)
 
         # Average scores across all teacher models
-        if not all_scores:
-            return np.zeros(len(docs), dtype=np.float32)
-
         ensemble_scores = np.mean(all_scores, axis=0).astype(np.float32)
 
         return ensemble_scores
