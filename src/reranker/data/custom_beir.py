@@ -1,0 +1,99 @@
+"""Custom BEIR dataset loader for domain-specific datasets.
+
+This module provides functionality to load custom BEIR-format JSON files
+for ensemble distillation. Users can provide their own datasets in BEIR format.
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+from reranker.utils import read_json
+
+
+def load_custom_beir(path: Path | str) -> dict:
+    """Load a custom BEIR-format dataset from a JSON file.
+
+    Expected format:
+    {
+        "queries": {
+            "q1": "query text 1",
+            "q2": "query text 2"
+        },
+        "corpus": {
+            "doc1": {"text": "document text 1"},
+            "doc2": {"text": "document text 2"}
+        },
+        "qrels": {
+            "q1": {"doc1": 2, "doc2": 1},
+            "q2": {"doc2": 2}
+        }
+    }
+
+    Args:
+        path: Path to the JSON file containing BEIR-format data.
+
+    Returns:
+        Dictionary with keys:
+        - "queries": Dict mapping query IDs to query text
+        - "corpus": Dict mapping doc IDs to extracted document text
+        - "qrels": Dict mapping query IDs to dicts of doc IDs to relevance scores
+
+    Raises:
+        ValueError: If the JSON is invalid, missing required keys, or contains empty data.
+        FileNotFoundError: If the specified path does not exist.
+    """
+    path = Path(path)
+
+    if not path.exists():
+        raise FileNotFoundError(f"Custom BEIR file not found: {path}")
+
+    # Load and validate JSON
+    try:
+        data = read_json(path)
+    except Exception as e:
+        raise ValueError(f"Invalid JSON file: {e}") from e
+
+    # Validate required top-level keys
+    required_keys = {"queries", "corpus", "qrels"}
+    missing_keys = required_keys - data.keys()
+    if missing_keys:
+        raise ValueError(f"Missing required keys: {', '.join(sorted(missing_keys))}")
+
+    # Extract and validate queries
+    queries = data["queries"]
+    if not isinstance(queries, dict):
+        raise ValueError("'queries' must be a dictionary")
+
+    if not queries:
+        raise ValueError("'queries' dictionary is empty")
+
+    # Extract and validate corpus
+    corpus_raw = data["corpus"]
+    if not isinstance(corpus_raw, dict):
+        raise ValueError("'corpus' must be a dictionary")
+
+    if not corpus_raw:
+        raise ValueError("'corpus' dictionary is empty")
+
+    # Extract corpus texts from {"text": "..."} format
+    corpus = {}
+    for doc_id, doc_data in corpus_raw.items():
+        if not isinstance(doc_data, dict):
+            raise ValueError(f"Corpus entry '{doc_id}' must be a dictionary")
+
+        if "text" not in doc_data:
+            raise ValueError(f"Corpus entry '{doc_id}' missing required 'text' field")
+
+        corpus[doc_id] = doc_data["text"]
+
+    # Extract and validate qrels
+    qrels = data["qrels"]
+    if not isinstance(qrels, dict):
+        raise ValueError("'qrels' must be a dictionary")
+
+    return {
+        "queries": queries,
+        "corpus": corpus,
+        "qrels": qrels,
+    }
