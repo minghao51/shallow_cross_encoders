@@ -41,12 +41,8 @@ def load_custom_beir(path: Path | str) -> dict:
 
     Raises:
         ValueError: If the JSON is invalid, missing required keys, or contains empty data.
-        FileNotFoundError: If the specified path does not exist.
     """
     path = Path(path)
-
-    if not path.exists():
-        raise FileNotFoundError(f"Custom BEIR file not found: {path}")
 
     # Load and validate JSON
     try:
@@ -62,35 +58,21 @@ def load_custom_beir(path: Path | str) -> dict:
 
     # Extract and validate queries
     queries = data["queries"]
-    if not isinstance(queries, dict):
-        raise ValueError("'queries' must be a dictionary")
-
     if not queries:
         raise ValueError("'queries' dictionary is empty")
 
     # Extract and validate corpus
     corpus_raw = data["corpus"]
-    if not isinstance(corpus_raw, dict):
-        raise ValueError("'corpus' must be a dictionary")
-
     if not corpus_raw:
         raise ValueError("'corpus' dictionary is empty")
 
     # Extract corpus texts from {"text": "..."} format
     corpus = {}
     for doc_id, doc_data in corpus_raw.items():
-        if not isinstance(doc_data, dict):
-            raise ValueError(f"Corpus entry '{doc_id}' must be a dictionary")
-
-        if "text" not in doc_data:
-            raise ValueError(f"Corpus entry '{doc_id}' missing required 'text' field")
-
         corpus[doc_id] = doc_data["text"]
 
-    # Extract and validate qrels
+    # Extract qrels
     qrels = data["qrels"]
-    if not isinstance(qrels, dict):
-        raise ValueError("'qrels' must be a dictionary")
 
     return {
         "queries": queries,
