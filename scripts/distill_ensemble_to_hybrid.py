@@ -219,7 +219,7 @@ def train_hybrid_pointwise(
 def train_hybrid_pairwise(
     queries: list[str],
     corpus_docs: list[str],
-    labels: dict,  # (query_idx, doc_idx) -> score
+    labels: dict[tuple[int, int], float],  # (query_idx, doc_idx) -> score
     output_path: Path,
 ) -> None:
     """Train HybridFusionReranker using pairwise (ranking) method.
@@ -264,7 +264,7 @@ def train_hybrid_pairwise(
                     score_b = doc_scores[j_idx]
 
                     # Skip pairs with equal scores (no preference)
-                    if score_a == score_b:
+                    if abs(score_a - score_b) < 1e-9:
                         skipped_equal += 1
                         continue
 
@@ -295,28 +295,10 @@ def train_hybrid_pairwise(
     label_0_count = len(train_labels) - label_1_count
     print(f"Label distribution: {label_1_count} pairs prefer doc_a, {label_0_count} pairs prefer doc_b")
 
-    # Create and train model
-    # Note: HybridFusionReranker.fit() expects (query, doc) pairs and binary labels
-    # For pairwise, we concatenate the two docs to create a single representation
+    # Create and train model with true pairwise data
     hybrid = HybridFusionReranker()
-
-    # Since fit() expects single doc per query, we need to adapt the pairwise input
-    # We'll create a combined representation for pairwise comparison
-    combined_queries = []
-    combined_docs = []
-    combined_labels = []
-
-    for query, doc_a, doc_b, label in zip(train_queries, train_doc_as, train_doc_bs, train_labels, strict=False):
-        # For each pair, we create two training examples:
-        # 1. (query, doc_a) with label indicating preference
-        # 2. (query, doc_b) with opposite label
-        combined_queries.extend([query, query])
-        combined_docs.extend([doc_a, doc_b])
-        # For doc_a: use original label, for doc_b: use inverse
-        combined_labels.extend([label, 1 - label])
-
-    print(f"Training with {len(combined_queries)} samples (pairwise expansion)")
-    hybrid.fit(combined_queries, combined_docs, combined_labels)
+    print(f"Training with {len(train_queries)} pairwise comparisons")
+    hybrid.fit(train_queries, train_doc_as, train_doc_bs, train_labels)
 
     if not hybrid.is_fitted:
         raise RuntimeError("Model training failed - is_fitted is False")

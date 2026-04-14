@@ -143,13 +143,28 @@ class HybridFusionReranker:
             rows.append(row)
         return np.asarray(rows, dtype=np.float32)
 
-    def fit(self, queries: list[str], docs: list[str], labels: list[int]) -> HybridFusionReranker:
-        samples = [
-            self._build_features(query, [doc])[0]
-            for query, doc, _ in zip(queries, docs, labels, strict=False)
-        ]
+    def fit(self, queries: list[str], doc_as: list[str], doc_bs: list[str], labels: list[int]) -> HybridFusionReranker:
+        """Train on true pairwise comparisons.
+
+        Args:
+            queries: Query for each pairwise comparison
+            doc_as: First document in each pair
+            doc_bs: Second document in each pair
+            labels: Binary preference labels (1 if doc_a preferred, 0 if doc_b preferred)
+
+        Returns:
+            self
+        """
+        samples = []
+        for query, doc_a, doc_b in zip(queries, doc_as, doc_bs, strict=False):
+            # Build features for both documents in the pair
+            features_a = self._build_features(query, [doc_a])[0]
+            features_b = self._build_features(query, [doc_b])[0]
+            # Use difference of features as the training sample
+            samples.append(features_a - features_b)
+
         if not samples:
-            samples = [self._build_features("", [""])[0]]
+            samples = [np.zeros(10, dtype=np.float32)]
             labels = [0]
         X = np.vstack(samples)
         y = np.asarray(labels[: len(samples)], dtype=np.int32)
@@ -159,6 +174,43 @@ class HybridFusionReranker:
         self.model_backend = (
             "xgboost" if self.model.__class__.__module__.startswith("xgboost") else "sklearn"
         )
+        self.is_fitted = True
+        return self
+
+    def fit_pointwise(
+        self,
+        queries: list[str],
+        docs: list[str],
+        scores: list[float],
+    ) -> HybridFusionReranker:
+        """Train on regression targets (soft labels).
+
+        Args:
+            queries: Query for each sample
+            docs: Document for each sample
+            scores: Target scores from teacher ensemble
+
+        Returns:
+            self
+        """
+        samples = [
+            self._build_features(query, [doc])[0]
+            for query, doc in zip(queries, docs, strict=False)
+        ]
+        if not samples:
+            return self
+
+        X = np.vstack(samples)
+        y = np.asarray(scores[: len(samples)], dtype=np.float32)
+
+        # Use model's regression capability if available, otherwise classify
+        if hasattr(self.model, "predict_proba"):
+            threshold = np.median(y)
+            y_binary = (y >= threshold).astype(int)
+            self.model.fit(X, y_binary)
+        else:
+            self.model.fit(X, y)
+
         self.is_fitted = True
         return self
 
