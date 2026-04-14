@@ -231,8 +231,100 @@ def train_hybrid_pairwise(
         output_path: Path to save trained model.
     """
     print("\nTraining HybridFusionReranker with pairwise method...")
-    print("Pairwise training not yet implemented.")
-    raise NotImplementedError("Pairwise training mode is not yet implemented.")
+
+    # Group labels by query: query_labels[q_idx] = {d_idx: score}
+    query_labels: defaultdict[int, dict[int, float]] = defaultdict(dict)
+    for (q_idx, d_idx), score in labels.items():
+        if q_idx < len(queries) and d_idx < len(corpus_docs):
+            query_labels[q_idx][d_idx] = score
+
+    # Generate pairwise comparisons
+    train_queries = []
+    train_doc_as = []
+    train_doc_bs = []
+    train_labels = []
+
+    total_pairs = 0
+    skipped_equal = 0
+    max_pairs_per_query = 1000  # Limit to avoid combinatorial explosion
+
+    for q_idx, doc_scores in query_labels.items():
+        doc_indices = sorted(doc_scores.keys())
+
+        # Generate all pairs (i, j) where i < j
+        pairs_generated = 0
+        for i_idx in doc_indices:
+            for j_idx in doc_indices:
+                if i_idx < j_idx:
+                    # Limit pairs per query to avoid excessive computation
+                    if pairs_generated >= max_pairs_per_query:
+                        break
+
+                    score_a = doc_scores[i_idx]
+                    score_b = doc_scores[j_idx]
+
+                    # Skip pairs with equal scores (no preference)
+                    if score_a == score_b:
+                        skipped_equal += 1
+                        continue
+
+                    # Label 1 if doc_a is preferred (higher score), else 0
+                    label = 1 if score_a > score_b else 0
+
+                    train_queries.append(queries[q_idx])
+                    train_doc_as.append(corpus_docs[i_idx])
+                    train_doc_bs.append(corpus_docs[j_idx])
+                    train_labels.append(label)
+                    total_pairs += 1
+                    pairs_generated += 1
+
+            # Break outer loop if we've hit the limit
+            if pairs_generated >= max_pairs_per_query:
+                print(f"  Query {q_idx}: limited to {max_pairs_per_query} pairs (out of {len(doc_indices) * (len(doc_indices) - 1) // 2} possible)")
+                break
+
+    if not train_queries:
+        raise ValueError("No valid pairwise training samples generated. Check if labels have score variations.")
+
+    print(f"Generated {total_pairs} pairwise comparisons")
+    if skipped_equal > 0:
+        print(f"Skipped {skipped_equal} pairs with equal scores")
+
+    # Count label distribution
+    label_1_count = sum(1 for label in train_labels if label == 1)
+    label_0_count = len(train_labels) - label_1_count
+    print(f"Label distribution: {label_1_count} pairs prefer doc_a, {label_0_count} pairs prefer doc_b")
+
+    # Create and train model
+    # Note: HybridFusionReranker.fit() expects (query, doc) pairs and binary labels
+    # For pairwise, we concatenate the two docs to create a single representation
+    hybrid = HybridFusionReranker()
+
+    # Since fit() expects single doc per query, we need to adapt the pairwise input
+    # We'll create a combined representation for pairwise comparison
+    combined_queries = []
+    combined_docs = []
+    combined_labels = []
+
+    for query, doc_a, doc_b, label in zip(train_queries, train_doc_as, train_doc_bs, train_labels, strict=False):
+        # For each pair, we create two training examples:
+        # 1. (query, doc_a) with label indicating preference
+        # 2. (query, doc_b) with opposite label
+        combined_queries.extend([query, query])
+        combined_docs.extend([doc_a, doc_b])
+        # For doc_a: use original label, for doc_b: use inverse
+        combined_labels.extend([label, 1 - label])
+
+    print(f"Training with {len(combined_queries)} samples (pairwise expansion)")
+    hybrid.fit(combined_queries, combined_docs, combined_labels)
+
+    if not hybrid.is_fitted:
+        raise RuntimeError("Model training failed - is_fitted is False")
+
+    # Save model
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    hybrid.save(output_path)
+    print(f"Model saved to {output_path}")
 
 
 def main() -> None:
