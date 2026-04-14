@@ -314,8 +314,8 @@ def train_hybrid_pairwise(
 
 def evaluate_hybrid(
     hybrid: HybridFusionReranker,
-    queries_dict: dict,
-    corpus_dict: dict,
+    queries: dict,
+    docs: dict,
     qrels: dict,
     top_k: int = 10,
 ) -> dict:
@@ -323,20 +323,20 @@ def evaluate_hybrid(
 
     Args:
         hybrid: Trained HybridFusionReranker model.
-        queries_dict: Mapping from query_id to query text.
-        corpus_dict: Mapping from doc_id to doc dict with _id, title, text.
+        queries: Mapping from query_id to query text.
+        docs: Mapping from doc_id to doc dict with _id, title, text.
         qrels: Mapping from query_id to {doc_id: relevance_score}.
         top_k: Number of top documents to consider for NDCG.
 
     Returns:
-        Dict with ndcg_at_10, avg_latency_ms, num_queries_evaluated
+        Dict with ndcg_at_10, avg_latency_ms, num_queries
     """
     print("\n" + "=" * 60)
     print("EVALUATION METRICS")
     print("=" * 60)
 
     # Get queries that have qrels for evaluation
-    queries_with_qrels = [qid for qid in queries_dict.keys() if qid in qrels and qrels[qid]]
+    queries_with_qrels = [qid for qid in queries.keys() if qid in qrels and qrels[qid]]
 
     # Latency benchmark: test on first 100 queries that have qrels
     num_latency_queries = min(100, len(queries_with_qrels))
@@ -346,14 +346,14 @@ def evaluate_hybrid(
     print(f"\n[Latency Benchmark] Testing on {num_latency_queries} queries...")
 
     for qid in query_ids_latency:
-        query = queries_dict[qid]
-        docs = [
-            f"{corpus_dict[did]['title']} {corpus_dict[did]['text']}".strip()
-            for did in sorted(corpus_dict.keys())[:100]  # Limit to 100 docs for speed
+        query = queries[qid]
+        docs_list = [
+            f"{docs[did]['title']} {docs[did]['text']}".strip()
+            for did in sorted(docs.keys())[:100]  # Limit to 100 docs for speed
         ]
 
         start_time = time.perf_counter()
-        _ = hybrid.rerank(query, docs)
+        _ = hybrid.rerank(query, docs_list)
         end_time = time.perf_counter()
 
         latencies.append((end_time - start_time) * 1000)  # Convert to ms
@@ -377,12 +377,12 @@ def evaluate_hybrid(
 
     for qid in query_ids_ndcg:
 
-        query = queries_dict[qid]
+        query = queries[qid]
         relevant_docs = qrels[qid]
 
         # Get candidate documents - include relevant docs + random sample up to 200
         relevant_doc_ids = set(relevant_docs.keys())
-        all_doc_ids = set(corpus_dict.keys())
+        all_doc_ids = set(docs.keys())
 
         # Ensure all relevant docs are included
         candidate_doc_ids = list(relevant_doc_ids)
@@ -393,13 +393,13 @@ def evaluate_hybrid(
             additional_needed = min(200 - len(candidate_doc_ids), len(remaining_docs))
             candidate_doc_ids.extend(sorted(remaining_docs)[:additional_needed])
 
-        docs = [
-            f"{corpus_dict[did]['title']} {corpus_dict[did]['text']}".strip()
+        docs_list = [
+            f"{docs[did]['title']} {docs[did]['text']}".strip()
             for did in candidate_doc_ids
         ]
 
         # Rerank
-        ranked_results = hybrid.rerank(query, docs)
+        ranked_results = hybrid.rerank(query, docs_list)
         ranked_doc_ids = [candidate_doc_ids[i] for i in range(len(ranked_results))]
 
         # Calculate DCG@10
@@ -431,7 +431,7 @@ def evaluate_hybrid(
     return {
         "ndcg_at_10": avg_ndcg,
         "avg_latency_ms": avg_latency_ms,
-        "num_queries_evaluated": evaluated_queries,
+        "num_queries": evaluated_queries,
     }
 
 
@@ -534,8 +534,8 @@ def main() -> None:
         # Run evaluation
         eval_results = evaluate_hybrid(
             hybrid=hybrid,
-            queries_dict=queries_dict,
-            corpus_dict=corpus_dict,
+            queries=queries_dict,
+            docs=corpus_dict,
             qrels=qrels,
             top_k=10,
         )
@@ -546,7 +546,7 @@ def main() -> None:
         print("=" * 60)
         print(f"NDCG@10:              {eval_results['ndcg_at_10']:.4f}")
         print(f"Avg Latency:          {eval_results['avg_latency_ms']:.2f} ms")
-        print(f"Queries Evaluated:    {eval_results['num_queries_evaluated']}")
+        print(f"Queries Evaluated:    {eval_results['num_queries']}")
         print("=" * 60)
     else:
         print(f"\nDataset '{args.dataset}' not yet supported.")
