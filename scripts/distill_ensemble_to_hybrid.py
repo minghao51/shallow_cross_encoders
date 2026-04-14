@@ -171,6 +171,65 @@ def generate_ensemble_labels(
     return cached_labels
 
 
+def train_hybrid_pointwise(
+    queries: list[str],
+    corpus_docs: list[str],
+    labels: dict,  # (query_idx, doc_idx) -> score
+    output_path: Path,
+) -> None:
+    """Train HybridFusionReranker using pointwise (regression) method.
+
+    Args:
+        queries: List of query texts.
+        corpus_docs: List of document texts.
+        labels: Dict mapping (query_idx, doc_idx) -> ensemble_score.
+        output_path: Path to save trained model.
+    """
+    print("\nTraining HybridFusionReranker with pointwise method...")
+
+    # Flatten labels dict to lists
+    train_queries = []
+    train_docs = []
+    train_scores = []
+
+    for (q_idx, d_idx), score in labels.items():
+        if q_idx < len(queries) and d_idx < len(corpus_docs):
+            train_queries.append(queries[q_idx])
+            train_docs.append(corpus_docs[d_idx])
+            train_scores.append(score)
+
+    print(f"Training samples: {len(train_queries)}")
+    print(f"Score range: [{min(train_scores):.4f}, {max(train_scores):.4f}]")
+
+    # Create and train model
+    hybrid = HybridFusionReranker()
+    hybrid.fit_pointwise(train_queries, train_docs, train_scores)
+
+    # Save model
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    hybrid.save(output_path)
+    print(f"Model saved to {output_path}")
+
+
+def train_hybrid_pairwise(
+    queries: list[str],
+    corpus_docs: list[str],
+    labels: dict,  # (query_idx, doc_idx) -> score
+    output_path: Path,
+) -> None:
+    """Train HybridFusionReranker using pairwise (ranking) method.
+
+    Args:
+        queries: List of query texts.
+        corpus_docs: List of document texts.
+        labels: Dict mapping (query_idx, doc_idx) -> ensemble_score.
+        output_path: Path to save trained model.
+    """
+    print("\nTraining HybridFusionReranker with pairwise method...")
+    print("Pairwise training not yet implemented.")
+    raise NotImplementedError("Pairwise training mode is not yet implemented.")
+
+
 def main() -> None:
     """Main entry point for ensemble distillation pipeline."""
     args = parse_args()
@@ -241,8 +300,26 @@ def main() -> None:
 
         print(f"Generated {len(labels)} query-document pair scores")
 
-    # Pipeline structure complete
-    print("\nPipeline structure complete. Implementation continues...")
+        # Train Hybrid based on method
+        if args.method == "pointwise":
+            train_hybrid_pointwise(
+                queries=queries,
+                corpus_docs=corpus_docs,
+                labels=labels,
+                output_path=args.output,
+            )
+        elif args.method == "pairwise":
+            train_hybrid_pairwise(
+                queries=queries,
+                corpus_docs=corpus_docs,
+                labels=labels,
+                output_path=args.output,
+            )
+        else:
+            print(f"\nMethod '{args.method}' not yet implemented.")
+    else:
+        print(f"\nDataset '{args.dataset}' not yet supported.")
+        print("Supported datasets: beir, mixed")
 
 
 if __name__ == "__main__":
