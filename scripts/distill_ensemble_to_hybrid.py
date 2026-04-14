@@ -174,7 +174,7 @@ def generate_ensemble_labels(
 def train_hybrid_pointwise(
     queries: list[str],
     corpus_docs: list[str],
-    labels: dict,  # (query_idx, doc_idx) -> score
+    labels: dict[tuple[int, int], float],  # (query_idx, doc_idx) -> ensemble_score
     output_path: Path,
 ) -> None:
     """Train HybridFusionReranker using pointwise (regression) method.
@@ -198,12 +198,17 @@ def train_hybrid_pointwise(
             train_docs.append(corpus_docs[d_idx])
             train_scores.append(score)
 
+    if not train_queries:
+        raise ValueError("No valid training samples generated from labels")
     print(f"Training samples: {len(train_queries)}")
     print(f"Score range: [{min(train_scores):.4f}, {max(train_scores):.4f}]")
 
     # Create and train model
     hybrid = HybridFusionReranker()
     hybrid.fit_pointwise(train_queries, train_docs, train_scores)
+
+    if not hybrid.is_fitted:
+        raise RuntimeError("Model training failed - is_fitted is False")
 
     # Save model
     output_path.parent.mkdir(parents=True, exist_ok=True)
