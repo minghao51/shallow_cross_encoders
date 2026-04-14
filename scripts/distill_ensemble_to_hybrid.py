@@ -163,15 +163,12 @@ def generate_ensemble_labels(
                 print(f"  Processing query {q_idx}/{len(queries)}")
             scores = ensemble.score_batch(query, corpus_docs)
             for d_idx, score in enumerate(scores):
-                # Convert tuple key to string for JSON serialization
-                labels[f"{q_idx}_{d_idx}"] = float(score)
+                labels[(q_idx, d_idx)] = float(score)
         return labels
 
     dataset_id = f"queries_{len(queries)}_docs_{len(corpus_docs)}"
     cached_labels = cache.load_or_generate(dataset_id, ensemble.models, generator_fn, force_regenerate)
-
-    # Convert string keys back to tuples for internal use
-    return {tuple(map(int, k.split("_"))): v for k, v in cached_labels.items()}
+    return cached_labels
 
 
 def main() -> None:

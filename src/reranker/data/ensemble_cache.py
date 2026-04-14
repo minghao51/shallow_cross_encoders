@@ -39,13 +39,35 @@ class EnsembleLabelCache:
         combined = f"{dataset}:{','.join(sorted_teachers)}"
         return sha256(combined.encode()).hexdigest()[:16]
 
+    def _convert_tuples_to_lists(self, labels: dict) -> dict:
+        """Convert tuple keys to list representation for JSON serialization.
+
+        Args:
+            labels: Dictionary with tuple keys.
+
+        Returns:
+            Dictionary with string keys representing tuples as "idx1_idx2".
+        """
+        return {f"{k[0]}_{k[1]}": v for k, v in labels.items()}
+
+    def _convert_lists_to_tuples(self, labels: dict) -> dict:
+        """Convert list representation back to tuple keys.
+
+        Args:
+            labels: Dictionary with string keys like "idx1_idx2".
+
+        Returns:
+            Dictionary with tuple keys (idx1, idx2).
+        """
+        return {tuple(map(int, k.split("_"))): v for k, v in labels.items()}
+
     def load_or_generate(
         self,
         dataset: str,
         teachers: list[str],
-        generator_fn: Callable[[], dict[str, Any]],
+        generator_fn: Callable[[], dict],
         force_regenerate: bool = False,
-    ) -> dict[str, Any]:
+    ) -> dict:
         """Load labels from cache or generate using provided function.
 
         Args:
@@ -63,12 +85,14 @@ class EnsembleLabelCache:
         # Return cached labels if available and not forcing regeneration
         if not force_regenerate and cache_file.exists():
             try:
-                return read_json(cache_file)
+                cached = read_json(cache_file)
+                return self._convert_lists_to_tuples(cached)
             except Exception:
                 # Corrupted cache - fall through to regeneration
                 pass
 
         # Generate new labels
         labels = generator_fn()
-        write_json(cache_file, labels)
+        serializable_labels = self._convert_tuples_to_lists(labels)
+        write_json(cache_file, serializable_labels)
         return labels
