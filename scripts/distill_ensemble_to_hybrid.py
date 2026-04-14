@@ -4,9 +4,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import time
 from collections import defaultdict
 from pathlib import Path
 from typing import TYPE_CHECKING
+
+import numpy as np
 
 from reranker.config import get_settings
 from reranker.data.ensemble_cache import EnsembleLabelCache
@@ -309,6 +312,129 @@ def train_hybrid_pairwise(
     print(f"Model saved to {output_path}")
 
 
+def evaluate_hybrid(
+    hybrid: HybridFusionReranker,
+    queries_dict: dict,
+    corpus_dict: dict,
+    qrels: dict,
+    top_k: int = 10,
+) -> dict:
+    """Evaluate hybrid model performance with NDCG@10 and latency benchmarking.
+
+    Args:
+        hybrid: Trained HybridFusionReranker model.
+        queries_dict: Mapping from query_id to query text.
+        corpus_dict: Mapping from doc_id to doc dict with _id, title, text.
+        qrels: Mapping from query_id to {doc_id: relevance_score}.
+        top_k: Number of top documents to consider for NDCG.
+
+    Returns:
+        Dict with ndcg_at_10, avg_latency_ms, num_queries_evaluated
+    """
+    print("\n" + "=" * 60)
+    print("EVALUATION METRICS")
+    print("=" * 60)
+
+    # Get queries that have qrels for evaluation
+    queries_with_qrels = [qid for qid in queries_dict.keys() if qid in qrels and qrels[qid]]
+
+    # Latency benchmark: test on first 100 queries that have qrels
+    num_latency_queries = min(100, len(queries_with_qrels))
+    query_ids_latency = sorted(queries_with_qrels)[:num_latency_queries]
+    latencies = []
+
+    print(f"\n[Latency Benchmark] Testing on {num_latency_queries} queries...")
+
+    for qid in query_ids_latency:
+        query = queries_dict[qid]
+        docs = [
+            f"{corpus_dict[did]['title']} {corpus_dict[did]['text']}".strip()
+            for did in sorted(corpus_dict.keys())[:100]  # Limit to 100 docs for speed
+        ]
+
+        start_time = time.perf_counter()
+        _ = hybrid.rerank(query, docs)
+        end_time = time.perf_counter()
+
+        latencies.append((end_time - start_time) * 1000)  # Convert to ms
+
+    avg_latency_ms = np.mean(latencies)
+    std_latency_ms = np.std(latencies)
+
+    print(f"  Average latency: {avg_latency_ms:.2f} ms")
+    print(f"  Std deviation:  {std_latency_ms:.2f} ms")
+    print(f"  Min latency:     {min(latencies):.2f} ms")
+    print(f"  Max latency:     {max(latencies):.2f} ms")
+
+    # NDCG@10 calculation on first 50 queries with qrels
+    num_ndcg_queries = min(50, len(queries_with_qrels))
+    query_ids_ndcg = sorted(queries_with_qrels)[:num_ndcg_queries]
+
+    print(f"\n[NDCG@10] Calculating on {num_ndcg_queries} queries...")
+
+    ndcg_scores = []
+    evaluated_queries = 0
+
+    for qid in query_ids_ndcg:
+
+        query = queries_dict[qid]
+        relevant_docs = qrels[qid]
+
+        # Get candidate documents - include relevant docs + random sample up to 200
+        relevant_doc_ids = set(relevant_docs.keys())
+        all_doc_ids = set(corpus_dict.keys())
+
+        # Ensure all relevant docs are included
+        candidate_doc_ids = list(relevant_doc_ids)
+
+        # Add random docs to reach 200 total candidates
+        remaining_docs = all_doc_ids - relevant_doc_ids
+        if len(remaining_docs) > 0:
+            additional_needed = min(200 - len(candidate_doc_ids), len(remaining_docs))
+            candidate_doc_ids.extend(sorted(remaining_docs)[:additional_needed])
+
+        docs = [
+            f"{corpus_dict[did]['title']} {corpus_dict[did]['text']}".strip()
+            for did in candidate_doc_ids
+        ]
+
+        # Rerank
+        ranked_results = hybrid.rerank(query, docs)
+        ranked_doc_ids = [candidate_doc_ids[i] for i in range(len(ranked_results))]
+
+        # Calculate DCG@10
+        dcg = 0.0
+        for rank, doc_id in enumerate(ranked_doc_ids[:top_k], start=1):
+            relevance = relevant_docs.get(doc_id, 0)
+            dcg += relevance / np.log2(rank + 1)
+
+        # Calculate IDCG@10 (ideal ranking)
+        ideal_relevances = sorted(
+            [relevant_docs.get(did, 0) for did in candidate_doc_ids],
+            reverse=True
+        )[:top_k]
+        idcg = sum(
+            rel / np.log2(rank + 1)
+            for rank, rel in enumerate(ideal_relevances, start=1)
+        )
+
+        # NDCG
+        ndcg = dcg / idcg if idcg > 0 else 0.0
+        ndcg_scores.append(ndcg)
+        evaluated_queries += 1
+
+    avg_ndcg = np.mean(ndcg_scores) if ndcg_scores else 0.0
+
+    print(f"  NDCG@10: {avg_ndcg:.4f}")
+    print(f"  Queries evaluated: {evaluated_queries}")
+
+    return {
+        "ndcg_at_10": avg_ndcg,
+        "avg_latency_ms": avg_latency_ms,
+        "num_queries_evaluated": evaluated_queries,
+    }
+
+
 def main() -> None:
     """Main entry point for ensemble distillation pipeline."""
     args = parse_args()
@@ -396,6 +522,32 @@ def main() -> None:
             )
         else:
             print(f"\nMethod '{args.method}' not yet implemented.")
+            return
+
+        # Load trained model and evaluate
+        print("\n" + "=" * 60)
+        print("LOADING TRAINED MODEL FOR EVALUATION")
+        print("=" * 60)
+        hybrid = HybridFusionReranker.load(args.output)
+        print(f"Model loaded from {args.output}")
+
+        # Run evaluation
+        eval_results = evaluate_hybrid(
+            hybrid=hybrid,
+            queries_dict=queries_dict,
+            corpus_dict=corpus_dict,
+            qrels=qrels,
+            top_k=10,
+        )
+
+        # Print summary
+        print("\n" + "=" * 60)
+        print("EVALUATION SUMMARY")
+        print("=" * 60)
+        print(f"NDCG@10:              {eval_results['ndcg_at_10']:.4f}")
+        print(f"Avg Latency:          {eval_results['avg_latency_ms']:.2f} ms")
+        print(f"Queries Evaluated:    {eval_results['num_queries_evaluated']}")
+        print("=" * 60)
     else:
         print(f"\nDataset '{args.dataset}' not yet supported.")
         print("Supported datasets: beir, mixed")
