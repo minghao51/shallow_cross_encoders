@@ -60,7 +60,8 @@ you can regenerate one dataset at a time without losing the aggregate summary.
 Most fallback and default settings now live in [src/reranker/config.py](/Users/minghao/Desktop/personal/shallow_cross_encoders/src/reranker/config.py)
 and can be overridden with environment variables such as `OPENROUTER_MODEL`,
 `RERANKER_EMBEDDER_MODEL`, `RERANKER_SEED`, `RERANKER_DISTILLED_FULL_TOURNAMENT_MAX_DOCS`,
-and the `RERANKER_*COUNT` values shown in `.env.example`.
+the `RERANKER_*COUNT` values shown in `.env.example`, and
+`RERANKER_STREAM_CHUNK_SIZE` for chunked JSONL materialization.
 
 ## Runtime Validation
 
@@ -83,6 +84,26 @@ uv run python scripts/benchmark_core.py
 Hybrid training still writes the compatibility-safe pickle artifact by default through the eval
 path, and can also save an XGBoost-native JSON artifact when the runtime backend is available.
 
+## Ensemble Distillation
+
+Train fast Hybrid Fusion Reranker models from FlashRank cross-encoder teachers using knowledge distillation:
+
+```bash
+# Install FlashRank dependency
+uv sync --extra flashrank
+
+# Train distilled model on BEIR dataset
+uv run python scripts/distill_ensemble_to_hybrid.py --dataset beir --method pairwise
+
+# Train on custom dataset
+uv run python scripts/distill_ensemble_to_hybrid.py \
+  --dataset custom \
+  --custom-path data/custom_dataset.jsonl \
+  --method pairwise
+```
+
+**Expected results:** 95-98% of teacher ensemble NDCG@10 with ~50ms latency. See [Ensemble Distillation Guide](docs/ensemble-distillation-guide.md) for details.
+
 ## Dependency Policy
 
 The project remains intentionally offline-first:
@@ -91,6 +112,7 @@ The project remains intentionally offline-first:
   fallback, no external API dependency.
 - Runtime extras: enable `model2vec`, `rank-bm25`, and `xgboost` for real latency and quality
   measurements.
+- FlashRank: optional cross-encoder models for ensemble distillation (CPU-native via ONNX Runtime).
 - OpenRouter: still optional and used only for teacher-backed dataset generation, never for the
   inference path.
 
@@ -102,3 +124,8 @@ validation flow when optional services are configured.
 The source package lives under `src/reranker`. Generated datasets, models, and logs are stored
 under `data/`. The exploratory notebook for label-distribution and cost review lives in
 `notebooks/00_data_exploration.ipynb`.
+
+Synthetic data generation internals are split across
+`src/reranker/data/synth/generator/` and `src/reranker/data/_expanded/`, while
+the historical public modules remain import-compatible. Architectural notes for those modules live
+in [docs/20260408-data-generation-architecture.md](/Users/minghao/Desktop/personal/shallow_cross_encoders/docs/20260408-data-generation-architecture.md).
