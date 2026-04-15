@@ -18,6 +18,7 @@ import argparse
 import json
 import sys
 import time
+import traceback
 from collections import defaultdict
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -622,11 +623,18 @@ def main() -> None:
         print("=" * 60)
 
     except ImportError as e:
-        print(f"Error: {e}")
-        print("Install dependencies: uv sync --extra flashrank")
+        print(f"ImportError: {e}")
+        error_msg = str(e).lower()
+        if "flashrank" in error_msg:
+            print("Install: uv pip install flashrank")
+        elif "beir" in error_msg:
+            print("Install: uv pip install beir --no-deps && uv pip install rank-bm25 pyyaml")
+        else:
+            print("Install dependencies: uv sync --extra flashrank")
         sys.exit(1)
     except Exception as e:
         print(f"Error: {e}")
+        traceback.print_exc()
         sys.exit(1)
 
 
