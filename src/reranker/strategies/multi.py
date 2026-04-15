@@ -80,7 +80,7 @@ class MultiReranker:
             results = ranker.rerank(query, docs)
             scores = np.array([r.score for r in results], dtype=np.float32)
             if weight != 1.0:
-                scores = scores * weight
+                scores = np.clip(scores, 0, None) * weight
             score_arrays.append(scores)
             metadata_list.append({"name": name, "weight": weight})
 

@@ -72,17 +72,13 @@ def load_custom_beir(path: Path | str) -> dict:
         # Handle both string format and dict format
         if isinstance(doc_data, str):
             # Simple string format - treat as text
-            corpus[doc_id] = {
-                "_id": doc_id,
-                "title": "",
-                "text": doc_data
-            }
+            corpus[doc_id] = {"_id": doc_id, "title": "", "text": doc_data}
         elif isinstance(doc_data, dict):
             # Dict format - extract fields with defaults
             corpus[doc_id] = {
                 "_id": doc_id,
                 "title": doc_data.get("title", ""),
-                "text": doc_data.get("text", "")
+                "text": doc_data.get("text", ""),
             }
         else:
             raise ValueError(f"Invalid corpus data format for doc {doc_id}: {type(doc_data)}")

@@ -153,7 +153,8 @@ def evaluate_strategy(
         else:
             reranker = HybridFusionReranker(adapters=[KeywordMatchAdapter()]).fit(
                 queries=[str(row["query"]) for row in train_rows],
-                docs=[str(row["doc"]) for row in train_rows],
+                doc_as=[str(row["doc"]) for row in train_rows],
+                doc_bs=[str(row["doc"]) for row in train_rows],
                 labels=binary_labels,
             )
             model_path = model_root / "hybrid_reranker.pkl"

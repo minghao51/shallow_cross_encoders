@@ -3,7 +3,6 @@
 from collections.abc import Callable
 from hashlib import sha256
 from pathlib import Path
-from typing import Any
 
 from reranker.utils import read_json, write_json
 
@@ -59,7 +58,17 @@ class EnsembleLabelCache:
         Returns:
             Dictionary with tuple keys (idx1, idx2).
         """
-        return {tuple(map(int, k.split("_"))): v for k, v in labels.items()}
+        result = {}
+        for k, v in labels.items():
+            parts = k.split("_")
+            if len(parts) == 2:
+                try:
+                    result[(int(parts[0]), int(parts[1]))] = v
+                except ValueError:
+                    result[k] = v
+            else:
+                result[k] = v
+        return result
 
     def load_or_generate(
         self,

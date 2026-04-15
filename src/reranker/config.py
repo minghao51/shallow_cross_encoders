@@ -4,7 +4,7 @@ import os
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 
 
 def _env_int(name: str, default: int) -> int:
@@ -61,6 +61,7 @@ class SyntheticDataSettings(BaseModel):
     seed: int = 42
     teacher_batch_size: int = 20
     teacher_max_workers: int = 4
+    stream_chunk_size: int = 100
     pair_count: int = 2000
     preference_count: int = 1500
     contradiction_count: int = 500
@@ -130,6 +131,13 @@ class PipelineSettings(BaseModel):
     default_stage_top_k: int = 200
 
 
+class CascadeSettings(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    confidence_threshold: float = 0.6
+    fallback_strategy: str = "flashrank"  # flashrank, always, never
+
+
 class ConsistencySettings(BaseModel):
     model_config = ConfigDict(frozen=True)
 
@@ -164,6 +172,13 @@ class EvalSettings(BaseModel):
     validation_ratio: float = 0.15
     test_ratio: float = 0.15
 
+    @field_validator("train_ratio", "validation_ratio", "test_ratio")
+    @classmethod
+    def validate_ratios(cls, v: float) -> float:
+        if not 0.0 <= v <= 1.0:
+            raise ValueError(f"Ratio must be between 0.0 and 1.0, got {v}")
+        return v
+
 
 class Settings(BaseModel):
     model_config = ConfigDict(frozen=True)
@@ -177,6 +192,7 @@ class Settings(BaseModel):
     late_interaction: LateInteractionSettings
     binary_reranker: BinaryRerankerSettings
     pipeline: PipelineSettings
+    cascade: CascadeSettings
     consistency: ConsistencySettings
     roi: RoiSettings
     benchmark: BenchmarkSettings
@@ -209,6 +225,7 @@ def get_settings() -> Settings:
             seed=_env_int("RERANKER_SEED", 42),
             teacher_batch_size=_env_int("RERANKER_TEACHER_BATCH_SIZE", 20),
             teacher_max_workers=_env_int("RERANKER_TEACHER_MAX_WORKERS", 4),
+            stream_chunk_size=_env_int("RERANKER_STREAM_CHUNK_SIZE", 100),
             pair_count=_env_int("RERANKER_PAIR_COUNT", 60),
             preference_count=_env_int("RERANKER_PREFERENCE_COUNT", 40),
             contradiction_count=_env_int("RERANKER_CONTRADICTION_COUNT", 20),
@@ -260,6 +277,10 @@ def get_settings() -> Settings:
         ),
         pipeline=PipelineSettings(
             default_stage_top_k=_env_int("RERANKER_PIPELINE_DEFAULT_STAGE_TOP_K", 200),
+        ),
+        cascade=CascadeSettings(
+            confidence_threshold=_env_float("RERANKER_CASCADE_CONFIDENCE_THRESHOLD", 0.6),
+            fallback_strategy=_env_str("RERANKER_CASCADE_FALLBACK_STRATEGY", "flashrank"),
         ),
         consistency=ConsistencySettings(
             sim_threshold=_env_float("RERANKER_CONSISTENCY_SIM_THRESHOLD", 0.95),

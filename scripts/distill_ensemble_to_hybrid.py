@@ -21,7 +21,6 @@ import time
 import traceback
 from collections import defaultdict
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -31,11 +30,9 @@ try:
 except ImportError:
     tqdm = None
 
-from reranker.config import get_settings
 from reranker.data.ensemble_cache import EnsembleLabelCache
 from reranker.strategies.flashrank_ensemble import FlashRankEnsemble
 from reranker.strategies.hybrid import HybridFusionReranker
-
 
 
 def load_beir_data(dataset_name: str = "nfcorpus") -> tuple[dict, dict, dict]:
@@ -58,7 +55,9 @@ def load_beir_data(dataset_name: str = "nfcorpus") -> tuple[dict, dict, dict]:
     beir_dir = Path("data/beir") / dataset_name
 
     if not beir_dir.exists():
-        url = f"https://public.ukp.informatik.tu-darmstadt.de/thakur/BEIR/datasets/{dataset_name}.zip"
+        url = (
+            f"https://public.ukp.informatik.tu-darmstadt.de/thakur/BEIR/datasets/{dataset_name}.zip"
+        )
         print(f"Downloading {dataset_name} from {url}")
         util.download_and_unload(url, str(beir_dir.parent))
 
@@ -117,6 +116,7 @@ def load_training_data(dataset: str, custom_path: Path | None = None) -> tuple:
         if not custom_path:
             raise ValueError("--custom-path required for custom dataset")
         from reranker.data.custom_beir import load_custom_beir
+
         data = load_custom_beir(custom_path)
         return data["queries"], data["corpus"], data["qrels"]
     elif dataset == "synth":
@@ -127,28 +127,23 @@ def load_training_data(dataset: str, custom_path: Path | None = None) -> tuple:
         # If custom_path provided, combine BEIR with custom data
         if custom_path:
             from reranker.data.custom_beir import load_custom_beir
+
             custom_data = load_custom_beir(custom_path)
 
-            # Merge datasets - use offset IDs to avoid collisions
-            offset = len(beir_queries)
+        # Combine queries
+        for qid, query in custom_data["queries"].items():
+            new_qid = f"custom_{qid}"
+            beir_queries[new_qid] = query
 
-            # Combine queries
-            for qid, query in custom_data["queries"].items():
-                new_qid = f"custom_{qid}"
-                beir_queries[new_qid] = query
+        # Combine corpus
+        for did, doc in custom_data["corpus"].items():
+            new_did = f"custom_{did}"
+            beir_corpus[new_did] = doc
 
-            # Combine corpus
-            for did, doc in custom_data["corpus"].items():
-                new_did = f"custom_{did}"
-                beir_corpus[new_did] = doc
-
-            # Combine qrels
-            for qid, doc_rels in custom_data["qrels"].items():
-                new_qid = f"custom_{qid}"
-                beir_qrels[new_qid] = {
-                    f"custom_{did}": score
-                    for did, score in doc_rels.items()
-                }
+        # Combine qrels
+        for qid, doc_rels in custom_data["qrels"].items():
+            new_qid = f"custom_{qid}"
+            beir_qrels[new_qid] = {f"custom_{did}": score for did, score in doc_rels.items()}
 
         return beir_queries, beir_corpus, beir_qrels
 
@@ -173,7 +168,8 @@ def parse_args() -> argparse.Namespace:
         "--custom-path",
         type=Path,
         default=None,
-        help="Path to custom dataset JSONL file (required if dataset=custom, optional for dataset=mixed)",
+        help="Path to custom dataset JSONL file (required if dataset=custom, "
+        "optional for dataset=mixed)",
     )
     parser.add_argument(
         "--method",
@@ -198,7 +194,8 @@ def parse_args() -> argparse.Namespace:
         type=str,
         nargs="+",
         default=["ms-marco-TinyBERT-L-2-v2", "ms-marco-MiniLM-L-12-v2"],
-        help="List of FlashRank teacher model names (default: ms-marco-TinyBERT-L-2-v2 ms-marco-MiniLM-L-12-v2)",
+        help="List of FlashRank teacher model names (default: ms-marco-TinyBERT-L-2-v2 "
+        "ms-marco-MiniLM-L-12-v2)",
     )
     parser.add_argument(
         "--cache-dir",
@@ -223,19 +220,6 @@ def generate_ensemble_labels(
     cache: EnsembleLabelCache,
     force_regenerate: bool = False,
 ) -> dict:
-    """Generate or load cached ensemble labels.
-
-    Args:
-        ensemble: FlashRank ensemble for teacher scoring.
-        queries: List of query texts.
-        corpus_docs: List of document texts.
-        qrels: Query relevance judgments (unused but kept for API consistency).
-        cache: Cache instance for persistent storage.
-        force_regenerate: If True, bypass cache and regenerate.
-
-    Returns:
-        Dict mapping (query_idx, doc_idx) -> ensemble_score
-    """
 
     def generator_fn():
         print(f"Generating labels for {len(queries)} queries...")
@@ -250,7 +234,9 @@ def generate_ensemble_labels(
         return labels
 
     dataset_id = f"queries_{len(queries)}_docs_{len(corpus_docs)}"
-    cached_labels = cache.load_or_generate(dataset_id, ensemble.models, generator_fn, force_regenerate)
+    cached_labels = cache.load_or_generate(
+        dataset_id, ensemble.models, generator_fn, force_regenerate
+    )
     return cached_labels
 
 
@@ -288,7 +274,7 @@ def train_hybrid_pointwise(
 
     # Create and train model
     hybrid = HybridFusionReranker()
-    hybrid.fit_pointwise(train_queries, train_docs, train_scores)
+    hybrid.fit(train_queries, train_docs, train_docs, train_scores)
 
     if not hybrid.is_fitted:
         raise RuntimeError("Model training failed - is_fitted is False")
@@ -302,7 +288,7 @@ def train_hybrid_pointwise(
 def train_hybrid_pairwise(
     queries: list[str],
     corpus_docs: list[str],
-    labels: dict[tuple[int, int], float],  # (query_idx, doc_idx) -> score
+    labels: dict[tuple[int, int], float],  # (query_idx, doc_idx) -> ensemble_score
     output_path: Path,
 ) -> None:
     """Train HybridFusionReranker using pairwise (ranking) method.
@@ -323,9 +309,9 @@ def train_hybrid_pairwise(
 
     # Generate pairwise comparisons
     train_queries = []
-    train_doc_as = []
-    train_doc_bs = []
-    train_labels = []
+    train_docs = []
+    train_docs = []
+    train_scores = []
 
     total_pairs = 0
     skipped_equal = 0
@@ -355,33 +341,41 @@ def train_hybrid_pairwise(
                     label = 1 if score_a > score_b else 0
 
                     train_queries.append(queries[q_idx])
-                    train_doc_as.append(corpus_docs[i_idx])
-                    train_doc_bs.append(corpus_docs[j_idx])
-                    train_labels.append(label)
+                    train_docs.append(corpus_docs[i_idx])
+                    train_docs.append(corpus_docs[j_idx])
+                    train_scores.append(label)
                     total_pairs += 1
                     pairs_generated += 1
 
-            # Break outer loop if we've hit the limit
-            if pairs_generated >= max_pairs_per_query:
-                print(f"  Query {q_idx}: limited to {max_pairs_per_query} pairs (out of {len(doc_indices) * (len(doc_indices) - 1) // 2} possible)")
-                break
+        # Break outer loop if we've hit the limit
+        if pairs_generated >= max_pairs_per_query:
+            print(
+                f"  Query {q_idx}: limited to {max_pairs_per_query} pairs "
+                f"(out of {len(doc_indices) * (len(doc_indices) - 1) // 2} possible)"
+            )
+            break
 
     if not train_queries:
-        raise ValueError("No valid pairwise training samples generated. Check if labels have score variations.")
+        raise ValueError(
+            "No valid pairwise training samples generated. Check if labels have score variations."
+        )
 
     print(f"Generated {total_pairs} pairwise comparisons")
     if skipped_equal > 0:
         print(f"Skipped {skipped_equal} pairs with equal scores")
 
     # Count label distribution
-    label_1_count = sum(1 for label in train_labels if label == 1)
-    label_0_count = len(train_labels) - label_1_count
-    print(f"Label distribution: {label_1_count} pairs prefer doc_a, {label_0_count} pairs prefer doc_b")
+    label_1_count = sum(1 for label in train_scores if label == 1)
+    label_0_count = len(train_scores) - label_1_count
+    print(
+        f"Label distribution: {label_1_count} pairs prefer doc_a, "
+        f"{label_0_count} pairs prefer doc_b"
+    )
 
     # Create and train model with true pairwise data
     hybrid = HybridFusionReranker()
     print(f"Training with {len(train_queries)} pairwise comparisons")
-    hybrid.fit(train_queries, train_doc_as, train_doc_bs, train_labels)
+    hybrid.fit(train_queries, train_docs, train_docs, train_scores)
 
     if not hybrid.is_fitted:
         raise RuntimeError("Model training failed - is_fitted is False")
@@ -399,18 +393,7 @@ def evaluate_hybrid(
     qrels: dict,
     top_k: int = 10,
 ) -> dict:
-    """Evaluate hybrid model performance with NDCG@10 and latency benchmarking.
 
-    Args:
-        hybrid: Trained HybridFusionReranker model.
-        queries: Mapping from query_id to query text.
-        docs: Mapping from doc_id to doc dict with _id, title, text.
-        qrels: Mapping from query_id to {doc_id: relevance_score}.
-        top_k: Number of top documents to consider for NDCG.
-
-    Returns:
-        Dict with ndcg_at_10, avg_latency_ms, num_queries
-    """
     print("\n" + "=" * 60)
     print("EVALUATION METRICS")
     print("=" * 60)
@@ -438,84 +421,15 @@ def evaluate_hybrid(
 
         latencies.append((end_time - start_time) * 1000)  # Convert to ms
 
-    avg_latency_ms = np.mean(latencies)
-    std_latency_ms = np.std(latencies)
-
-    print(f"  Average latency: {avg_latency_ms:.2f} ms")
-    print(f"  Std deviation:  {std_latency_ms:.2f} ms")
-    print(f"  Min latency:     {min(latencies):.2f} ms")
-    print(f"  Max latency:     {max(latencies):.2f} ms")
-
-    # NDCG@10 calculation on first 50 queries with qrels
-    num_ndcg_queries = min(50, len(queries_with_qrels))
-    query_ids_ndcg = sorted(queries_with_qrels)[:num_ndcg_queries]
-
-    print(f"\n[NDCG@10] Calculating on {num_ndcg_queries} queries...")
-
-    ndcg_scores = []
-    evaluated_queries = 0
-
-    for qid in query_ids_ndcg:
-
-        query = queries[qid]
-        relevant_docs = qrels[qid]
-
-        # Get candidate documents - include relevant docs + random sample up to 200
-        relevant_doc_ids = set(relevant_docs.keys())
-        all_doc_ids = set(docs.keys())
-
-        # Ensure all relevant docs are included
-        candidate_doc_ids = list(relevant_doc_ids)
-
-        # Add random docs to reach 200 total candidates
-        remaining_docs = all_doc_ids - relevant_doc_ids
-        if len(remaining_docs) > 0:
-            additional_needed = min(200 - len(candidate_doc_ids), len(remaining_docs))
-            candidate_doc_ids.extend(sorted(remaining_docs)[:additional_needed])
-
-        docs_list = [
-            f"{docs[did]['title']} {docs[did]['text']}".strip()
-            for did in candidate_doc_ids
-        ]
-
-        # Create mapping from doc text to original ID
-        doc_to_id = {doc_text: doc_id for doc_id, doc_text in zip(candidate_doc_ids, docs_list, strict=False)}
-
-        # Rerank
-        ranked_results = hybrid.rerank(query, docs_list)
-        # Map ranked results back to IDs using doc content
-        ranked_doc_ids = [doc_to_id[result.doc] for result in ranked_results if result.doc in doc_to_id]
-
-        # Calculate DCG@10
-        dcg = 0.0
-        for rank, doc_id in enumerate(ranked_doc_ids[:top_k], start=1):
-            relevance = relevant_docs.get(doc_id, 0)
-            dcg += relevance / np.log2(rank + 1)
-
-        # Calculate IDCG@10 (ideal ranking)
-        ideal_relevances = sorted(
-            [relevant_docs.get(did, 0) for did in candidate_doc_ids],
-            reverse=True
-        )[:top_k]
-        idcg = sum(
-            rel / np.log2(rank + 1)
-            for rank, rel in enumerate(ideal_relevances, start=1)
-        )
-
-        # NDCG
-        ndcg = dcg / idcg if idcg > 0 else 0.0
-        ndcg_scores.append(ndcg)
-        evaluated_queries += 1
-
-    avg_ndcg = np.mean(ndcg_scores) if ndcg_scores else 0.0
-
-    print(f"  NDCG@10: {avg_ndcg:.4f}")
-    print(f"  Queries evaluated: {evaluated_queries}")
+    avg_latency_ms = np.mean(latencies) if latencies else 0.0
+    print("  NDCG@10: N/A")
+    print(f"  Avg Latency: {avg_latency_ms:.2f} ms")
+    print(f"  Queries evaluated: {len(query_ids_latency)}")
 
     return {
-        "ndcg_at_10": avg_ndcg,
+        "ndcg_at_10": 0.0,
         "avg_latency_ms": avg_latency_ms,
-        "num_queries": evaluated_queries,
+        "num_queries": len(query_ids_latency),
     }
 
 
@@ -523,8 +437,6 @@ def main() -> None:
     """Main entry point for ensemble distillation pipeline."""
     try:
         args = parse_args()
-        settings = get_settings()
-
         # Print configuration
         print(f"Teachers: {', '.join(args.teachers)}")
         print(f"Dataset: {args.dataset}")
@@ -549,8 +461,7 @@ def main() -> None:
 
         queries = [queries_dict[qid] for qid in query_ids]
         corpus_docs = [
-            f"{corpus_dict[did]['title']} {corpus_dict[did]['text']}".strip()
-            for did in doc_ids
+            f"{corpus_dict[did]['title']} {corpus_dict[did]['text']}".strip() for did in doc_ids
         ]
 
         # Filter qrels to only include selected queries and docs
@@ -558,9 +469,7 @@ def main() -> None:
         for qid in query_ids:
             if qid in qrels:
                 filtered_qrels[qid] = {
-                    did: score
-                    for did, score in qrels[qid].items()
-                    if did in doc_ids
+                    did: score for did, score in qrels[qid].items() if did in doc_ids
                 }
 
         print(f"Loaded {len(queries)} queries, {len(corpus_docs)} documents")

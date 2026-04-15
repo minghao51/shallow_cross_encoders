@@ -28,6 +28,15 @@ from reranker.data.synth._prompts import (
     QUERY_EXPANSION_PROMPT,
 )
 from reranker.data.synth._seeds import DEFAULT_PAIR_SEEDS
+from reranker.data.synth.generator import (
+    get_expanded_seeds,
+    iter_contradictions,
+    iter_hard_negatives,
+    iter_listwise_preferences,
+    iter_pairs,
+    iter_preferences,
+    iter_query_expansions,
+)
 
 __all__ = [
     "CONTRADICTION_BATCH_PROMPT",
@@ -52,4 +61,11 @@ __all__ = [
     "PreferenceRecord",
     "QueryExpansionRecord",
     "SyntheticDataGenerator",
+    "get_expanded_seeds",
+    "iter_contradictions",
+    "iter_hard_negatives",
+    "iter_listwise_preferences",
+    "iter_pairs",
+    "iter_preferences",
+    "iter_query_expansions",
 ]

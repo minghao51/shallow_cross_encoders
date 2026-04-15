@@ -47,10 +47,22 @@ def test_load_custom_beir_valid(tmp_path: Path) -> None:
     assert result["queries"]["q1"] == "What is machine learning?"
     assert result["queries"]["q2"] == "How does deep learning work?"
 
-    # Verify corpus texts are extracted
-    assert result["corpus"]["doc1"] == "Machine learning is a subset of AI."
-    assert result["corpus"]["doc2"] == "Deep learning uses neural networks."
-    assert result["corpus"]["doc3"] == "Neural networks have multiple layers."
+    # Verify corpus texts are extracted (normalized to dict format)
+    assert result["corpus"]["doc1"] == {
+        "_id": "doc1",
+        "title": "",
+        "text": "Machine learning is a subset of AI.",
+    }
+    assert result["corpus"]["doc2"] == {
+        "_id": "doc2",
+        "title": "",
+        "text": "Deep learning uses neural networks.",
+    }
+    assert result["corpus"]["doc3"] == {
+        "_id": "doc3",
+        "title": "Neural Networks",
+        "text": "Neural networks have multiple layers.",
+    }
 
     # Verify qrels
     assert result["qrels"]["q1"]["doc1"] == 2
@@ -135,5 +147,3 @@ def test_load_custom_beir_invalid_json(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="Invalid JSON file"):
         load_custom_beir(beir_file)
-
-

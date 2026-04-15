@@ -143,7 +143,9 @@ class HybridFusionReranker:
             rows.append(row)
         return np.asarray(rows, dtype=np.float32)
 
-    def fit(self, queries: list[str], doc_as: list[str], doc_bs: list[str], labels: list[int]) -> HybridFusionReranker:
+    def fit(
+        self, queries: list[str], doc_as: list[str], doc_bs: list[str], labels: list[int]
+    ) -> HybridFusionReranker:
         """Train on true pairwise comparisons.
 
         Args:
@@ -164,7 +166,8 @@ class HybridFusionReranker:
             samples.append(features_a - features_b)
 
         if not samples:
-            samples = [np.zeros(10, dtype=np.float32)]
+            feature_count = len(self.feature_names_) if self.feature_names_ else 9
+            samples = [np.zeros(feature_count, dtype=np.float32)]
             labels = [0]
         X = np.vstack(samples)
         y = np.asarray(labels[: len(samples)], dtype=np.int32)
@@ -194,8 +197,7 @@ class HybridFusionReranker:
             self
         """
         samples = [
-            self._build_features(query, [doc])[0]
-            for query, doc in zip(queries, docs, strict=False)
+            self._build_features(query, [doc])[0] for query, doc in zip(queries, docs, strict=False)
         ]
         if not samples:
             return self

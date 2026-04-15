@@ -1,0 +1,7 @@
+{
+  "dataset": "nfcorpus",
+  "num_queries": 0,
+  "num_docs": 0,
+  "num_qrels": 0,
+  "sample_queries": {}
+}

@@ -1,8 +1,10 @@
 """Ranking and consistency strategies."""
 
 from reranker.strategies.binary_reranker import BinaryQuantizedReranker
+from reranker.strategies.cascade import CascadeConfig, CascadeReranker, ConfidenceMetric
 from reranker.strategies.consistency import ConsistencyEngine
 from reranker.strategies.distilled import DistilledPairwiseRanker
+from reranker.strategies.flashrank_ensemble import FlashRankEnsemble
 from reranker.strategies.hybrid import HybridFusionReranker, KeywordMatchAdapter
 from reranker.strategies.late_interaction import StaticColBERTReranker
 from reranker.strategies.multi import MultiReranker, MultiRerankerConfig
@@ -11,8 +13,12 @@ from reranker.strategies.splade import SPLADEReranker
 
 __all__ = [
     "BinaryQuantizedReranker",
+    "CascadeConfig",
+    "CascadeReranker",
+    "ConfidenceMetric",
     "ConsistencyEngine",
     "DistilledPairwiseRanker",
+    "FlashRankEnsemble",
     "HybridFusionReranker",
     "KeywordMatchAdapter",
     "MultiReranker",

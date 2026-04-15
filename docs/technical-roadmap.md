@@ -44,12 +44,12 @@ reranker/
 │       ├── lexical.py       # BM25 wrapper
 │       ├── data/
 │       │   └── synth.py     # Synthetic generation pipeline
-│       ├── strategies/
-│       │   ├── hybrid.py    # Phase 2: Hybrid Fusion Reranker
-│       │   ├── distilled.py # Phase 3: Distilled Pairwise Ranker
-│       │   └── consistency.py # Phase 4: Consistency Engine
-│       └── eval/
-│           └── metrics.py   # NDCG, MRR, latency, cost tracking
+│   ├── strategies/
+│   │   ├── hybrid.py        # Phase 2: Hybrid Fusion Reranker
+│   │   ├── distilled.py     # Phase 3: Distilled Pairwise Ranker
+│   │   └── consistency.py   # Phase 4: Consistency Engine
+│   └── eval/
+│       └── metrics.py       # NDCG, MRR, latency, cost tracking
 ├── notebooks/
 │   └── 00_data_exploration.ipynb
 └── scripts/
@@ -141,7 +141,7 @@ Return ONLY valid JSON matching this schema:
 
 - [ ] All three JSONL datasets generated and versioned
 - [ ] Label distribution visualised and validated (no severe class imbalance)
-- [ ] Total API cost logged — this is the **cost baseline** Strategy 1 aims to beat
+- [ ] Total API cost logged — this is the cost baseline Strategy 1 aims to beat
 - [ ] `data/raw/` committed with a reproducibility seed
 
 ---
@@ -173,7 +173,7 @@ class BaseReranker(Protocol):
     def rerank(self, query: str, docs: list[str]) -> list[RankedDoc]: ...
 ```
 
-> **Design note:** `HeuristicAdapter` is the plugin point for domain-specific signals. The pipeline consumer registers one or more adapters — the reranker calls `.compute()` on each and appends the returned floats to the feature vector. The core library ships with zero domain logic.
+> **Design note:** `HeuristicAdapter` is the plugin point for domain-specific signals. The pipeline consumer registers one or more adapters — the reranker calls `.compute()` on each and appends the returned floats to the feature vector. The core library is never modified.
 
 ### 1.2 Embedder Wrapper (`src/reranker/embedder.py`)
 
@@ -229,7 +229,7 @@ embedder.encode(texts)
 elapsed = (time.perf_counter() - start) / len(texts) * 1000
 
 print(f"Avg embedding latency: {elapsed:.2f}ms per doc")
-# Target: < 2ms per doc on a single CPU core
+# Target: < 2ms per doc on CPU
 ```
 
 ### Phase 1 Exit Criteria
@@ -237,7 +237,6 @@ print(f"Avg embedding latency: {elapsed:.2f}ms per doc")
 - [ ] `Embedder`, `BM25Engine` importable and tested
 - [ ] `BaseReranker` and `HeuristicAdapter` protocols defined
 - [ ] Avg embedding latency < 2ms/doc on CPU (no GPU)
-- [ ] `pytest` suite passing with a minimum smoke test per module
 
 ---
 
@@ -319,7 +318,6 @@ Pipeline consumers implement `HeuristicAdapter` and pass their list to the const
 - [ ] **NDCG@10 ≥ BM25-only + 10 points** on held-out test set
 - [ ] `HeuristicAdapter` protocol validated with at least one stub adapter
 - [ ] `rerank()` end-to-end latency < 5ms for a 20-document candidate list
-- [ ] Model artifact serialised and loadable in a single line
 
 ---
 

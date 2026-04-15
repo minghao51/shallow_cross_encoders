@@ -45,14 +45,14 @@ class FlashRankEnsemble:
         self.models = models
         self._rankers: list[Any] | None = None  # Lazy loaded
 
-    def _load_rankers(self) -> None:
+    def _load_rankers(self) -> list[Any]:
         """Lazy load FlashRank rankers.
 
         Raises:
             ImportError: If flashrank is not installed.
         """
         if self._rankers is not None:
-            return
+            return self._rankers
 
         try:
             from flashrank import Ranker
@@ -62,6 +62,7 @@ class FlashRankEnsemble:
             ) from e
 
         self._rankers = [Ranker(model_name=model) for model in self.models]
+        return self._rankers
 
     def score_batch(self, query: str, docs: list[str]) -> np.ndarray:
         """Score documents using ensemble of FlashRank models.
@@ -81,14 +82,14 @@ class FlashRankEnsemble:
             return np.zeros(0, dtype=np.float32)
 
         # Lazy load rankers on first use
-        self._load_rankers()
+        rankers = self._load_rankers()
 
         from flashrank import RerankRequest
 
         # Collect scores from all teacher models
         all_scores: list[np.ndarray] = []
 
-        for ranker in self._rankers:
+        for ranker in rankers:
             # Prepare passages for flashrank
             passages = [{"id": str(i), "text": doc} for i, doc in enumerate(docs)]
 
@@ -110,3 +111,22 @@ class FlashRankEnsemble:
         ensemble_scores = np.mean(all_scores, axis=0).astype(np.float32)
 
         return ensemble_scores
+
+    def rerank(self, query: str, docs: list[str]) -> list[Any]:
+        """Rerank documents using the ensemble.
+
+        Args:
+            query: The query text.
+            docs: List of document texts to rerank.
+
+        Returns:
+            list[RankedDoc]: Documents sorted by relevance score (descending).
+        """
+        from reranker.protocols import RankedDoc
+
+        if not docs:
+            return []
+
+        scores = self.score_batch(query, docs)
+        ranked = sorted(zip(docs, scores, strict=True), key=lambda x: x[1], reverse=True)
+        return [RankedDoc(doc=d, score=s, rank=i + 1) for i, (d, s) in enumerate(ranked)]

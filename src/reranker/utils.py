@@ -196,6 +196,6 @@ def rrf_from_scores(score_arrays: list[np.ndarray], k: int = 60) -> np.ndarray:
 
     for doc_id_str in fused_rank:
         doc_id_int = str_to_int[doc_id_str]
-        fused_scores[doc_id_int] = 1.0 / (k + fused_rank[doc_id_str] + 1)
+        fused_scores[doc_id_int] = fused[doc_id_str]
 
     return fused_scores

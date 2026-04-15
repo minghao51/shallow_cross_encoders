@@ -21,7 +21,9 @@ def test_hybrid_reranks_relevant_doc_first() -> None:
         "A cross encoder can be expensive at inference time.",
     ]
     labels = [1, 0, 1, 0]
-    reranker = HybridFusionReranker(adapters=[KeywordMatchAdapter()]).fit(queries, docs, labels)
+    reranker = HybridFusionReranker(adapters=[KeywordMatchAdapter()]).fit(
+        queries, docs, docs, labels
+    )
     ranked = reranker.rerank(
         "python dataclass default factory",
         [
@@ -39,7 +41,9 @@ def test_hybrid_save_and_load(tmp_path: Path) -> None:
     docs = ["python programming", "java development"]
     labels = [1, 0]
 
-    reranker = HybridFusionReranker(adapters=[KeywordMatchAdapter()]).fit(queries, docs, labels)
+    reranker = HybridFusionReranker(adapters=[KeywordMatchAdapter()]).fit(
+        queries, docs, docs, labels
+    )
 
     # Save model
     model_path = tmp_path / "hybrid_model.pkl"
@@ -60,7 +64,9 @@ def test_hybrid_pickle_round_trip_preserves_artifact_metadata(tmp_path: Path) ->
     docs = ["python programming", "java development"]
     labels = [1, 0]
 
-    reranker = HybridFusionReranker(adapters=[KeywordMatchAdapter()]).fit(queries, docs, labels)
+    reranker = HybridFusionReranker(adapters=[KeywordMatchAdapter()]).fit(
+        queries, docs, docs, labels
+    )
     model_path = tmp_path / "hybrid_model.pkl"
     reranker.save(model_path)
     payload = load_pickle(model_path)
@@ -77,7 +83,7 @@ def test_hybrid_empty_document_list() -> None:
     docs = ["test document"]
     labels = [1]
 
-    reranker = HybridFusionReranker().fit(queries, docs, labels)
+    reranker = HybridFusionReranker().fit(queries, docs, docs, labels)
     ranked = reranker.rerank("test query", [])
 
     assert len(ranked) == 0
@@ -90,7 +96,7 @@ def test_hybrid_single_document() -> None:
     docs = ["test document"]
     labels = [1]
 
-    reranker = HybridFusionReranker().fit(queries, docs, labels)
+    reranker = HybridFusionReranker().fit(queries, docs, docs, labels)
     ranked = reranker.rerank("test query", ["test document"])
 
     assert len(ranked) == 1
@@ -105,7 +111,7 @@ def test_hybrid_adapter_feature_names() -> None:
     docs = ["python programming"]
     labels = [1]
 
-    reranker = HybridFusionReranker(adapters=[adapter]).fit(queries, docs, labels)
+    reranker = HybridFusionReranker(adapters=[adapter]).fit(queries, docs, docs, labels)
 
     # Check that adapter features are included
     assert "keyword_hit_rate" in reranker.feature_names_

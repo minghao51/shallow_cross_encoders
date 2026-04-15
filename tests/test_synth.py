@@ -113,6 +113,55 @@ def test_refresh_metadata_rebuilds_manifest_from_existing_files(tmp_path: Path) 
     assert manifest["datasets"]["preferences"]["count"] == 4
 
 
+@pytest.mark.unit
+def test_iter_pairs_matches_generate_pairs() -> None:
+    generator = SyntheticDataGenerator(seed=42)
+    generator_copy = SyntheticDataGenerator(seed=42)
+
+    streamed = list(generator.iter_pairs(target_count=12, use_teacher=False))
+    materialized = generator_copy.generate_pairs(target_count=12, use_teacher=False)
+
+    assert streamed == materialized
+
+
+@pytest.mark.unit
+def test_iter_preferences_matches_generate_preferences() -> None:
+    generator = SyntheticDataGenerator(seed=42)
+    generator_copy = SyntheticDataGenerator(seed=42)
+    pairs = generator.generate_pairs(target_count=12, use_teacher=False)
+    pairs_copy = generator_copy.generate_pairs(target_count=12, use_teacher=False)
+
+    streamed = list(generator.iter_preferences(pairs, target_count=6, use_teacher=False))
+    materialized = generator_copy.generate_preferences(
+        pairs_copy,
+        target_count=6,
+        use_teacher=False,
+    )
+
+    assert streamed == materialized
+
+
+@pytest.mark.unit
+def test_iter_contradictions_matches_generate_contradictions() -> None:
+    generator = SyntheticDataGenerator(seed=42)
+    generator_copy = SyntheticDataGenerator(seed=42)
+
+    streamed = list(
+        generator.iter_contradictions(
+            contradiction_count=6,
+            control_count=2,
+            use_teacher=False,
+        )
+    )
+    materialized = generator_copy.generate_contradictions(
+        contradiction_count=6,
+        control_count=2,
+        use_teacher=False,
+    )
+
+    assert streamed == materialized
+
+
 @pytest.mark.llm_mock
 def test_teacher_contradiction_controls_are_stabilized_when_teacher_drifts(tmp_path: Path) -> None:
     class StubClient(OpenRouterClient):
