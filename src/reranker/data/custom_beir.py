@@ -66,10 +66,26 @@ def load_custom_beir(path: Path | str) -> dict:
     if not corpus_raw:
         raise ValueError("'corpus' dictionary is empty")
 
-    # Extract corpus texts from {"text": "..."} format
+    # Normalize corpus to standard BEIR format: {"_id": ..., "title": ..., "text": ...}
     corpus = {}
     for doc_id, doc_data in corpus_raw.items():
-        corpus[doc_id] = doc_data["text"]
+        # Handle both string format and dict format
+        if isinstance(doc_data, str):
+            # Simple string format - treat as text
+            corpus[doc_id] = {
+                "_id": doc_id,
+                "title": "",
+                "text": doc_data
+            }
+        elif isinstance(doc_data, dict):
+            # Dict format - extract fields with defaults
+            corpus[doc_id] = {
+                "_id": doc_id,
+                "title": doc_data.get("title", ""),
+                "text": doc_data.get("text", "")
+            }
+        else:
+            raise ValueError(f"Invalid corpus data format for doc {doc_id}: {type(doc_data)}")
 
     # Extract qrels
     qrels = data["qrels"]

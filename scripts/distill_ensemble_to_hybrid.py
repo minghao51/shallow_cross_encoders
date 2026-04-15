@@ -86,25 +86,51 @@ def load_training_data(dataset: str, custom_path: Path | None = None) -> tuple:
         custom_path: Path to custom dataset file (required for 'custom' dataset)
 
     Returns:
-        Tuple of (queries_list, docs_list, qrels_dict) where:
-            - queries_list: List of query texts
-            - docs_list: List of document texts
+        Tuple of (queries_dict, corpus_dict, qrels_dict) where:
+            - queries_dict: Mapping from query_id to query text
+            - corpus_dict: Mapping from doc_id to doc dict with _id, title, text
             - qrels_dict: Mapping from query_id to {doc_id: relevance_score}
     """
     if dataset == "beir":
-        queries_dict, corpus_dict, qrels = load_beir_data()
-        return list(queries_dict.values()), list(corpus_dict.values()), qrels
+        return load_beir_data()
     elif dataset == "custom":
         if not custom_path:
             raise ValueError("--custom-path required for custom dataset")
         from reranker.data.custom_beir import load_custom_beir
         data = load_custom_beir(custom_path)
-        return list(data["queries"].values()), list(data["corpus"].values()), data["qrels"]
+        return data["queries"], data["corpus"], data["qrels"]
     elif dataset == "synth":
         raise NotImplementedError("Synthetic data loading pending")
     else:  # mixed
-        beir_q, beir_d, beir_qrels = load_beir_data()
-        return list(beir_q.values()), list(beir_d.values()), beir_qrels
+        beir_queries, beir_corpus, beir_qrels = load_beir_data()
+
+        # If custom_path provided, combine BEIR with custom data
+        if custom_path:
+            from reranker.data.custom_beir import load_custom_beir
+            custom_data = load_custom_beir(custom_path)
+
+            # Merge datasets - use offset IDs to avoid collisions
+            offset = len(beir_queries)
+
+            # Combine queries
+            for qid, query in custom_data["queries"].items():
+                new_qid = f"custom_{qid}"
+                beir_queries[new_qid] = query
+
+            # Combine corpus
+            for did, doc in custom_data["corpus"].items():
+                new_did = f"custom_{did}"
+                beir_corpus[new_did] = doc
+
+            # Combine qrels
+            for qid, doc_rels in custom_data["qrels"].items():
+                new_qid = f"custom_{qid}"
+                beir_qrels[new_qid] = {
+                    f"custom_{did}": score
+                    for did, score in doc_rels.items()
+                }
+
+        return beir_queries, beir_corpus, beir_qrels
 
 
 def parse_args() -> argparse.Namespace:
@@ -127,7 +153,7 @@ def parse_args() -> argparse.Namespace:
         "--custom-path",
         type=Path,
         default=None,
-        help="Path to custom dataset JSONL file (required if dataset=custom)",
+        help="Path to custom dataset JSONL file (required if dataset=custom, optional for dataset=mixed)",
     )
     parser.add_argument(
         "--method",
@@ -160,7 +186,13 @@ def parse_args() -> argparse.Namespace:
         default=Path("data/models"),
         help="Directory for caching teacher labels (default: data/models)",
     )
-    return parser.parse_args()
+    args = parser.parse_args()
+
+    # Validate custom dataset requirement
+    if args.dataset == "custom" and not args.custom_path:
+        parser.error("--custom-path is required when --dataset=custom")
+
+    return args
 
 
 def generate_ensemble_labels(
@@ -471,17 +503,10 @@ def main() -> None:
     args = parse_args()
     settings = get_settings()
 
-    # Validate custom dataset requirement
-    if args.dataset == "custom" and not args.custom_path:
-        raise ValueError(
-            "--custom-path is required when --dataset=custom. "
-            "Provide path to your custom dataset JSONL file."
-        )
-
     # Print configuration
     print(f"Teachers: {', '.join(args.teachers)}")
     print(f"Dataset: {args.dataset}")
-    if args.dataset == "custom":
+    if args.custom_path:
         print(f"Custom path: {args.custom_path}")
     print(f"Method: {args.method}")
     print(f"Force regenerate: {args.force_regenerate}")
@@ -494,53 +519,29 @@ def main() -> None:
 
     # Load dataset using dispatcher
     print(f"\nLoading {args.dataset} dataset...")
-    try:
-        queries_list, corpus_docs_list, qrels = load_training_data(args.dataset, args.custom_path)
-    except NotImplementedError as e:
-        print(f"\nDataset '{args.dataset}' not yet supported: {e}")
-        print("Supported datasets: beir, mixed")
-        return
-    except ValueError as e:
-        print(f"\nError loading dataset: {e}")
-        return
+    queries_dict, corpus_dict, qrels = load_training_data(args.dataset, args.custom_path)
 
-    # For BEIR/mixed datasets, we need to handle the dict format specially
-    if args.dataset in ("beir", "mixed"):
-        queries_dict, corpus_dict, _ = load_beir_data()
-        # Convert to lists for indexing
-        query_ids = sorted(queries_dict.keys())
-        doc_ids = sorted(corpus_dict.keys())
+    # Convert to lists for indexing and filter for testing
+    query_ids = sorted(queries_dict.keys())[:50]  # Use subset for testing
+    doc_ids = sorted(corpus_dict.keys())[:500]
 
-        # Use subset for testing
-        query_ids = query_ids[:50]
-        doc_ids = doc_ids[:500]
+    queries = [queries_dict[qid] for qid in query_ids]
+    corpus_docs = [
+        f"{corpus_dict[did]['title']} {corpus_dict[did]['text']}".strip()
+        for did in doc_ids
+    ]
 
-        queries = [queries_dict[qid] for qid in query_ids]
-        corpus_docs = [
-            f"{corpus_dict[did]['title']} {corpus_dict[did]['text']}".strip()
-            for did in doc_ids
-        ]
+    # Filter qrels to only include selected queries and docs
+    filtered_qrels = {}
+    for qid in query_ids:
+        if qid in qrels:
+            filtered_qrels[qid] = {
+                did: score
+                for did, score in qrels[qid].items()
+                if did in doc_ids
+            }
 
-        # Filter qrels to only include selected queries and docs
-        filtered_qrels = {}
-        for qid in query_ids:
-            if qid in qrels:
-                filtered_qrels[qid] = {
-                    did: score
-                    for did, score in qrels[qid].items()
-                    if did in doc_ids
-                }
-
-        print(f"Loaded {len(queries)} queries, {len(corpus_docs)} documents")
-    else:
-        # For custom and synth datasets, use the lists directly
-        queries = queries_list[:50]  # Use subset for testing
-        corpus_docs = corpus_docs_list[:500]
-        filtered_qrels = qrels
-        # Keep original dict for evaluation
-        queries_dict = {str(i): q for i, q in enumerate(queries_list)}
-        corpus_dict = {str(i): {"_id": str(i), "title": "", "text": d} for i, d in enumerate(corpus_docs_list)}
-        print(f"Loaded {len(queries)} queries, {len(corpus_docs)} documents")
+    print(f"Loaded {len(queries)} queries, {len(corpus_docs)} documents")
 
     # Generate ensemble labels
     print("\nGenerating ensemble teacher labels...")
