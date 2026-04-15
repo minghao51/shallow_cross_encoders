@@ -16,8 +16,6 @@ from reranker.data.ensemble_cache import EnsembleLabelCache
 from reranker.strategies.flashrank_ensemble import FlashRankEnsemble
 from reranker.strategies.hybrid import HybridFusionReranker
 
-if TYPE_CHECKING:
-    from collections.abc import Mapping
 
 
 def load_beir_data(dataset_name: str = "nfcorpus") -> tuple[dict, dict, dict]:
@@ -398,9 +396,13 @@ def evaluate_hybrid(
             for did in candidate_doc_ids
         ]
 
+        # Create mapping from doc text to original ID
+        doc_to_id = {doc_text: doc_id for doc_id, doc_text in zip(candidate_doc_ids, docs_list, strict=False)}
+
         # Rerank
         ranked_results = hybrid.rerank(query, docs_list)
-        ranked_doc_ids = [candidate_doc_ids[i] for i in range(len(ranked_results))]
+        # Map ranked results back to IDs using doc content
+        ranked_doc_ids = [doc_to_id[result.doc] for result in ranked_results if result.doc in doc_to_id]
 
         # Calculate DCG@10
         dcg = 0.0
