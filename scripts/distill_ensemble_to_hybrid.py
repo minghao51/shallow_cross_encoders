@@ -78,6 +78,35 @@ def load_beir_data(dataset_name: str = "nfcorpus") -> tuple[dict, dict, dict]:
     return queries, corpus, qrels
 
 
+def load_training_data(dataset: str, custom_path: Path | None = None) -> tuple:
+    """Load training data based on dataset choice.
+
+    Args:
+        dataset: Dataset type ('beir', 'custom', 'synth', 'mixed')
+        custom_path: Path to custom dataset file (required for 'custom' dataset)
+
+    Returns:
+        Tuple of (queries_list, docs_list, qrels_dict) where:
+            - queries_list: List of query texts
+            - docs_list: List of document texts
+            - qrels_dict: Mapping from query_id to {doc_id: relevance_score}
+    """
+    if dataset == "beir":
+        queries_dict, corpus_dict, qrels = load_beir_data()
+        return list(queries_dict.values()), list(corpus_dict.values()), qrels
+    elif dataset == "custom":
+        if not custom_path:
+            raise ValueError("--custom-path required for custom dataset")
+        from reranker.data.custom_beir import load_custom_beir
+        data = load_custom_beir(custom_path)
+        return list(data["queries"].values()), list(data["corpus"].values()), data["qrels"]
+    elif dataset == "synth":
+        raise NotImplementedError("Synthetic data loading pending")
+    else:  # mixed
+        beir_q, beir_d, beir_qrels = load_beir_data()
+        return list(beir_q.values()), list(beir_d.values()), beir_qrels
+
+
 def parse_args() -> argparse.Namespace:
     """Parse command line arguments for ensemble distillation.
 
@@ -463,11 +492,21 @@ def main() -> None:
     ensemble = FlashRankEnsemble(args.teachers)
     cache = EnsembleLabelCache(args.cache_dir)
 
-    # Load dataset and generate labels for BEIR or mixed datasets
-    if args.dataset in ("beir", "mixed"):
-        print("\nLoading BEIR dataset...")
-        queries_dict, corpus_dict, qrels = load_beir_data()
+    # Load dataset using dispatcher
+    print(f"\nLoading {args.dataset} dataset...")
+    try:
+        queries_list, corpus_docs_list, qrels = load_training_data(args.dataset, args.custom_path)
+    except NotImplementedError as e:
+        print(f"\nDataset '{args.dataset}' not yet supported: {e}")
+        print("Supported datasets: beir, mixed")
+        return
+    except ValueError as e:
+        print(f"\nError loading dataset: {e}")
+        return
 
+    # For BEIR/mixed datasets, we need to handle the dict format specially
+    if args.dataset in ("beir", "mixed"):
+        queries_dict, corpus_dict, _ = load_beir_data()
         # Convert to lists for indexing
         query_ids = sorted(queries_dict.keys())
         doc_ids = sorted(corpus_dict.keys())
@@ -493,66 +532,72 @@ def main() -> None:
                 }
 
         print(f"Loaded {len(queries)} queries, {len(corpus_docs)} documents")
+    else:
+        # For custom and synth datasets, use the lists directly
+        queries = queries_list[:50]  # Use subset for testing
+        corpus_docs = corpus_docs_list[:500]
+        filtered_qrels = qrels
+        # Keep original dict for evaluation
+        queries_dict = {str(i): q for i, q in enumerate(queries_list)}
+        corpus_dict = {str(i): {"_id": str(i), "title": "", "text": d} for i, d in enumerate(corpus_docs_list)}
+        print(f"Loaded {len(queries)} queries, {len(corpus_docs)} documents")
 
-        # Generate ensemble labels
-        print("\nGenerating ensemble teacher labels...")
-        labels = generate_ensemble_labels(
-            ensemble=ensemble,
+    # Generate ensemble labels
+    print("\nGenerating ensemble teacher labels...")
+    labels = generate_ensemble_labels(
+        ensemble=ensemble,
+        queries=queries,
+        corpus_docs=corpus_docs,
+        qrels=filtered_qrels,
+        cache=cache,
+        force_regenerate=args.force_regenerate,
+    )
+
+    print(f"Generated {len(labels)} query-document pair scores")
+
+    # Train Hybrid based on method
+    if args.method == "pointwise":
+        train_hybrid_pointwise(
             queries=queries,
             corpus_docs=corpus_docs,
-            qrels=filtered_qrels,
-            cache=cache,
-            force_regenerate=args.force_regenerate,
+            labels=labels,
+            output_path=args.output,
         )
-
-        print(f"Generated {len(labels)} query-document pair scores")
-
-        # Train Hybrid based on method
-        if args.method == "pointwise":
-            train_hybrid_pointwise(
-                queries=queries,
-                corpus_docs=corpus_docs,
-                labels=labels,
-                output_path=args.output,
-            )
-        elif args.method == "pairwise":
-            train_hybrid_pairwise(
-                queries=queries,
-                corpus_docs=corpus_docs,
-                labels=labels,
-                output_path=args.output,
-            )
-        else:
-            print(f"\nMethod '{args.method}' not yet implemented.")
-            return
-
-        # Load trained model and evaluate
-        print("\n" + "=" * 60)
-        print("LOADING TRAINED MODEL FOR EVALUATION")
-        print("=" * 60)
-        hybrid = HybridFusionReranker.load(args.output)
-        print(f"Model loaded from {args.output}")
-
-        # Run evaluation
-        eval_results = evaluate_hybrid(
-            hybrid=hybrid,
-            queries=queries_dict,
-            docs=corpus_dict,
-            qrels=qrels,
-            top_k=10,
+    elif args.method == "pairwise":
+        train_hybrid_pairwise(
+            queries=queries,
+            corpus_docs=corpus_docs,
+            labels=labels,
+            output_path=args.output,
         )
-
-        # Print summary
-        print("\n" + "=" * 60)
-        print("EVALUATION SUMMARY")
-        print("=" * 60)
-        print(f"NDCG@10:              {eval_results['ndcg_at_10']:.4f}")
-        print(f"Avg Latency:          {eval_results['avg_latency_ms']:.2f} ms")
-        print(f"Queries Evaluated:    {eval_results['num_queries']}")
-        print("=" * 60)
     else:
-        print(f"\nDataset '{args.dataset}' not yet supported.")
-        print("Supported datasets: beir, mixed")
+        print(f"\nMethod '{args.method}' not yet implemented.")
+        return
+
+    # Load trained model and evaluate
+    print("\n" + "=" * 60)
+    print("LOADING TRAINED MODEL FOR EVALUATION")
+    print("=" * 60)
+    hybrid = HybridFusionReranker.load(args.output)
+    print(f"Model loaded from {args.output}")
+
+    # Run evaluation
+    eval_results = evaluate_hybrid(
+        hybrid=hybrid,
+        queries=queries_dict,
+        docs=corpus_dict,
+        qrels=qrels,
+        top_k=10,
+    )
+
+    # Print summary
+    print("\n" + "=" * 60)
+    print("EVALUATION SUMMARY")
+    print("=" * 60)
+    print(f"NDCG@10:              {eval_results['ndcg_at_10']:.4f}")
+    print(f"Avg Latency:          {eval_results['avg_latency_ms']:.2f} ms")
+    print(f"Queries Evaluated:    {eval_results['num_queries']}")
+    print("=" * 60)
 
 
 if __name__ == "__main__":
