@@ -1,15 +1,34 @@
-"""Ensemble distillation: FlashRank teachers train Hybrid student."""
+"""Ensemble distillation: Train Hybrid student from FlashRank teachers.
+
+This script implements knowledge distillation where multiple FlashRank
+cross-encoder models (TinyBERT, MiniLM) serve as teachers to generate
+soft labels for training a fast Hybrid Fusion Reranker student.
+
+Expected quality: 95-98% of ensemble NDCG@10
+Expected latency: ~50ms (same as Hybrid)
+Training time: ~30 min (cached after first run)
+
+Example:
+    uv run scripts/distill_ensemble_to_hybrid.py --dataset beir --method pairwise
+"""
 
 from __future__ import annotations
 
 import argparse
 import json
+import sys
 import time
 from collections import defaultdict
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 import numpy as np
+
+# Optional tqdm import for progress bars
+try:
+    from tqdm import tqdm
+except ImportError:
+    tqdm = None
 
 from reranker.config import get_settings
 from reranker.data.ensemble_cache import EnsembleLabelCache
@@ -220,8 +239,9 @@ def generate_ensemble_labels(
     def generator_fn():
         print(f"Generating labels for {len(queries)} queries...")
         labels = {}
-        for q_idx, query in enumerate(queries):
-            if q_idx % 100 == 0:
+        query_iterator = tqdm(queries) if tqdm else queries
+        for q_idx, query in enumerate(query_iterator):
+            if q_idx % 100 == 0 and tqdm is None:
                 print(f"  Processing query {q_idx}/{len(queries)}")
             scores = ensemble.score_batch(query, corpus_docs)
             for d_idx, score in enumerate(scores):
@@ -500,105 +520,114 @@ def evaluate_hybrid(
 
 def main() -> None:
     """Main entry point for ensemble distillation pipeline."""
-    args = parse_args()
-    settings = get_settings()
+    try:
+        args = parse_args()
+        settings = get_settings()
 
-    # Print configuration
-    print(f"Teachers: {', '.join(args.teachers)}")
-    print(f"Dataset: {args.dataset}")
-    if args.custom_path:
-        print(f"Custom path: {args.custom_path}")
-    print(f"Method: {args.method}")
-    print(f"Force regenerate: {args.force_regenerate}")
-    print(f"Output: {args.output}")
-    print(f"Cache dir: {args.cache_dir}")
+        # Print configuration
+        print(f"Teachers: {', '.join(args.teachers)}")
+        print(f"Dataset: {args.dataset}")
+        if args.custom_path:
+            print(f"Custom path: {args.custom_path}")
+        print(f"Method: {args.method}")
+        print(f"Force regenerate: {args.force_regenerate}")
+        print(f"Output: {args.output}")
+        print(f"Cache dir: {args.cache_dir}")
 
-    # Initialize ensemble and cache
-    ensemble = FlashRankEnsemble(args.teachers)
-    cache = EnsembleLabelCache(args.cache_dir)
+        # Initialize ensemble and cache
+        ensemble = FlashRankEnsemble(args.teachers)
+        cache = EnsembleLabelCache(args.cache_dir)
 
-    # Load dataset using dispatcher
-    print(f"\nLoading {args.dataset} dataset...")
-    queries_dict, corpus_dict, qrels = load_training_data(args.dataset, args.custom_path)
+        # Load dataset using dispatcher
+        print(f"\nLoading {args.dataset} dataset...")
+        queries_dict, corpus_dict, qrels = load_training_data(args.dataset, args.custom_path)
 
-    # Convert to lists for indexing and filter for testing
-    query_ids = sorted(queries_dict.keys())[:50]  # Use subset for testing
-    doc_ids = sorted(corpus_dict.keys())[:500]
+        # Convert to lists for indexing and filter for testing
+        query_ids = sorted(queries_dict.keys())[:50]  # Use subset for testing
+        doc_ids = sorted(corpus_dict.keys())[:500]
 
-    queries = [queries_dict[qid] for qid in query_ids]
-    corpus_docs = [
-        f"{corpus_dict[did]['title']} {corpus_dict[did]['text']}".strip()
-        for did in doc_ids
-    ]
+        queries = [queries_dict[qid] for qid in query_ids]
+        corpus_docs = [
+            f"{corpus_dict[did]['title']} {corpus_dict[did]['text']}".strip()
+            for did in doc_ids
+        ]
 
-    # Filter qrels to only include selected queries and docs
-    filtered_qrels = {}
-    for qid in query_ids:
-        if qid in qrels:
-            filtered_qrels[qid] = {
-                did: score
-                for did, score in qrels[qid].items()
-                if did in doc_ids
-            }
+        # Filter qrels to only include selected queries and docs
+        filtered_qrels = {}
+        for qid in query_ids:
+            if qid in qrels:
+                filtered_qrels[qid] = {
+                    did: score
+                    for did, score in qrels[qid].items()
+                    if did in doc_ids
+                }
 
-    print(f"Loaded {len(queries)} queries, {len(corpus_docs)} documents")
+        print(f"Loaded {len(queries)} queries, {len(corpus_docs)} documents")
 
-    # Generate ensemble labels
-    print("\nGenerating ensemble teacher labels...")
-    labels = generate_ensemble_labels(
-        ensemble=ensemble,
-        queries=queries,
-        corpus_docs=corpus_docs,
-        qrels=filtered_qrels,
-        cache=cache,
-        force_regenerate=args.force_regenerate,
-    )
-
-    print(f"Generated {len(labels)} query-document pair scores")
-
-    # Train Hybrid based on method
-    if args.method == "pointwise":
-        train_hybrid_pointwise(
+        # Generate ensemble labels
+        print("\nGenerating ensemble teacher labels...")
+        labels = generate_ensemble_labels(
+            ensemble=ensemble,
             queries=queries,
             corpus_docs=corpus_docs,
-            labels=labels,
-            output_path=args.output,
+            qrels=filtered_qrels,
+            cache=cache,
+            force_regenerate=args.force_regenerate,
         )
-    elif args.method == "pairwise":
-        train_hybrid_pairwise(
-            queries=queries,
-            corpus_docs=corpus_docs,
-            labels=labels,
-            output_path=args.output,
+
+        print(f"Generated {len(labels)} query-document pair scores")
+
+        # Train Hybrid based on method
+        if args.method == "pointwise":
+            train_hybrid_pointwise(
+                queries=queries,
+                corpus_docs=corpus_docs,
+                labels=labels,
+                output_path=args.output,
+            )
+        elif args.method == "pairwise":
+            train_hybrid_pairwise(
+                queries=queries,
+                corpus_docs=corpus_docs,
+                labels=labels,
+                output_path=args.output,
+            )
+        else:
+            print(f"\nMethod '{args.method}' not yet implemented.")
+            return
+
+        # Load trained model and evaluate
+        print("\n" + "=" * 60)
+        print("LOADING TRAINED MODEL FOR EVALUATION")
+        print("=" * 60)
+        hybrid = HybridFusionReranker.load(args.output)
+        print(f"Model loaded from {args.output}")
+
+        # Run evaluation
+        eval_results = evaluate_hybrid(
+            hybrid=hybrid,
+            queries=queries_dict,
+            docs=corpus_dict,
+            qrels=qrels,
+            top_k=10,
         )
-    else:
-        print(f"\nMethod '{args.method}' not yet implemented.")
-        return
 
-    # Load trained model and evaluate
-    print("\n" + "=" * 60)
-    print("LOADING TRAINED MODEL FOR EVALUATION")
-    print("=" * 60)
-    hybrid = HybridFusionReranker.load(args.output)
-    print(f"Model loaded from {args.output}")
+        # Print summary
+        print("\n" + "=" * 60)
+        print("EVALUATION SUMMARY")
+        print("=" * 60)
+        print(f"NDCG@10:              {eval_results['ndcg_at_10']:.4f}")
+        print(f"Avg Latency:          {eval_results['avg_latency_ms']:.2f} ms")
+        print(f"Queries Evaluated:    {eval_results['num_queries']}")
+        print("=" * 60)
 
-    # Run evaluation
-    eval_results = evaluate_hybrid(
-        hybrid=hybrid,
-        queries=queries_dict,
-        docs=corpus_dict,
-        qrels=qrels,
-        top_k=10,
-    )
-
-    # Print summary
-    print("\n" + "=" * 60)
-    print("EVALUATION SUMMARY")
-    print("=" * 60)
-    print(f"NDCG@10:              {eval_results['ndcg_at_10']:.4f}")
-    print(f"Avg Latency:          {eval_results['avg_latency_ms']:.2f} ms")
-    print(f"Queries Evaluated:    {eval_results['num_queries']}")
-    print("=" * 60)
+    except ImportError as e:
+        print(f"Error: {e}")
+        print("Install dependencies: uv sync --extra flashrank")
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error: {e}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
