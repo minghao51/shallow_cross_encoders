@@ -1,4 +1,6 @@
-# Comprehensive Benchmark Analysis: Shallow Cross Encoders
+# Synthetic Benchmark Analysis: Shallow Cross Encoders
+
+> **Note:** This benchmark uses synthetic data only. For real BEIR dataset comparisons (FlashRank vs local ML rerankers), see [`20260415-benchmark-analysis.md`](20260415-benchmark-analysis.md). This document is retained for its ablation, scaling, and embedder comparison data.
 
 ## Executive Summary
 

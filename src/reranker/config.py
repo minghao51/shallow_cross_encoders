@@ -3,29 +3,20 @@ from __future__ import annotations
 import os
 from functools import lru_cache
 from pathlib import Path
+from typing import TypeVar
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
-
-def _env_int(name: str, default: int) -> int:
-    value = os.getenv(name)
-    return default if value is None else int(value)
+_T = TypeVar("_T")
 
 
-def _env_float(name: str, default: float) -> float:
-    value = os.getenv(name)
-    return default if value is None else float(value)
-
-
-def _env_bool(name: str, default: bool) -> bool:
+def _env(name: str, default: _T, typ: type[_T]) -> _T:
     value = os.getenv(name)
     if value is None:
         return default
-    return value.strip().lower() in {"1", "true", "yes", "on"}
-
-
-def _env_str(name: str, default: str) -> str:
-    return os.getenv(name, default)
+    if typ is bool:
+        return value.strip().lower() in {"1", "true", "yes", "on"}  # type: ignore
+    return typ(value)  # type: ignore
 
 
 class OpenRouterSettings(BaseModel):
@@ -135,7 +126,7 @@ class CascadeSettings(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     confidence_threshold: float = 0.6
-    fallback_strategy: str = "flashrank"  # flashrank, always, never
+    fallback_strategy: str = "flashrank"
 
 
 class ConsistencySettings(BaseModel):
@@ -205,124 +196,127 @@ def get_settings() -> Settings:
     return Settings(
         openrouter=OpenRouterSettings(
             api_key=os.getenv("OPENROUTER_API_KEY"),
-            model=_env_str("OPENROUTER_MODEL", "openai/gpt-4o-mini"),
-            base_url=_env_str("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1"),
-            app_name=_env_str("OPENROUTER_APP_NAME", "shallow-cross-encoders"),
-            timeout_seconds=_env_float("OPENROUTER_TIMEOUT_SECONDS", 30.0),
+            model=_env("OPENROUTER_MODEL", "openai/gpt-4o-mini", str),
+            base_url=_env("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1", str),
+            app_name=_env("OPENROUTER_APP_NAME", "shallow-cross-encoders", str),
+            timeout_seconds=_env("OPENROUTER_TIMEOUT_SECONDS", 30.0, float),
         ),
         paths=PathSettings(
-            raw_data_dir=Path(_env_str("RERANKER_RAW_DATA_DIR", "data/raw")),
-            processed_data_dir=Path(_env_str("RERANKER_PROCESSED_DATA_DIR", "data/processed")),
-            model_dir=Path(_env_str("RERANKER_MODEL_DIR", "data/models")),
-            api_cost_log=Path(_env_str("RERANKER_API_COST_LOG", "data/logs/api_costs.jsonl")),
+            raw_data_dir=Path(_env("RERANKER_RAW_DATA_DIR", "data/raw", str)),
+            processed_data_dir=Path(_env("RERANKER_PROCESSED_DATA_DIR", "data/processed", str)),
+            model_dir=Path(_env("RERANKER_MODEL_DIR", "data/models", str)),
+            api_cost_log=Path(_env("RERANKER_API_COST_LOG", "data/logs/api_costs.jsonl", str)),
         ),
         embedder=EmbedderSettings(
-            model_name=_env_str("RERANKER_EMBEDDER_MODEL", "minishlab/potion-base-32M"),
-            dimension=_env_int("RERANKER_EMBEDDER_DIMENSION", 256),
-            normalize=_env_bool("RERANKER_EMBEDDER_NORMALIZE", True),
+            model_name=_env("RERANKER_EMBEDDER_MODEL", "minishlab/potion-base-32M", str),
+            dimension=_env("RERANKER_EMBEDDER_DIMENSION", 256, int),
+            normalize=_env("RERANKER_EMBEDDER_NORMALIZE", True, bool),
         ),
         synthetic_data=SyntheticDataSettings(
-            seed=_env_int("RERANKER_SEED", 42),
-            teacher_batch_size=_env_int("RERANKER_TEACHER_BATCH_SIZE", 20),
-            teacher_max_workers=_env_int("RERANKER_TEACHER_MAX_WORKERS", 4),
-            stream_chunk_size=_env_int("RERANKER_STREAM_CHUNK_SIZE", 100),
-            pair_count=_env_int("RERANKER_PAIR_COUNT", 60),
-            preference_count=_env_int("RERANKER_PREFERENCE_COUNT", 40),
-            contradiction_count=_env_int("RERANKER_CONTRADICTION_COUNT", 20),
-            control_count=_env_int("RERANKER_CONTROL_COUNT", 8),
-            roadmap_pair_count=_env_int("RERANKER_ROADMAP_PAIR_COUNT", 2000),
-            roadmap_preference_count=_env_int("RERANKER_ROADMAP_PREFERENCE_COUNT", 1500),
-            roadmap_contradiction_count=_env_int("RERANKER_ROADMAP_CONTRADICTION_COUNT", 500),
-            roadmap_control_count=_env_int("RERANKER_ROADMAP_CONTROL_COUNT", 200),
+            seed=_env("RERANKER_SEED", 42, int),
+            teacher_batch_size=_env("RERANKER_TEACHER_BATCH_SIZE", 20, int),
+            teacher_max_workers=_env("RERANKER_TEACHER_MAX_WORKERS", 4, int),
+            stream_chunk_size=_env("RERANKER_STREAM_CHUNK_SIZE", 100, int),
+            pair_count=_env("RERANKER_PAIR_COUNT", 2000, int),
+            preference_count=_env("RERANKER_PREFERENCE_COUNT", 1500, int),
+            contradiction_count=_env("RERANKER_CONTRADICTION_COUNT", 500, int),
+            control_count=_env("RERANKER_CONTROL_COUNT", 200, int),
+            roadmap_pair_count=_env("RERANKER_ROADMAP_PAIR_COUNT", 2000, int),
+            roadmap_preference_count=_env("RERANKER_ROADMAP_PREFERENCE_COUNT", 1500, int),
+            roadmap_contradiction_count=_env("RERANKER_ROADMAP_CONTRADICTION_COUNT", 500, int),
+            roadmap_control_count=_env("RERANKER_ROADMAP_CONTROL_COUNT", 200, int),
         ),
         hybrid=HybridSettings(
-            random_state=_env_int("RERANKER_HYBRID_RANDOM_STATE", 42),
-            xgb_n_estimators=_env_int("RERANKER_HYBRID_XGB_N_ESTIMATORS", 120),
-            xgb_max_depth=_env_int("RERANKER_HYBRID_XGB_MAX_DEPTH", 4),
-            xgb_learning_rate=_env_float("RERANKER_HYBRID_XGB_LEARNING_RATE", 0.08),
-            xgb_subsample=_env_float("RERANKER_HYBRID_XGB_SUBSAMPLE", 0.9),
-            xgb_colsample_bytree=_env_float("RERANKER_HYBRID_XGB_COLSAMPLE_BYTREE", 0.9),
-            weight_sem_score=_env_float("RERANKER_HYBRID_WEIGHT_SEM_SCORE", 0.25),
-            weight_bm25_score=_env_float("RERANKER_HYBRID_WEIGHT_BM25_SCORE", 0.20),
-            weight_token_overlap=_env_float("RERANKER_HYBRID_WEIGHT_TOKEN_OVERLAP", 0.15),
-            weight_query_coverage=_env_float("RERANKER_HYBRID_WEIGHT_QUERY_COVERAGE", 0.20),
-            weight_shared_char=_env_float("RERANKER_HYBRID_WEIGHT_SHARED_CHAR", 0.10),
-            weight_exact_phrase=_env_float("RERANKER_HYBRID_WEIGHT_EXACT_PHRASE", 0.10),
-            weight_keyword_hit=_env_float("RERANKER_HYBRID_WEIGHT_KEYWORD_HIT", 0.05),
-            ensemble_mode=_env_str("RERANKER_HYBRID_ENSEMBLE_MODE", "xgboost"),
-            rrf_k=_env_int("RERANKER_HYBRID_RRF_K", 60),
+            random_state=_env("RERANKER_HYBRID_RANDOM_STATE", 42, int),
+            xgb_n_estimators=_env("RERANKER_HYBRID_XGB_N_ESTIMATORS", 120, int),
+            xgb_max_depth=_env("RERANKER_HYBRID_XGB_MAX_DEPTH", 4, int),
+            xgb_learning_rate=_env("RERANKER_HYBRID_XGB_LEARNING_RATE", 0.08, float),
+            xgb_subsample=_env("RERANKER_HYBRID_XGB_SUBSAMPLE", 0.9, float),
+            xgb_colsample_bytree=_env("RERANKER_HYBRID_XGB_COLSAMPLE_BYTREE", 0.9, float),
+            weight_sem_score=_env("RERANKER_HYBRID_WEIGHT_SEM_SCORE", 0.25, float),
+            weight_bm25_score=_env("RERANKER_HYBRID_WEIGHT_BM25_SCORE", 0.20, float),
+            weight_token_overlap=_env("RERANKER_HYBRID_WEIGHT_TOKEN_OVERLAP", 0.15, float),
+            weight_query_coverage=_env("RERANKER_HYBRID_WEIGHT_QUERY_COVERAGE", 0.20, float),
+            weight_shared_char=_env("RERANKER_HYBRID_WEIGHT_SHARED_CHAR", 0.10, float),
+            weight_exact_phrase=_env("RERANKER_HYBRID_WEIGHT_EXACT_PHRASE", 0.10, float),
+            weight_keyword_hit=_env("RERANKER_HYBRID_WEIGHT_KEYWORD_HIT", 0.05, float),
+            ensemble_mode=_env("RERANKER_HYBRID_ENSEMBLE_MODE", "xgboost", str),
+            rrf_k=_env("RERANKER_HYBRID_RRF_K", 60, int),
         ),
         distilled=DistilledSettings(
-            random_state=_env_int("RERANKER_DISTILLED_RANDOM_STATE", 42),
-            logistic_c=_env_float("RERANKER_DISTILLED_LOGISTIC_C", 1.0),
-            logistic_max_iter=_env_int("RERANKER_DISTILLED_LOGISTIC_MAX_ITER", 500),
-            full_tournament_max_docs=_env_int(
-                "RERANKER_DISTILLED_FULL_TOURNAMENT_MAX_DOCS",
-                50,
-            ),
-            loss_type=_env_str("RERANKER_DISTILLED_LOSS_TYPE", "pairwise"),
-            cross_encoder_model=_env_str(
+            random_state=_env("RERANKER_DISTILLED_RANDOM_STATE", 42, int),
+            logistic_c=_env("RERANKER_DISTILLED_LOGISTIC_C", 1.0, float),
+            logistic_max_iter=_env("RERANKER_DISTILLED_LOGISTIC_MAX_ITER", 500, int),
+            full_tournament_max_docs=_env("RERANKER_DISTILLED_FULL_TOURNAMENT_MAX_DOCS", 50, int),
+            loss_type=_env("RERANKER_DISTILLED_LOSS_TYPE", "pairwise", str),
+            cross_encoder_model=_env(
                 "RERANKER_DISTILLED_CROSS_ENCODER_MODEL",
                 "cross-encoder/ms-marco-MiniLM-L-6-v2",
+                str,
             ),
         ),
         late_interaction=LateInteractionSettings(
-            top_k_tokens=_env_int("RERANKER_LATE_INTERACTION_TOP_K_TOKENS", 128),
-            use_salience=_env_bool("RERANKER_LATE_INTERACTION_USE_SALIENCE", True),
+            top_k_tokens=_env("RERANKER_LATE_INTERACTION_TOP_K_TOKENS", 128, int),
+            use_salience=_env("RERANKER_LATE_INTERACTION_USE_SALIENCE", True, bool),
         ),
         binary_reranker=BinaryRerankerSettings(
-            hamming_top_k=_env_int("RERANKER_BINARY_RERANKER_HAMMING_TOP_K", 500),
-            bilinear_top_k=_env_int("RERANKER_BINARY_RERANKER_BILINEAR_TOP_K", 50),
-            random_state=_env_int("RERANKER_BINARY_RERANKER_RANDOM_STATE", 42),
+            hamming_top_k=_env("RERANKER_BINARY_RERANKER_HAMMING_TOP_K", 500, int),
+            bilinear_top_k=_env("RERANKER_BINARY_RERANKER_BILINEAR_TOP_K", 50, int),
+            random_state=_env("RERANKER_BINARY_RERANKER_RANDOM_STATE", 42, int),
         ),
         pipeline=PipelineSettings(
-            default_stage_top_k=_env_int("RERANKER_PIPELINE_DEFAULT_STAGE_TOP_K", 200),
+            default_stage_top_k=_env("RERANKER_PIPELINE_DEFAULT_STAGE_TOP_K", 200, int),
         ),
         cascade=CascadeSettings(
-            confidence_threshold=_env_float("RERANKER_CASCADE_CONFIDENCE_THRESHOLD", 0.6),
-            fallback_strategy=_env_str("RERANKER_CASCADE_FALLBACK_STRATEGY", "flashrank"),
+            confidence_threshold=_env("RERANKER_CASCADE_CONFIDENCE_THRESHOLD", 0.6, float),
+            fallback_strategy=_env("RERANKER_CASCADE_FALLBACK_STRATEGY", "flashrank", str),
         ),
         consistency=ConsistencySettings(
-            sim_threshold=_env_float("RERANKER_CONSISTENCY_SIM_THRESHOLD", 0.95),
-            value_tolerance=_env_float("RERANKER_CONSISTENCY_VALUE_TOLERANCE", 0.01),
+            sim_threshold=_env("RERANKER_CONSISTENCY_SIM_THRESHOLD", 0.95, float),
+            value_tolerance=_env("RERANKER_CONSISTENCY_VALUE_TOLERANCE", 0.01, float),
         ),
         roi=RoiSettings(
-            llm_cost_per_judgment_usd=_env_float("RERANKER_ROI_LLM_COST_PER_JUDGMENT_USD", 0.0004),
-            projected_monthly_queries=_env_int("RERANKER_ROI_PROJECTED_MONTHLY_QUERIES", 10000),
+            llm_cost_per_judgment_usd=_env("RERANKER_ROI_LLM_COST_PER_JUDGMENT_USD", 0.0004, float),
+            projected_monthly_queries=_env("RERANKER_ROI_PROJECTED_MONTHLY_QUERIES", 10000, int),
         ),
         benchmark=BenchmarkSettings(
-            sample_doc=_env_str(
+            sample_doc=_env(
                 "RERANKER_BENCHMARK_SAMPLE_DOC",
                 "This is a sample document for latency measurement.",
+                str,
             ),
-            sample_size=_env_int("RERANKER_BENCHMARK_SAMPLE_SIZE", 100),
-            candidate_count=_env_int("RERANKER_BENCHMARK_CANDIDATE_COUNT", 20),
-            embedding_target_ms_per_doc=_env_float(
+            sample_size=_env("RERANKER_BENCHMARK_SAMPLE_SIZE", 100, int),
+            candidate_count=_env("RERANKER_BENCHMARK_CANDIDATE_COUNT", 20, int),
+            embedding_target_ms_per_doc=_env(
                 "RERANKER_BENCHMARK_EMBEDDING_TARGET_MS_PER_DOC",
                 5.0,
+                float,
             ),
-            rerank_target_ms_per_query=_env_float(
+            rerank_target_ms_per_query=_env(
                 "RERANKER_BENCHMARK_RERANK_TARGET_MS_PER_QUERY",
                 50.0,
+                float,
             ),
-            consistency_claim_count=_env_int(
+            consistency_claim_count=_env(
                 "RERANKER_BENCHMARK_CONSISTENCY_CLAIM_COUNT",
                 1000,
+                int,
             ),
-            consistency_target_ms_per_1000_claims=_env_float(
+            consistency_target_ms_per_1000_claims=_env(
                 "RERANKER_BENCHMARK_CONSISTENCY_TARGET_MS_PER_1000_CLAIMS",
                 50.0,
+                float,
             ),
         ),
         eval=EvalSettings(
-            default_split=_env_str("RERANKER_EVAL_DEFAULT_SPLIT", "test"),
-            train_ratio=_env_float("RERANKER_EVAL_TRAIN_RATIO", 0.7),
-            validation_ratio=_env_float("RERANKER_EVAL_VALIDATION_RATIO", 0.15),
-            test_ratio=_env_float("RERANKER_EVAL_TEST_RATIO", 0.15),
+            default_split=_env("RERANKER_EVAL_DEFAULT_SPLIT", "test", str),
+            train_ratio=_env("RERANKER_EVAL_TRAIN_RATIO", 0.7, float),
+            validation_ratio=_env("RERANKER_EVAL_VALIDATION_RATIO", 0.15, float),
+            test_ratio=_env("RERANKER_EVAL_TEST_RATIO", 0.15, float),
         ),
         splade=SPLADESettings(
-            model_name=_env_str("RERANKER_SPLADE_MODEL_NAME", "naver/splade-v2-max"),
-            top_k_terms=_env_int("RERANKER_SPLADE_TOP_K_TERMS", 128),
+            model_name=_env("RERANKER_SPLADE_MODEL_NAME", "naver/splade-v2-max", str),
+            top_k_terms=_env("RERANKER_SPLADE_TOP_K_TERMS", 128, int),
         ),
     )
 

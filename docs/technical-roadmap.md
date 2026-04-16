@@ -217,7 +217,7 @@ class BM25Engine:
 Run before any model training. This is your performance floor contract.
 
 ```python
-# scripts/benchmark_core.py
+# scripts/benchmark_all.py --quick
 import time, numpy as np
 from reranker.embedder import Embedder
 

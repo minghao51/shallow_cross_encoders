@@ -32,64 +32,138 @@ MSMARCO_DEV_SAMPLE = {
     "passages": [
         {
             "id": "p1",
-            "text": "The National Weather Service forecast process begins with observations from ground stations, weather balloons, satellites, and radar. Computer models then simulate atmospheric conditions using complex mathematical equations. Meteorologists interpret model outputs and apply their expertise to create local forecasts, often updating them every 6-12 hours as new data arrives.",
+            "text": (
+                "The National Weather Service forecast process begins with observations "
+                "from ground stations, weather balloons, satellites, and radar. "
+                "Computer models then simulate atmospheric conditions using complex "
+                "mathematical equations. Meteorologists interpret model outputs and "
+                "apply their expertise to create local forecasts, often updating them "
+                "every 6-12 hours as new data arrives."
+            ),
         },
         {
             "id": "p2",
-            "text": "Treatment for atrial fibrillation may include medications to control heart rate and rhythm, blood thinners to prevent stroke, and electrical cardioversion to restore normal rhythm. In some cases, catheter ablation may be recommended to destroy abnormal tissue causing the irregular heartbeat.",
+            "text": (
+                "Treatment for atrial fibrillation may include medications to control "
+                "heart rate and rhythm, blood thinners to prevent stroke, and "
+                "electrical cardioversion to restore normal rhythm. In some cases, "
+                "catheter ablation may be recommended to destroy abnormal tissue "
+                "causing the irregular heartbeat."
+            ),
         },
         {
             "id": "p3",
-            "text": "Cats may meow excessively at night due to hunger, boredom, or medical issues like hyperthyroidism. Establishing a consistent play and feeding schedule before bedtime can help reduce nighttime vocalization. If the behavior persists, a veterinary checkup is recommended.",
+            "text": (
+                "Cats may meow excessively at night due to hunger, boredom, or medical "
+                "issues like hyperthyroidism. Establishing a consistent play and "
+                "feeding schedule before bedtime can help reduce nighttime "
+                "vocalization. If the behavior persists, a veterinary checkup is "
+                "recommended."
+            ),
         },
         {
             "id": "p4",
-            "text": "Mortgage payments can be calculated using the formula M = P[i(1+i)^n]/[(1+i)^n-1], where M is monthly payment, P is principal, i is monthly interest rate, and n is number of payments. Online calculators and spreadsheets can automate this calculation.",
+            "text": (
+                "Mortgage payments can be calculated using the formula "
+                "M = P[i(1+i)^n]/[(1+i)^n-1], where M is monthly payment, P is "
+                "principal, i is monthly interest rate, and n is number of payments. "
+                "Online calculators and spreadsheets can automate this calculation."
+            ),
         },
         {
             "id": "p5",
-            "text": "Vitamin D deficiency symptoms include bone pain, muscle weakness, fatigue, and mood changes. Severe deficiency can lead to osteomalacia in adults or rickets in children. Treatment typically involves vitamin D supplements and increased sun exposure.",
+            "text": (
+                "Vitamin D deficiency symptoms include bone pain, muscle weakness, "
+                "fatigue, and mood changes. Severe deficiency can lead to osteomalacia "
+                "in adults or rickets in children. Treatment typically involves "
+                "vitamin D supplements and increased sun exposure."
+            ),
         },
         {
             "id": "p6",
-            "text": "Heat pumps work by transferring heat between indoors and outdoors using refrigerant. In winter, they extract heat from outside air (even when cold) and concentrate it indoors. They become less efficient below freezing, which is why backup heating may be needed in very cold climates.",
+            "text": (
+                "Heat pumps work by transferring heat between indoors and outdoors "
+                "using refrigerant. In winter, they extract heat from outside air "
+                "(even when cold) and concentrate it indoors. They become less "
+                "efficient below freezing, which is why backup heating may be needed "
+                "in very cold climates."
+            ),
         },
         {
             "id": "p7",
-            "text": "Type 1 diabetes is an autoimmune condition where the body doesn't produce insulin, typically diagnosed in childhood. Type 2 diabetes involves insulin resistance and relative insulin deficiency, usually developing in adults. Treatment differs: type 1 requires insulin therapy, while type 2 may be managed with lifestyle changes and oral medications.",
+            "text": (
+                "Type 1 diabetes is an autoimmune condition where the body doesn't "
+                "produce insulin, typically diagnosed in childhood. Type 2 diabetes "
+                "involves insulin resistance and relative insulin deficiency, usually "
+                "developing in adults. Treatment differs: type 1 requires insulin "
+                "therapy, while type 2 may be managed with lifestyle changes and oral "
+                "medications."
+            ),
         },
         {
             "id": "p8",
-            "text": "Natural smoking cessation methods include behavioral therapy, support groups, nicotine replacement therapy, and identifying triggers. The combination of counseling and medication has the highest success rates. Most people need multiple attempts before successfully quitting.",
+            "text": (
+                "Natural smoking cessation methods include behavioral therapy, support "
+                "groups, nicotine replacement therapy, and identifying triggers. The "
+                "combination of counseling and medication has the highest success "
+                "rates. Most people need multiple attempts before successfully "
+                "quitting."
+            ),
         },
         {
             "id": "p9",
-            "text": "High blood pressure in young adults can be caused by obesity, excessive alcohol consumption, stress, kidney disease, or genetic factors. Secondary hypertension from underlying conditions is more common in younger patients than in older adults.",
+            "text": (
+                "High blood pressure in young adults can be caused by obesity, "
+                "excessive alcohol consumption, stress, kidney disease, or genetic "
+                "factors. Secondary hypertension from underlying conditions is more "
+                "common in younger patients than in older adults."
+            ),
         },
         {
             "id": "p10",
-            "text": "Photosynthesis converts light energy into chemical energy through chlorophyll in plant leaves. Light energy splits water molecules, releasing oxygen. The energy is used to combine carbon dioxide and water into glucose, which plants use for growth and cellular respiration.",
+            "text": (
+                "Photosynthesis converts light energy into chemical energy through "
+                "chlorophyll in plant leaves. Light energy splits water molecules, "
+                "releasing oxygen. The energy is used to combine carbon dioxide and "
+                "water into glucose, which plants use for growth and cellular "
+                "respiration."
+            ),
         },
         # Add some irrelevant passages
         {
             "id": "p11",
-            "text": "Stock market indices track the performance of baskets of stocks and are used as benchmarks for investment portfolios.",
+            "text": (
+                "Stock market indices track the performance of baskets of stocks and "
+                "are used as benchmarks for investment portfolios."
+            ),
         },
         {
             "id": "p12",
-            "text": "The mitochondria is the powerhouse of the cell, generating ATP through cellular respiration.",
+            "text": (
+                "The mitochondria is the powerhouse of the cell, generating ATP "
+                "through cellular respiration."
+            ),
         },
         {
             "id": "p13",
-            "text": "Quantum computing uses qubits instead of classical bits to perform calculations using superposition and entanglement.",
+            "text": (
+                "Quantum computing uses qubits instead of classical bits to perform "
+                "calculations using superposition and entanglement."
+            ),
         },
         {
             "id": "p14",
-            "text": "The Great Wall of China was built over centuries to protect against northern invasions and spans thousands of miles.",
+            "text": (
+                "The Great Wall of China was built over centuries to protect against "
+                "northern invasions and spans thousands of miles."
+            ),
         },
         {
             "id": "p15",
-            "text": "JavaScript is a programming language primarily used for web development and runs in browsers.",
+            "text": (
+                "JavaScript is a programming language primarily used for web "
+                "development and runs in browsers."
+            ),
         },
     ],
     "qrels": {

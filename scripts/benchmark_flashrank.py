@@ -41,8 +41,10 @@ class FlashRankWrapper:
 
             self.ranker = Ranker(model_name=model_name, max_length=max_length)
             self.model_name = model_name
-        except ImportError:
-            raise ImportError("FlashRank not installed. Install with: uv sync --extra flashrank")
+        except ImportError as err:
+            raise ImportError(
+                "FlashRank not installed. Install with: uv sync --extra flashrank"
+            ) from err
 
     def rerank(self, query: str, docs: list[str]) -> list[Any]:
         from flashrank import RerankRequest
@@ -79,10 +81,11 @@ class SentenceTransformerWrapper:
 
             self.model = CrossEncoder(model_name)
             self.model_name = model_name
-        except ImportError:
+        except ImportError as err:
             raise ImportError(
-                "SentenceTransformers not installed. Install with: pip install sentence-transformers"
-            )
+                "SentenceTransformers not installed. "
+                "Install with: uv sync --extra sentence-transformers"
+            ) from err
 
     def rerank(self, query: str, docs: list[str]) -> list[dict[str, Any]]:
         # Score all query-doc pairs
@@ -234,7 +237,7 @@ def evaluate_current_strategies(
     hybrid = HybridFusionReranker(adapters=[KeywordMatchAdapter()]).fit_pointwise(
         queries=[str(row["query"]) for row in train_rows],
         docs=[str(row["doc"]) for row in train_rows],
-        scores=[float(l) for l in binary_labels],
+        scores=[float(label) for label in binary_labels],
     )
     results["hybrid"] = _evaluate_reranker(hybrid, eval_rows)
 
@@ -297,7 +300,7 @@ def _evaluate_reranker(
             ranked = reranker.rerank(query, docs)
 
         label_map = {str(item["doc"]): int(item["score"]) for item in items}
-        relevances: list[float] = [float(r.score) for r in ranked]
+        relevances = [float(label_map.get(r.doc, 0)) for r in ranked]
         binary = [1 if rel >= 2 else 0 for rel in relevances]
         ndcgs.append(ndcg_at_k(relevances, 10))
         mrrs.append(reciprocal_rank(binary))
@@ -337,9 +340,8 @@ def benchmark_all(
     if not test_rows:
         test_rows = rows
 
-    print(
-        f"Testing on {len(test_rows)} samples ({len(set(r['query'] for r in test_rows))} unique queries)"
-    )
+    unique_queries = len(set(row["query"] for row in test_rows))
+    print(f"Testing on {len(test_rows)} samples ({unique_queries} unique queries)")
 
     results = {
         "dataset_info": {
@@ -354,7 +356,9 @@ def benchmark_all(
     flashrank_tiny = evaluate_flashrank(test_rows, model_name="ms-marco-TinyBERT-L-2-v2")
     results["strategies"]["flashrank_tiny"] = flashrank_tiny
     print(
-        f"FlashRank TinyBERT: NDCG@10={flashrank_tiny.get('ndcg@10', 'N/A')}, P@1={flashrank_tiny.get('p@1', 'N/A')}"
+        "FlashRank TinyBERT: "
+        f"NDCG@10={flashrank_tiny.get('ndcg@10', 'N/A')}, "
+        f"P@1={flashrank_tiny.get('p@1', 'N/A')}"
     )
 
     # Evaluate FlashRank (MiniLM - if available)
@@ -362,7 +366,9 @@ def benchmark_all(
     flashrank_mini = evaluate_flashrank(test_rows, model_name="ms-marco-MiniLM-L-12-v2")
     results["strategies"]["flashrank_mini"] = flashrank_mini
     print(
-        f"FlashRank MiniLM: NDCG@10={flashrank_mini.get('ndcg@10', 'N/A')}, P@1={flashrank_mini.get('p@1', 'N/A')}"
+        "FlashRank MiniLM: "
+        f"NDCG@10={flashrank_mini.get('ndcg@10', 'N/A')}, "
+        f"P@1={flashrank_mini.get('p@1', 'N/A')}"
     )
 
     # Evaluate SentenceTransformers (MiniLM-L-6)
@@ -381,7 +387,10 @@ def benchmark_all(
         test_rows, model_name="cross-encoder/ms-marco-TinyBERT-L-2"
     )
     results["strategies"]["st_tiny"] = st_tiny
-    print(f"ST TinyBERT: NDCG@10={st_tiny.get('ndcg@10', 'N/A')}, P@1={st_tiny.get('p@1', 'N/A')}")
+    print(
+        f"ST TinyBERT: NDCG@10={st_tiny.get('ndcg@10', 'N/A')}, "
+        f"P@1={st_tiny.get('p@1', 'N/A')}"
+    )
 
     # Evaluate current strategies
     print("\n=== Evaluating Current Strategies ===")

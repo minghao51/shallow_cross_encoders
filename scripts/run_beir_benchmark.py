@@ -106,11 +106,12 @@ def load_beir_dataset(dataset_path: Path) -> dict[str, Any]:
     if qrels_dir.exists():
         for qrels_file in qrels_dir.glob("*.tsv"):
             with open(qrels_file) as f:
-                header = f.readline().strip().split("\t")
+                f.readline()
                 for line in f:
                     parts = line.strip().split("\t")
                     if len(parts) >= 3:
-                        # Handle both formats: "query-id\tcorpus-id\tscore" and "q_id\t0\tdoc_id\trel"
+                        # Handle both formats:
+                        # "query-id\tcorpus-id\tscore" and "q_id\t0\tdoc_id\trel"
                         if len(parts) == 3:
                             q_id, doc_id, rel = parts[0], parts[1], int(parts[2])
                         else:
@@ -299,9 +300,8 @@ def evaluate_all_strategies(
     print("=" * 60)
 
     binary_labels = [1 if int(row["score"]) > 0 else 0 for row in train_rows]
-    print(
-        f"Training labels: {sum(binary_labels)} positive, {len(binary_labels) - sum(binary_labels)} negative"
-    )
+    negative_count = len(binary_labels) - sum(binary_labels)
+    print(f"Training labels: {sum(binary_labels)} positive, {negative_count} negative")
 
     # Hybrid Fusion
     print("\nTraining HybridFusionReranker...")
@@ -385,7 +385,7 @@ def _evaluate_reranker(reranker: Any, rows: list[dict[str, Any]]) -> dict[str, f
     mrrs: list[float] = []
     p1s: list[float] = []
 
-    for query_id, items in grouped.items():
+    for items in grouped.values():
         query = items[0]["query"]
         docs = [str(item["doc"]) for item in items]
 

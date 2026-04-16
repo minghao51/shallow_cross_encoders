@@ -96,7 +96,7 @@ def prepare_beir_for_benchmark(
         # Get relevance judgments
         relevant_docs = qrels.get(query_id, {})
 
-        for idx, doc_idx in enumerate(top_indices):
+        for doc_idx in top_indices:
             doc_id = corpus_ids[doc_idx]
             doc_text = corpus[doc_id]["text"]
 
@@ -125,8 +125,10 @@ class FlashRankWrapper:
             from flashrank import Ranker
 
             self.ranker = Ranker(model_name=model_name, max_length=max_length)
-        except ImportError:
-            raise ImportError("FlashRank not installed. Install with: uv sync --extra flashrank")
+        except ImportError as err:
+            raise ImportError(
+                "FlashRank not installed. Install with: uv sync --extra flashrank"
+            ) from err
 
     def rerank(self, query: str, docs: list[str]) -> list[dict[str, Any]]:
         from flashrank import RerankRequest
@@ -200,11 +202,11 @@ def evaluate_on_beir(
     )
 
     # Evaluate each strategy
-    for name, reranker, reranker_key in [
-        ("flashrank_tiny", FlashRankWrapper(model_name="ms-marco-TinyBERT-L-2-v2"), None),
-        ("flashrank_mini", FlashRankWrapper(model_name="ms-marco-MiniLM-L-12-v2"), None),
-        ("hybrid", hybrid, "hybrid"),
-        ("binary_reranker", binary, "binary"),
+    for name, reranker in [
+        ("flashrank_tiny", FlashRankWrapper(model_name="ms-marco-TinyBERT-L-2-v2")),
+        ("flashrank_mini", FlashRankWrapper(model_name="ms-marco-MiniLM-L-12-v2")),
+        ("hybrid", hybrid),
+        ("binary_reranker", binary),
     ]:
         print(f"\nEvaluating {name}...")
 

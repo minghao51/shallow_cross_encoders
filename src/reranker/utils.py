@@ -183,19 +183,14 @@ def rrf_from_scores(score_arrays: list[np.ndarray], k: int = 60) -> np.ndarray:
         ranked = sorted(doc_ids, key=lambda i: scores[i], reverse=True)
         ranked_lists.append([(doc_id, scores[doc_id]) for doc_id in ranked])
 
-    int_to_str = {i: f"doc_{i}" for i in doc_ids}
-    str_ranked_lists = [
-        [(int_to_str[i], s) for i, s in ranked_list] for ranked_list in ranked_lists
-    ]
+    str_ranked_lists = [[(f"doc_{i}", s) for i, s in ranked_list] for ranked_list in ranked_lists]
 
     fused = reciprocal_rank_fusion(str_ranked_lists, k=k)
 
     fused_scores = np.zeros(n_docs, dtype=np.float32)
-    fused_rank = {doc_id: rank for rank, (doc_id, _) in enumerate(fused)}
     str_to_int = {f"doc_{i}": i for i in doc_ids}
 
-    for doc_id_str in fused_rank:
-        doc_id_int = str_to_int[doc_id_str]
-        fused_scores[doc_id_int] = fused[doc_id_str]
+    for doc_id_str, score in fused:
+        fused_scores[str_to_int[doc_id_str]] = score
 
     return fused_scores

@@ -59,7 +59,7 @@ uv run python scripts/distill_ensemble_to_hybrid.py \
 **BEIR dataset support:**
 - `fluent-legal` and `scifact` added in recent update
 - Run: `uv run python scripts/benchmark_beir.py nfcorpus` for standard benchmarks
-- See [BEIR integration notes](docs/beir-integration.md) for dataset-specific configuration
+- Use `uv run python scripts/download_beir.py nfcorpus` to materialize a local dataset copy
 
 ### Synthetic Data Generation (OpenRouter)
 
@@ -86,12 +86,14 @@ uv sync --extra flashrank --extra sentence-transformers
 
 # Run speed/quality comparison
 uv run python scripts/benchmark_flashrank.py
+uv run python scripts/benchmark_beir.py nfcorpus
+uv run python scripts/benchmark_all.py --quick
 ```
 
 **Use when:** Choosing between FlashRank (ONNX), SentenceTransformers (PyTorch), or local models (Hybrid, Binary) for deployment.
 
 ### Configuration
-Settings in [`src/reranker/config.py`](src/reranker/config.py); override via environment vars (`OPENROUTER_MODEL`, `RERANKER_*COUNT`, etc.). See `.env.example`.
+Settings live in [`src/reranker/config.py`](src/reranker/config.py) and are overridden via environment variables.
 
 ### Training Scripts
 - `train_hybrid.py`: Hybrid Fusion Reranker with soft labels
@@ -112,72 +114,16 @@ uv run python -m reranker.eval --strategy late_interaction --split test
 uv run python -m reranker.eval --strategy binary_reranker --split test
 uv run python -m reranker.eval --strategy consistency --split test
 uv run python scripts/measure_roi.py
-uv run python scripts/benchmark_core.py
+uv run python scripts/benchmark_all.py --quick
 ```
-
-**Use when:** You have query-doc pairs but no relevance labels. FlashRank provides high-quality soft labels that capture ranking nuance better than binary judgments.
-
-**Expected results:** 95-98% of teacher ensemble NDCG@10 with ~0.45ms latency for distilled models (vs ~40ms for teacher). See [Ensemble Distillation Guide](docs/ensemble-distillation-guide.md) for details.
-
-**BEIR dataset support:**
-- `fluent-legal` and `scifact` added in recent update
-- Run: `uv run python scripts/benchmark_beir.py nfcorpus` for standard benchmarks
-- See [BEIR integration notes](docs/beir-integration.md) for dataset-specific configuration
-
-### Synthetic Data Generation (OpenRouter)
-
-Generate training data when you have no labeled examples:
-
-```bash
-export OPENROUTER_MODEL=openai/gpt-4o-mini  # optional
-OPENROUTER_API_KEY=... uv run python scripts/generate_pairs.py --teacher --count 2000
-OPENROUTER_API_KEY=... uv run python scripts/generate_preferences.py --teacher --count 1500
-OPENROUTER_API_KEY=... uv run python scripts/generate_contradictions.py --teacher --count 500
-```
-
-**Use when:** Starting from scratch with no domain-specific training data. LLM generates synthetic query-doc pairs with relevance scores.
-
-Metadata written to `data/raw/manifest.json`, `data/processed/label_distribution_summary.json`, `data/logs/api_costs.jsonl`.
-
-### Benchmarking
-
-Compare all reranking methods (FlashRank, SentenceTransformers, local models):
-
-```bash
-# Install both extras (requires PyTorch for ST)
-uv sync --extra flashrank --extra sentence-transformers
-
-# Run speed/quality comparison
-uv run python scripts/benchmark_flashrank.py
-```
-
-**Use when:** Choosing between FlashRank (ONNX), SentenceTransformers (PyTorch), or local models (Hybrid, Binary) for deployment.
-
-### Configuration
-Settings in [`src/reranker/config.py`](src/reranker/config.py); override via environment vars (`OPENROUTER_MODEL`, `RERANKER_*COUNT`, etc.). See `.env.example`.
 
 ### Environment Variables
 - `OPENROUTER_MODEL`: Override default teacher model (default: `openai/gpt-4o-mini`)
-- `RERANKER_HYBRID_COUNT`: Number of hybrid samples to generate (default: 1000)
-- `RERANKER_PAIRWISE_COUNT`: Number of pairwise preference samples (default: 500)
-- `RERANKER_BINARY_COUNT`: Number of binary reranker training samples (default: 5000)
+- `RERANKER_PAIR_COUNT`: Number of generated pair samples (default: `2000`)
+- `RERANKER_PREFERENCE_COUNT`: Number of generated preference samples (default: `1500`)
+- `RERANKER_CONTRADICTION_COUNT`: Number of generated contradiction samples (default: `500`)
+- `RERANKER_CONTROL_COUNT`: Number of generated control samples (default: `200`)
 - `OPENROUTER_API_KEY`: Required for synthetic data generation
-
-## Runtime Scripts
-
-```bash
-uv run python scripts/train_hybrid.py
-uv run python scripts/train_distilled.py
-uv run python scripts/train_late_interaction.py
-uv run python scripts/train_binary_reranker.py
-uv run python -m reranker.eval --strategy hybrid --split test
-uv run python -m reranker.eval --strategy distilled --split test
-uv run python -m reranker.eval --strategy late_interaction --split test
-uv run python -m reranker.eval --strategy binary_reranker --split test
-uv run python -m reranker.eval --strategy consistency --split test
-uv run python scripts/measure_roi.py
-uv run python scripts/benchmark_core.py
-```
 
 ## Benchmarks
 
@@ -280,5 +226,4 @@ print(f"Fallback rate: {stats['fallback_rate']:.1%}")
 | **PipelineReranker** | Large candidate sets, need filtering | Reduces compute progressively |
 | **Standalone** | Small candidate sets, simple use case | Easiest to deploy |
 | **Combine** | Production systems with SLAs | Pipeline → Cascade for maximum efficiency |
-
 

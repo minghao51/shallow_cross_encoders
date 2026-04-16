@@ -8,9 +8,10 @@ __pycache__/
 .venv/
 .python-version
 
-# Test, lint, and benchmark caches
+# Test, lint, typecheck, and benchmark caches
 .pytest_cache/
 .ruff_cache/
+.mypy_cache/
 .benchmarks/
 
 # Build and packaging outputs
@@ -37,6 +38,7 @@ htmlcov/
 
 # Generated project artifacts
 data/raw/*
+data/beir/*
 data/processed/*
 data/logs/*
 data/models/*

@@ -1,3 +1,7 @@
+# 1-bit Mamba for Query Rewriting (Exploratory)
+
+> **Status:** Speculative research note. Not implemented in the current codebase. Explores using 1-bit Mamba models for query normalization/expansion to improve static embedding retrieval.
+
 ## 1. Why 1-bit Mamba is the Right Tool
 Standard Transformers (like GPT-4o-mini) are overkill and too slow for a real-time query rewrite on a CPU. 
 * **Linear Scaling:** Mamba-3 architectures have linear complexity. Unlike Transformers, they don't get bogged down as the query gets longer.
