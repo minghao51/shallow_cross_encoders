@@ -192,6 +192,15 @@ wheels = [
 ]
 
 [[package]]
+name = "cachetools"
+version = "7.0.5"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/af/dd/57fe3fdb6e65b25a5987fd2cdc7e22db0aef508b91634d2e57d22928d41b/cachetools-7.0.5.tar.gz", hash = "sha256:0cd042c24377200c1dcd225f8b7b12b0ca53cc2c961b43757e774ebe190fd990", size = 37367 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/06/f3/39cf3367b8107baa44f861dc802cbf16263c945b62d8265d36034fc07bea/cachetools-7.0.5-py3-none-any.whl", hash = "sha256:46bc8ebefbe485407621d0a4264b23c080cedd913921bad7ac3ed2f26c183114", size = 13918 },
+]
+
+[[package]]
 name = "certifi"
 version = "2026.2.25"
 source = { registry = "https://pypi.org/simple" }
@@ -2312,12 +2321,14 @@ name = "shallow-cross-encoders"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "cachetools" },
     { name = "cloudpickle" },
     { name = "httpx" },
     { name = "numpy" },
     { name = "pydantic" },
     { name = "scikit-learn" },
     { name = "scipy" },
+    { name = "tenacity" },
 ]
 
 [package.optional-dependencies]
@@ -2335,8 +2346,10 @@ flashrank = [
     { name = "flashrank" },
 ]
 runtime = [
+    { name = "cachetools" },
     { name = "model2vec" },
     { name = "rank-bm25" },
+    { name = "tenacity" },
     { name = "xgboost" },
 ]
 sentence-transformers = [
@@ -2353,6 +2366,8 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "beir", marker = "extra == 'beir'", specifier = ">=1.0.1" },
+    { name = "cachetools", specifier = ">=5.5.0" },
+    { name = "cachetools", marker = "extra == 'runtime'", specifier = ">=5.5.0" },
     { name = "cloudpickle", specifier = ">=3.1.0" },
     { name = "flashrank", marker = "extra == 'flashrank'", specifier = ">=0.2.0" },
     { name = "httpx", specifier = ">=0.27.0" },
@@ -2368,6 +2383,8 @@ requires-dist = [
     { name = "scikit-learn", specifier = ">=1.5.0" },
     { name = "scipy", specifier = ">=1.13.0" },
     { name = "sentence-transformers", marker = "extra == 'sentence-transformers'", specifier = ">=3.0.0" },
+    { name = "tenacity", specifier = ">=9.0.0" },
+    { name = "tenacity", marker = "extra == 'runtime'", specifier = ">=9.0.0" },
     { name = "torch", marker = "extra == 'sentence-transformers'", specifier = ">=2.4.0" },
     { name = "xgboost", marker = "extra == 'runtime'", specifier = ">=2.1.0" },
 ]
@@ -2406,6 +2423,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/83/d3/803453b36afefb7c2bb238361cd4ae6125a569b4db67cd9e79846ba2d68c/sympy-1.14.0.tar.gz", hash = "sha256:d3d3fe8df1e5a0b42f0e7bdf50541697dbe7d23746e894990c030e2b05e72517", size = 7793921 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a2/09/77d55d46fd61b4a135c444fc97158ef34a095e5681d0a6c10b75bf356191/sympy-1.14.0-py3-none-any.whl", hash = "sha256:e091cc3e99d2141a0ba2847328f5479b05d94a6635cb96148ccb3f34671bd8f5", size = 6299353 },
+]
+
+[[package]]
+name = "tenacity"
+version = "9.1.4"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/47/c6/ee486fd809e357697ee8a44d3d69222b344920433d3b6666ccd9b374630c/tenacity-9.1.4.tar.gz", hash = "sha256:adb31d4c263f2bd041081ab33b498309a57c77f9acf2db65aadf0898179cf93a", size = 49413 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d7/c1/eb8f9debc45d3b7918a32ab756658a0904732f75e555402972246b0b8e71/tenacity-9.1.4-py3-none-any.whl", hash = "sha256:6095a360c919085f28c6527de529e76a06ad89b23659fa881ae0649b867a9d55", size = 28926 },
 ]
 
 [[package]]
