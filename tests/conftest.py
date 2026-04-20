@@ -9,7 +9,6 @@ from typing import Any
 import numpy as np
 import pytest
 
-# Load environment variables from .env file for tests that need API keys
 _env_path = Path(__file__).resolve().parent.parent / ".env"
 if _env_path.exists():
     for line in _env_path.read_text().splitlines():
@@ -22,14 +21,15 @@ if _env_path.exists():
                 os.environ[key] = value
 
 
-def pytest_configure(config: pytest.Config) -> None:
-    """Configure custom pytest markers."""
-    config.addinivalue_line("markers", "unit: Fast, isolated unit tests (default)")
-    config.addinivalue_line("markers", "e2e: Slow end-to-end integration tests")
-    config.addinivalue_line(
-        "markers", "llm: Tests making real LLM API calls (requires OPENROUTER_API_KEY)"
-    )
-    config.addinivalue_line("markers", "llm_mock: Tests mocking LLM API calls")
+def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
+    """Auto-mark tests by directory."""
+    for item in items:
+        if "tests/unit/" in item.nodeid:
+            item.add_marker(pytest.mark.unit)
+        elif "tests/integration/" in item.nodeid:
+            item.add_marker(pytest.mark.integration)
+        elif "tests/e2e/" in item.nodeid:
+            item.add_marker(pytest.mark.e2e)
 
 
 # ============================================================================
