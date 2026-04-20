@@ -31,12 +31,12 @@ class BM25Engine:
         for tokens in self._tokenized:
             self._doc_freqs.update(set(tokens))
         bm25_cls, status = check_rank_bm25()
-        if bm25_cls is not None:
+        if bm25_cls is not None and self._tokenized:
             self._bm25 = bm25_cls(self._tokenized)
             self.backend_name = status.backend
         else:
             self._bm25 = None
-            self.backend_name = status.backend
+            self.backend_name = "pure_python"
 
     def _fallback_scores(self, query: str) -> np.ndarray:
         query_tokens = self._tokenize_fn(query)

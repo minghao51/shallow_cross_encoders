@@ -10,6 +10,11 @@ import numpy as np
 from reranker.config import get_settings
 from reranker.deps import check_model2vec
 
+try:
+    from cachetools import TTLCache
+except Exception:
+    TTLCache = None
+
 
 def _normalize_rows(matrix: np.ndarray) -> np.ndarray:
     norms = np.linalg.norm(matrix, axis=1, keepdims=True)
@@ -26,6 +31,7 @@ class Embedder:
     normalize: bool = field(default_factory=lambda: get_settings().embedder.normalize)
     _backend: Any = field(init=False, default=None, repr=False)
     backend_name: str = field(init=False, default="hashed")
+    _encode_cache: Any = field(init=False, default=None, repr=False)
 
     def _sync_backend_dimension(self) -> None:
         if self._backend is None:
@@ -40,9 +46,18 @@ class Embedder:
         if probe_vectors.ndim == 2 and probe_vectors.shape[1] > 0:
             self.dimension = int(probe_vectors.shape[1])
 
+    def _init_cache(self) -> None:
+        if TTLCache is None:
+            return
+        settings = get_settings()
+        max_size = getattr(settings.embedder, "cache_max_size", 10000)
+        ttl = getattr(settings.embedder, "cache_ttl_seconds", 3600)
+        self._encode_cache = TTLCache(maxsize=max_size, ttl=ttl)
+
     def __post_init__(self) -> None:
         self._backend = None
         self.backend_name = "hashed"
+        self._init_cache()
         backend_cls, status = check_model2vec()
         if backend_cls is not None:
             try:
@@ -77,6 +92,24 @@ class Embedder:
             return np.zeros((0, self.dimension), dtype=np.float32)
         if self._backend is None:
             return self._encode_hashed(texts)
+        if self._encode_cache is not None:
+            result = []
+            uncached = []
+            for i, text in enumerate(texts):
+                cached = self._encode_cache.get(text)
+                if cached is not None:
+                    result.append(cached)
+                else:
+                    result.append(None)
+                    uncached.append(i)
+            if not uncached:
+                return np.stack(result)
+            vectors = self._backend.encode([texts[i] for i in uncached], normalize=self.normalize)
+            vectors = np.asarray(vectors, dtype=np.float32)
+            for idx, vec in zip(uncached, vectors, strict=True):
+                self._encode_cache[texts[idx]] = vec
+                result[idx] = vec
+            return np.stack(result)
         vectors = self._backend.encode(texts, normalize=self.normalize)
         vectors = np.asarray(vectors, dtype=np.float32)
         if vectors.ndim == 2 and vectors.shape[1] > 0:

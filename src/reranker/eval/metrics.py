@@ -46,6 +46,66 @@ def accuracy(y_true: list[int], y_pred: list[int]) -> float:
     return float(sum(int(a == b) for a, b in compared)) / len(compared)
 
 
+def mrr(relevance_scores: list[list[float]], k: int | None = None) -> float:
+    """Mean Reciprocal Rank across queries.
+
+    Args:
+        relevance_scores: List of ranked relevance lists per query.
+                         Each inner list is document relevance scores (higher = more relevant).
+        k: Maximum rank to consider. If None, uses full list length.
+
+    Returns:
+        MRR score (0.0 to 1.0)
+    """
+    if not relevance_scores:
+        return 0.0
+
+    reciprocal_ranks: list[float] = []
+    for scores in relevance_scores:
+        if k is not None:
+            scores = scores[:k]
+        for idx, score in enumerate(scores, start=1):
+            if score > 0:
+                reciprocal_ranks.append(1.0 / idx)
+                break
+        else:
+            reciprocal_ranks.append(0.0)
+
+    return float(sum(reciprocal_ranks) / len(reciprocal_ranks)) if reciprocal_ranks else 0.0
+
+
+def map(relevance_scores: list[list[float]], k: int | None = None) -> float:
+    """Mean Average Precision across queries.
+
+    Args:
+        relevance_scores: List of ranked relevance lists per query.
+                         Each inner list is document relevance scores (higher = more relevant).
+        k: Maximum rank to consider. If None, uses full list length.
+
+    Returns:
+        MAP score (0.0 to 1.0)
+    """
+    if not relevance_scores:
+        return 0.0
+
+    average_precisions: list[float] = []
+    for scores in relevance_scores:
+        if k is not None:
+            scores = scores[:k]
+        precisions: list[float] = []
+        relevant_count = 0
+        for idx, score in enumerate(scores, start=1):
+            if score > 0:
+                relevant_count += 1
+                precisions.append(relevant_count / idx)
+        if precisions:
+            average_precisions.append(sum(precisions) / len(precisions))
+        else:
+            average_precisions.append(0.0)
+
+    return float(sum(average_precisions) / len(average_precisions)) if average_precisions else 0.0
+
+
 @dataclass(slots=True)
 class LatencyTracker:
     samples_ms: list[float] = field(default_factory=list)
