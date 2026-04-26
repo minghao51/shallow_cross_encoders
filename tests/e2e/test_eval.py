@@ -9,6 +9,7 @@ def test_eval_runner_hybrid(tmp_path: Path) -> None:
     assert "ndcg@10" in report
     assert "bm25_ndcg@10" in report
     assert "ndcg@10_uplift_vs_bm25" in report
+    assert "map" in report
 
 
 def test_eval_runner_distilled(tmp_path: Path) -> None:

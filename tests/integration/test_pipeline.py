@@ -83,7 +83,6 @@ class TestPipelineReranker:
 
         class EmptyReranker:
             def rerank(self, query, docs):
-
                 return []
 
         stages = [

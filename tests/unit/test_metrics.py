@@ -10,7 +10,7 @@ from reranker.eval.metrics import (
     LatencyTracker,
     accuracy,
     dcg_at_k,
-    map,
+    mean_average_precision,
     mrr,
     ndcg_at_k,
     precision_at_k,
@@ -233,12 +233,12 @@ class TestMRR:
 
 class TestMAP:
     def test_map_averages_query_average_precision(self) -> None:
-        result = map([[1, 0, 1], [0, 1, 1], [0, 0, 0]])
-        expected = ([(1.0 + (2.0 / 3.0)) / 2.0, ((1.0 / 2.0) + (2.0 / 3.0)) / 2.0, 0.0])
+        result = mean_average_precision([[1, 0, 1], [0, 1, 1], [0, 0, 0]])
+        expected = [(1.0 + (2.0 / 3.0)) / 2.0, ((1.0 / 2.0) + (2.0 / 3.0)) / 2.0, 0.0]
         assert abs(result - (sum(expected) / 3.0)) < 1e-6
 
     def test_map_respects_k(self) -> None:
-        assert map([[1, 0, 1]], k=2) == 1.0
+        assert mean_average_precision([[1, 0, 1]], k=2) == 1.0
 
     def test_accuracy_empty_lists(self) -> None:
         """Accuracy should be 0.0 for empty lists."""

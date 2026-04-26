@@ -221,6 +221,42 @@ class TestOpenRouterClient:
         finally:
             _set_test_client(None)
 
+    @pytest.mark.llm_mock
+    def test_complete_json_falls_back_after_strict_json_400(self) -> None:
+        """A 400 in strict JSON mode should fall back to the relaxed attempt."""
+        strict_failure = Mock(spec=httpx.Response)
+        strict_failure.status_code = 400
+        strict_failure.request = Mock()
+        strict_failure.raise_for_status.side_effect = httpx.HTTPStatusError(
+            "Bad request", request=strict_failure.request, response=strict_failure
+        )
+
+        relaxed_success = Mock(spec=httpx.Response)
+        relaxed_success.status_code = 200
+        relaxed_success.json.return_value = {
+            "id": "resp_123",
+            "model": "openai/gpt-4o-mini",
+            "provider": "openrouter",
+            "choices": [{"message": {"content": '{"query": "test"}'}}],
+            "usage": {},
+        }
+
+        mock_client = Mock()
+        mock_client.post.side_effect = [strict_failure, strict_failure, relaxed_success]
+
+        _set_test_client(mock_client)
+        try:
+            client = OpenRouterClient(api_key="test-key")
+            payload, _ = client.complete_json("test prompt")
+        finally:
+            _set_test_client(None)
+
+        assert payload["query"] == "test"
+        assert mock_client.post.call_args_list[0][1]["json"]["response_format"] == {
+            "type": "json_object"
+        }
+        assert "response_format" not in mock_client.post.call_args_list[-1][1]["json"]
+
     def test_http_client_isolated_by_instance_configuration(self) -> None:
         close_http_client()
         try:

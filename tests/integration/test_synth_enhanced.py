@@ -1,4 +1,3 @@
-
 from reranker.data.synth import (
     HardNegativeRecord,
     ListwisePreferenceRecord,

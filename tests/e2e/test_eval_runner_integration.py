@@ -21,6 +21,7 @@ class TestEvalRunnerE2E:
         assert "bm25_ndcg@10" in report
         assert "ndcg@10_uplift_vs_bm25" in report
         assert "mrr" in report
+        assert "map" in report
         assert "p@1" in report
         assert "latency_p50_ms" in report
         assert "latency_p99_ms" in report
@@ -28,6 +29,7 @@ class TestEvalRunnerE2E:
         # Verify value ranges
         assert 0 <= report["ndcg@10"] <= 1
         assert 0 <= report["bm25_ndcg@10"] <= 1
+        assert 0 <= report["map"] <= 1
         assert report["latency_p50_ms"] >= 0
         assert report["latency_p99_ms"] >= report["latency_p50_ms"]
 

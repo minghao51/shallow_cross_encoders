@@ -1,4 +1,3 @@
-
 from reranker.strategies.consistency import ConsistencyEngine
 
 

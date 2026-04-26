@@ -9,6 +9,8 @@ from typing import Any
 import numpy as np
 import pytest
 
+from reranker.data.client import close_http_client
+
 _env_path = Path(__file__).resolve().parent.parent / ".env"
 if _env_path.exists():
     for line in _env_path.read_text().splitlines():
@@ -30,6 +32,13 @@ def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
             item.add_marker(pytest.mark.integration)
         elif "tests/e2e/" in item.nodeid:
             item.add_marker(pytest.mark.e2e)
+
+
+@pytest.fixture(autouse=True)
+def reset_http_clients() -> None:
+    close_http_client()
+    yield
+    close_http_client()
 
 
 # ============================================================================
@@ -214,6 +223,7 @@ def mock_httpx_post(monkeypatch: pytest.MonkeyPatch, mock_llm_response: dict[str
 @pytest.fixture
 def fake_model2vec(monkeypatch: pytest.MonkeyPatch) -> None:
     """Mock model2vec for testing without the actual dependency."""
+    import sys
     import types
 
     class FakeStaticModel:
@@ -228,16 +238,14 @@ def fake_model2vec(monkeypatch: pytest.MonkeyPatch) -> None:
             np.random.seed(42)
             return np.random.randn(len(texts), 256).astype(np.float32)
 
-    monkeypatch.setattr(
-        "sys.modules",
-        "model2vec",
-        types.SimpleNamespace(StaticModel=FakeStaticModel),
-    )
+    fake_mod = types.SimpleNamespace(StaticModel=FakeStaticModel)
+    monkeypatch.setitem(sys.modules, "model2vec", fake_mod)
 
 
 @pytest.fixture
 def fake_rank_bm25(monkeypatch: pytest.MonkeyPatch) -> None:
     """Mock rank_bm25 for testing without the actual dependency."""
+    import sys
     import types
 
     class FakeBM25Okapi:
@@ -250,12 +258,14 @@ def fake_rank_bm25(monkeypatch: pytest.MonkeyPatch) -> None:
                 for doc in self.tokenized
             ]
 
-    monkeypatch.setattr("sys.modules", "rank_bm25", types.SimpleNamespace(BM25Okapi=FakeBM25Okapi))
+    fake_mod = types.SimpleNamespace(BM25Okapi=FakeBM25Okapi)
+    monkeypatch.setitem(sys.modules, "rank_bm25", fake_mod)
 
 
 @pytest.fixture
 def fake_xgboost(monkeypatch: pytest.MonkeyPatch) -> None:
     """Mock xgboost for testing without the actual dependency."""
+    import sys
     import types
 
     class FakeXGBClassifier:
@@ -272,9 +282,7 @@ def fake_xgboost(monkeypatch: pytest.MonkeyPatch) -> None:
         def predict_proba(self, X: Any) -> np.ndarray:
             if not self.is_fitted:
                 raise RuntimeError("Model not fitted")
-            # Return mock probabilities
             return np.column_stack([1 - np.arange(len(X)) / 10, np.arange(len(X)) / 10])
 
-    monkeypatch.setattr(
-        "sys.modules", "xgboost", types.SimpleNamespace(XGBClassifier=FakeXGBClassifier)
-    )
+    fake_mod = types.SimpleNamespace(XGBClassifier=FakeXGBClassifier)
+    monkeypatch.setitem(sys.modules, "xgboost", fake_mod)

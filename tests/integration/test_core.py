@@ -1,4 +1,3 @@
-
 from reranker.embedder import Embedder
 from reranker.lexical import BM25Engine
 from reranker.protocols import RankedDoc
