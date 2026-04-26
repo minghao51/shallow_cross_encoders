@@ -42,10 +42,12 @@ data/beir/*
 data/processed/*
 data/logs/*
 data/models/*
+data/cache/*
 
 # Preserve empty tracked directories
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 !data/logs/.gitkeep
 !data/models/.gitkeep
+!data/cache/.gitkeep
 !notebooks/.gitkeep
