@@ -1,10 +1,10 @@
 """CLI wrapper for the unified benchmark runner.
 
 Usage:
-    python -m scripts.benchmark_all
-    python -m scripts.benchmark_all --phases baselines ablations
-    python -m scripts.benchmark_all --quick
-    python -m scripts.benchmark_all --output-dir results/
+    uv run scripts/benchmarks/run_unified.py
+    uv run scripts/benchmarks/run_unified.py --phases baselines ablations
+    uv run scripts/benchmarks/run_unified.py --quick
+    uv run scripts/benchmarks/run_unified.py --output-dir .benchmarks/
 """
 
 from __future__ import annotations
@@ -58,7 +58,6 @@ def main():
 
     args = parser.parse_args()
 
-    # Suppress noisy warnings from ML libraries during benchmark runs
     warnings.filterwarnings("ignore", category=FutureWarning)
     warnings.filterwarnings("ignore", module="transformers")
     warnings.filterwarnings("ignore", module="torch")

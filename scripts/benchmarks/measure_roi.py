@@ -1,3 +1,9 @@
+"""Measure ROI of distilled vs semantic baseline.
+
+Usage:
+    uv run scripts/benchmarks/measure_roi.py
+"""
+
 from __future__ import annotations
 
 import time

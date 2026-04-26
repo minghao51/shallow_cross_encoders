@@ -34,7 +34,7 @@ def _should_generate_synthetic_data(prompt: str) -> bool:
             "RERANKER_AUTO_CONFIRM_SYNTHETIC_DATA must be one of: "
             "1, true, yes, y, 0, false, no, n"
         )
-    if not sys.stdin.isatty():
+    if not hasattr(sys.stdin, "isatty") or not sys.stdin.isatty():
         return False
     return _prompt_user(prompt)
 
