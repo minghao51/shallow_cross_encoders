@@ -1,0 +1,43 @@
+{
+  "dataset": "msmarco_style",
+  "num_queries": 10,
+  "num_pairs": 150,
+  "strategies": {
+    "flashrank_tiny": {
+      "ndcg@10": 1.0,
+      "mrr": 1.0,
+      "p@1": 1.0,
+      "latency_p50_ms": 5.9433,
+      "latency_p99_ms": 57.6329,
+      "queries_evaluated": 4,
+      "ndcg_uplift_vs_hybrid_pct": 0.0
+    },
+    "flashrank_mini": {
+      "ndcg@10": 1.0,
+      "mrr": 1.0,
+      "p@1": 1.0,
+      "latency_p50_ms": 57.7434,
+      "latency_p99_ms": 88.3115,
+      "queries_evaluated": 4,
+      "ndcg_uplift_vs_hybrid_pct": 0.0
+    },
+    "hybrid": {
+      "ndcg@10": 1.0,
+      "mrr": 1.0,
+      "p@1": 1.0,
+      "latency_p50_ms": 3.5541,
+      "latency_p99_ms": 3.5636,
+      "queries_evaluated": 4,
+      "ndcg_uplift_vs_hybrid_pct": 0.0
+    },
+    "binary_reranker": {
+      "ndcg@10": 1.0,
+      "mrr": 1.0,
+      "p@1": 1.0,
+      "latency_p50_ms": 0.1214,
+      "latency_p99_ms": 0.176,
+      "queries_evaluated": 4,
+      "ndcg_uplift_vs_hybrid_pct": 0.0
+    }
+  }
+}

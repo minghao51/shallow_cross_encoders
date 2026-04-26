@@ -1,0 +1,53 @@
+{
+  "dataset": "trec-covid",
+  "num_queries": 30,
+  "num_pairs": 3000,
+  "relevant_pairs": 1247,
+  "strategies": {
+    "flashrank_tiny": {
+      "ndcg@10": 0.7009,
+      "mrr": 0.9012,
+      "p@1": 0.8889,
+      "latency_p50_ms": 85.5583,
+      "latency_p99_ms": 121.291,
+      "queries_evaluated": 9,
+      "ndcg_uplift_vs_hybrid_pct": 2.8
+    },
+    "flashrank_mini": {
+      "ndcg@10": 0.7099,
+      "mrr": 0.9028,
+      "p@1": 0.8889,
+      "latency_p50_ms": 1579.4345,
+      "latency_p99_ms": 1867.6318,
+      "queries_evaluated": 9,
+      "ndcg_uplift_vs_hybrid_pct": 4.12
+    },
+    "hybrid": {
+      "ndcg@10": 0.6818,
+      "mrr": 0.9259,
+      "p@1": 0.8889,
+      "latency_p50_ms": 49.7865,
+      "latency_p99_ms": 67.2486,
+      "queries_evaluated": 9,
+      "ndcg_uplift_vs_hybrid_pct": 0.0
+    },
+    "binary_reranker": {
+      "ndcg@10": 0.591,
+      "mrr": 0.75,
+      "p@1": 0.6667,
+      "latency_p50_ms": 5.665,
+      "latency_p99_ms": 8.9507,
+      "queries_evaluated": 9,
+      "ndcg_uplift_vs_hybrid_pct": -13.32
+    },
+    "late_interaction": {
+      "ndcg@10": 0.4429,
+      "mrr": 0.6667,
+      "p@1": 0.5556,
+      "latency_p50_ms": 0.4289,
+      "latency_p99_ms": 1.1675,
+      "queries_evaluated": 9,
+      "ndcg_uplift_vs_hybrid_pct": -35.04
+    }
+  }
+}

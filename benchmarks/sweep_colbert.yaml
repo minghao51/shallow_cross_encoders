@@ -1,0 +1,42 @@
+# ColBERT Quantization Variant Sweep
+# Usage: uv run scripts/benchmarks/run_sweep.py --config benchmarks/sweep_colbert.yaml
+
+name: colbert_quantization_sweep
+description: Compare float32, 4-bit, and ternary quantization for StaticColBERTReranker
+
+variants:
+  float32_baseline:
+    late_interaction:
+      quantization: "none"
+      top_k_tokens: 128
+      use_salience: true
+
+  float32_no_salience:
+    late_interaction:
+      quantization: "none"
+      top_k_tokens: 128
+      use_salience: false
+
+  quantized_4bit:
+    late_interaction:
+      quantization: "4bit"
+      top_k_tokens: 128
+      use_salience: true
+
+  quantized_4bit_no_salience:
+    late_interaction:
+      quantization: "4bit"
+      top_k_tokens: 128
+      use_salience: false
+
+  quantized_ternary:
+    late_interaction:
+      quantization: "ternary"
+      top_k_tokens: 128
+      use_salience: true
+
+  quantized_ternary_no_salience:
+    late_interaction:
+      quantization: "ternary"
+      top_k_tokens: 128
+      use_salience: false

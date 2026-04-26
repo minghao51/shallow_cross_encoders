@@ -1,0 +1,79 @@
+[
+  {
+    "variant": "no_lsh",
+    "metrics": {
+      "ndcg@10": 1.0,
+      "n_queries": 30.0
+    },
+    "latency_ms": 0.6440829602070153,
+    "configuration": {
+      "lsh": {
+        "enabled": false
+      }
+    }
+  },
+  {
+    "variant": "lsh_3gram_128",
+    "metrics": {
+      "ndcg@10": 1.0,
+      "n_queries": 30.0
+    },
+    "latency_ms": 24.260375008452684,
+    "configuration": {
+      "lsh": {
+        "enabled": true,
+        "ngram_size": 3,
+        "num_perm": 128,
+        "threshold": 0.5
+      }
+    }
+  },
+  {
+    "variant": "lsh_3gram_256",
+    "metrics": {
+      "ndcg@10": 1.0,
+      "n_queries": 30.0
+    },
+    "latency_ms": 46.559249982237816,
+    "configuration": {
+      "lsh": {
+        "enabled": true,
+        "ngram_size": 3,
+        "num_perm": 256,
+        "threshold": 0.5
+      }
+    }
+  },
+  {
+    "variant": "lsh_4gram_128",
+    "metrics": {
+      "ndcg@10": 1.0,
+      "n_queries": 30.0
+    },
+    "latency_ms": 24.48883402394131,
+    "configuration": {
+      "lsh": {
+        "enabled": true,
+        "ngram_size": 4,
+        "num_perm": 128,
+        "threshold": 0.4
+      }
+    }
+  },
+  {
+    "variant": "lsh_3gram_strict",
+    "metrics": {
+      "ndcg@10": 1.0,
+      "n_queries": 30.0
+    },
+    "latency_ms": 24.039292009547353,
+    "configuration": {
+      "lsh": {
+        "enabled": true,
+        "ngram_size": 3,
+        "num_perm": 128,
+        "threshold": 0.7
+      }
+    }
+  }
+]

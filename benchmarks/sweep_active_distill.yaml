@@ -1,0 +1,35 @@
+# Active Distillation Variant Sweep
+# Usage: uv run scripts/benchmarks/run_sweep.py --config benchmarks/sweep_active_distill.yaml
+
+name: active_distillation_sweep
+description: Compare oneshot vs active distillation with different mining strategies
+
+variants:
+  oneshot_baseline:
+    active_distillation:
+      enabled: false
+      mode: "oneshot"
+
+  active_contested:
+    active_distillation:
+      enabled: true
+      mode: "active"
+      mining_strategy: "contested"
+      active_iterations: 3
+
+  active_max_entropy:
+    active_distillation:
+      enabled: true
+      mode: "active"
+      mining_strategy: "max_entropy"
+      active_iterations: 3
+      uncertainty_low: 0.4
+      uncertainty_high: 0.6
+
+  active_diversity:
+    active_distillation:
+      enabled: true
+      mode: "active"
+      mining_strategy: "diversity"
+      active_iterations: 3
+      diversity_clusters: 10

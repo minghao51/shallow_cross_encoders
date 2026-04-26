@@ -1,0 +1,28 @@
+# Hybrid Fusion Reranker — Weighting Variant Sweep
+# Usage: uv run scripts/benchmarks/run_sweep.py --config benchmarks/sweep_hybrid.yaml
+
+name: hybrid_weighting_sweep
+description: Compare static, meta-router, and learned weighting for HybridFusionReranker
+
+variants:
+  static_baseline:
+    hybrid:
+      weighting_mode: "static"
+
+  meta_router_dt:
+    hybrid:
+      weighting_mode: "meta_router"
+    meta_router:
+      enabled: true
+      model_type: "decision_tree"
+
+  meta_router_mlp:
+    hybrid:
+      weighting_mode: "meta_router"
+    meta_router:
+      enabled: true
+      model_type: "mlp"
+
+  learned:
+    hybrid:
+      weighting_mode: "learned"

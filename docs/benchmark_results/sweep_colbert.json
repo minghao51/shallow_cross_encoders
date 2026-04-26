@@ -1,0 +1,100 @@
+[
+  {
+    "variant": "float32_baseline",
+    "metrics": {
+      "ndcg@10": 1.0,
+      "n_queries": 30.0
+    },
+    "latency_ms": 0.6100419559516013,
+    "configuration": {
+      "late_interaction": {
+        "quantization": "none",
+        "top_k_tokens": 128,
+        "use_salience": true
+      }
+    }
+  },
+  {
+    "variant": "float32_no_salience",
+    "metrics": {
+      "ndcg@10": 1.0,
+      "n_queries": 30.0
+    },
+    "latency_ms": 0.6464160396717489,
+    "configuration": {
+      "late_interaction": {
+        "quantization": "none",
+        "top_k_tokens": 128,
+        "use_salience": false
+      }
+    }
+  },
+  {
+    "variant": "quantized_4bit",
+    "metrics": {
+      "ndcg@10": 1.0,
+      "n_queries": 30.0,
+      "colbert_ndcg@10": 0.9876976584523819,
+      "colbert_n_queries": 30.0
+    },
+    "latency_ms": 0.6136670126579702,
+    "configuration": {
+      "late_interaction": {
+        "quantization": "4bit",
+        "top_k_tokens": 128,
+        "use_salience": true
+      }
+    }
+  },
+  {
+    "variant": "quantized_4bit_no_salience",
+    "metrics": {
+      "ndcg@10": 1.0,
+      "n_queries": 30.0,
+      "colbert_ndcg@10": 0.9876976584523819,
+      "colbert_n_queries": 30.0
+    },
+    "latency_ms": 0.6371249910444021,
+    "configuration": {
+      "late_interaction": {
+        "quantization": "4bit",
+        "top_k_tokens": 128,
+        "use_salience": false
+      }
+    }
+  },
+  {
+    "variant": "quantized_ternary",
+    "metrics": {
+      "ndcg@10": 1.0,
+      "n_queries": 30.0,
+      "colbert_ndcg@10": 0.9876976584523819,
+      "colbert_n_queries": 30.0
+    },
+    "latency_ms": 0.6309580057859421,
+    "configuration": {
+      "late_interaction": {
+        "quantization": "ternary",
+        "top_k_tokens": 128,
+        "use_salience": true
+      }
+    }
+  },
+  {
+    "variant": "quantized_ternary_no_salience",
+    "metrics": {
+      "ndcg@10": 1.0,
+      "n_queries": 30.0,
+      "colbert_ndcg@10": 0.9876976584523819,
+      "colbert_n_queries": 30.0
+    },
+    "latency_ms": 0.589667004533112,
+    "configuration": {
+      "late_interaction": {
+        "quantization": "ternary",
+        "top_k_tokens": 128,
+        "use_salience": false
+      }
+    }
+  }
+]

@@ -1,0 +1,63 @@
+# Full Strategy × Variant Sweep
+# Usage: uv run scripts/benchmarks/run_sweep.py --config benchmarks/full_sweep.yaml
+
+name: full_sweep
+description: Comprehensive sweep across all strategy variants for benchmarking
+
+variants:
+  hybrid_static:
+    hybrid:
+      weighting_mode: "static"
+    lsh:
+      enabled: false
+    late_interaction:
+      quantization: "none"
+
+  hybrid_router_lsh:
+    hybrid:
+      weighting_mode: "meta_router"
+    meta_router:
+      enabled: true
+      model_type: "decision_tree"
+    lsh:
+      enabled: true
+      ngram_size: 3
+      num_perm: 128
+    late_interaction:
+      quantization: "none"
+
+  hybrid_router_lsh_colbert4bit:
+    hybrid:
+      weighting_mode: "meta_router"
+    meta_router:
+      enabled: true
+      model_type: "decision_tree"
+    lsh:
+      enabled: true
+      ngram_size: 3
+      num_perm: 128
+    late_interaction:
+      quantization: "4bit"
+
+  hybrid_router_lsh_colbert_ternary:
+    hybrid:
+      weighting_mode: "meta_router"
+    meta_router:
+      enabled: true
+      model_type: "decision_tree"
+    lsh:
+      enabled: true
+      ngram_size: 3
+      num_perm: 128
+    late_interaction:
+      quantization: "ternary"
+
+  hybrid_learned_lsh_colbert4bit:
+    hybrid:
+      weighting_mode: "learned"
+    lsh:
+      enabled: true
+      ngram_size: 3
+      num_perm: 256
+    late_interaction:
+      quantization: "4bit"

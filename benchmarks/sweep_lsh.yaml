@@ -1,0 +1,38 @@
+# LSH Typo-Rescue Variant Sweep
+# Usage: uv run scripts/benchmarks/run_sweep.py --config benchmarks/sweep_lsh.yaml
+
+name: lsh_typo_rescue_sweep
+description: Compare MinHash typo-rescue configurations as HeuristicAdapter features
+
+variants:
+  no_lsh:
+    lsh:
+      enabled: false
+
+  lsh_3gram_128:
+    lsh:
+      enabled: true
+      ngram_size: 3
+      num_perm: 128
+      threshold: 0.5
+
+  lsh_3gram_256:
+    lsh:
+      enabled: true
+      ngram_size: 3
+      num_perm: 256
+      threshold: 0.5
+
+  lsh_4gram_128:
+    lsh:
+      enabled: true
+      ngram_size: 4
+      num_perm: 128
+      threshold: 0.4
+
+  lsh_3gram_strict:
+    lsh:
+      enabled: true
+      ngram_size: 3
+      num_perm: 128
+      threshold: 0.7
