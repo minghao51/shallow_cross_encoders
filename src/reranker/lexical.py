@@ -62,7 +62,7 @@ class BM25Engine:
         if not self._corpus:
             return np.zeros(0, dtype=np.float32)
         scores = (
-            np.asarray(self._bm25.get_scores(self._tokenize_fn(query)), dtype=np.float32)
+            np.asarray(self._bm25.get_scores(self._tokenize_fn(query)), dtype=np.float32)  # type: ignore[attr-defined]
             if self._bm25 is not None
             else self._fallback_scores(query)
         )

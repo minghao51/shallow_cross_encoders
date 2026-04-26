@@ -13,7 +13,9 @@ from reranker.config import get_settings
 from reranker.deps import check_xgboost
 from reranker.embedder import Embedder
 from reranker.lexical import BM25Engine
+from reranker.persistence import save_safe, try_load_safe_or_warn
 from reranker.protocols import HeuristicAdapter, RankedDoc
+from reranker.strategies.meta_router import MetaRouter
 from reranker.utils import (
     build_artifact_metadata,
     dump_pickle,
@@ -100,6 +102,7 @@ class HybridFusionReranker:
         )
         self._feature_registry: dict[str, int] = {}
         self.is_fitted = False
+        self._router: MetaRouter | None = None
 
     def _init_feature_registry(self, adapter_names: list[str] | None = None) -> None:
         self._feature_registry = {name: idx for idx, name in enumerate(BASE_FEATURES)}
@@ -142,12 +145,16 @@ class HybridFusionReranker:
             lexical.fit(docs)
         bm25_scores = lexical.score(query)
 
+        query_lower = query.lower()
+        query_tokens = self.embedder.tokenize(query_lower)
+        query_terms = set(query_tokens)
+        query_len = float(len(query_tokens))
+
         rows: list[dict[str, float]] = []
 
         for idx, doc in enumerate(docs):
-            query_tokens = self.embedder.tokenize(query.lower())
-            doc_tokens = self.embedder.tokenize(doc.lower())
-            query_terms = set(query_tokens)
+            doc_lower = doc.lower()
+            doc_tokens = self.embedder.tokenize(doc_lower)
             doc_terms = set(doc_tokens)
             shared_terms = query_terms & doc_terms
             overlap = len(shared_terms)
@@ -158,9 +165,9 @@ class HybridFusionReranker:
                 "token_overlap_ratio": float(overlap / max(len(query_terms | doc_terms), 1)),
                 "query_coverage_ratio": float(overlap / max(len(query_terms), 1)),
                 "shared_token_char_sum": float(sum(len(term) for term in shared_terms)),
-                "exact_phrase_match": float(1.0 if query.lower() in doc.lower() else 0.0),
-                "query_len": float(len(self.embedder.tokenize(query))),
-                "doc_len": float(len(self.embedder.tokenize(doc))),
+                "exact_phrase_match": float(1.0 if query_lower in doc_lower else 0.0),
+                "query_len": query_len,
+                "doc_len": float(len(doc_tokens)),
             }
             for adapter in self.adapters:
                 row_dict.update(adapter.compute(query, doc))
@@ -249,61 +256,150 @@ class HybridFusionReranker:
             self.model.fit(X, y_binary)
 
         self.is_fitted = True
+
+        settings = get_settings()
+        if settings.meta_router.enabled and settings.hybrid.weighting_mode == "meta_router":
+            self._router = MetaRouter(embedder=self.embedder)
+            router_categories = self._auto_label_queries(queries, docs, scores)
+            self._router.fit(queries, router_categories)
+
         return self
+
+    def _auto_label_queries(
+        self, queries: list[str], docs: list[str], scores: list[float]
+    ) -> list[int]:
+        from reranker.lexical import BM25Engine as _BM25
+
+        router_categories = max(1, min(get_settings().meta_router.n_categories, 3))
+        query_groups: dict[str, list[tuple[str, float]]] = {}
+        for q, d, s in zip(queries, docs, scores, strict=False):
+            query_groups.setdefault(q, []).append((d, s))
+        category_by_query: dict[str, int] = {}
+        query_embedding_cache: dict[str, np.ndarray] = {}
+
+        for query, group in query_groups.items():
+            if len(group) < 2:
+                category_by_query[query] = 0
+                continue
+            group_docs = [d for d, _ in group]
+            group_scores = np.array([s for _, s in group], dtype=np.float32)
+            bm25 = _BM25(tokenize_fn=self.embedder.tokenize)
+            bm25.fit(group_docs)
+            bm25_scores = bm25.score(query)
+            query_vec = query_embedding_cache.setdefault(query, self.embedder.encode([query])[0])
+            doc_vectors = self.embedder.encode(group_docs)
+            sem_score = float(
+                self.embedder.similarity(
+                    query_vec,
+                    doc_vectors[int(np.argmax(group_scores))],
+                )
+            )
+            bm25_best = float(bm25_scores.max()) if bm25_scores.size > 0 else 0.0
+            if router_categories >= 3:
+                score_gap = abs(bm25_best - sem_score)
+                score_scale = max(abs(bm25_best), abs(sem_score), 1.0)
+                if score_gap <= 0.1 * score_scale:
+                    category_by_query[query] = 2
+                    continue
+            category_by_query[query] = 0 if bm25_best > sem_score else 1
+        return [category_by_query.get(query, 0) for query in queries]
+
+    def _resolve_weights(self, query: str) -> dict[str, float]:
+        settings = get_settings().hybrid
+        weighting_mode = settings.weighting_mode
+
+        if weighting_mode == "meta_router" and self._router is not None and self._router.is_fitted:
+            weights = self._router.get_weights(query)
+            return {
+                "sem_score": weights.get("sem_score", 0.25),
+                "bm25_score": weights.get("bm25_score", 0.20),
+                "token_overlap_ratio": weights.get("token_overlap_ratio", 0.15),
+                "query_coverage_ratio": weights.get("query_coverage_ratio", 0.20),
+                "shared_token_char_sum": weights.get("shared_token_char_sum", 0.10),
+                "exact_phrase_match": weights.get("exact_phrase_match", 0.10),
+                "keyword_hit_rate": weights.get("keyword_hit_rate", 0.05),
+            }
+
+        if weighting_mode == "learned":
+            return {}
+
+        return {
+            "sem_score": settings.weight_sem_score,
+            "bm25_score": settings.weight_bm25_score,
+            "token_overlap_ratio": settings.weight_token_overlap,
+            "query_coverage_ratio": settings.weight_query_coverage,
+            "shared_token_char_sum": settings.weight_shared_char,
+            "exact_phrase_match": settings.weight_exact_phrase,
+            "keyword_hit_rate": settings.weight_keyword_hit,
+        }
+
+    def _apply_weights(
+        self,
+        X: np.ndarray,
+        weight_map: dict[str, float],
+        query: str,
+    ) -> np.ndarray:
+        blended = np.zeros(X.shape[0], dtype=np.float32)
+        feature_map = {
+            "sem_score": self._feature_registry.get("sem_score"),
+            "bm25_score": self._feature_registry.get("bm25_score"),
+            "token_overlap_ratio": self._feature_registry.get("token_overlap_ratio"),
+            "query_coverage_ratio": self._feature_registry.get("query_coverage_ratio"),
+            "shared_token_char_sum": self._feature_registry.get("shared_token_char_sum"),
+            "exact_phrase_match": self._feature_registry.get("exact_phrase_match"),
+            "keyword_hit_rate": self._feature_registry.get("keyword_hit_rate"),
+        }
+        for name, weight in weight_map.items():
+            idx = feature_map.get(name)
+            if idx is None or weight == 0.0:
+                continue
+            if name == "shared_token_char_sum":
+                norm = max(float(len(query.replace("_", " ").split())), 1.0)
+                blended += weight * (X[:, idx] / norm)
+            else:
+                blended += weight * X[:, idx]
+        return blended
+
+    @staticmethod
+    def _model_predict(model: Any, X: np.ndarray) -> np.ndarray:
+        if hasattr(model, "predict_proba"):
+            probs = model.predict_proba(X)
+            if probs.ndim == 2 and probs.shape[1] > 1:
+                return np.asarray(probs[:, 1], dtype=np.float32)
+            return np.asarray(probs[:, 0], dtype=np.float32)
+        if hasattr(model, "predict"):
+            return np.asarray(model.predict(X), dtype=np.float32)
+        return np.zeros(X.shape[0], dtype=np.float32)
 
     def score(self, query: str, docs: list[str], *, bm25: BM25Engine | None = None) -> np.ndarray:
         if not docs:
             return np.zeros(0, dtype=np.float32)
         X = self._build_features(query, docs, bm25=bm25)
         settings = get_settings().hybrid
+        weighting_mode = settings.weighting_mode
 
-        sem_idx = self._feature_registry.get("sem_score")
-        bm25_idx = self._feature_registry.get("bm25_score")
-        overlap_idx = self._feature_registry.get("token_overlap_ratio")
-        coverage_idx = self._feature_registry.get("query_coverage_ratio")
-        shared_idx = self._feature_registry.get("shared_token_char_sum")
-        exact_idx = self._feature_registry.get("exact_phrase_match")
-        keyword_idx = self._feature_registry.get("keyword_hit_rate")
+        weight_map = self._resolve_weights(query)
+        if weight_map:
+            blended = self._apply_weights(X, weight_map, query)
+        else:
+            blended = np.zeros(X.shape[0], dtype=np.float32)
 
-        blended = np.zeros(X.shape[0], dtype=np.float32)
-        if sem_idx is not None:
-            blended += settings.weight_sem_score * X[:, sem_idx]
-        if bm25_idx is not None:
-            blended += settings.weight_bm25_score * X[:, bm25_idx]
-        if overlap_idx is not None:
-            blended += settings.weight_token_overlap * X[:, overlap_idx]
-        if coverage_idx is not None:
-            blended += settings.weight_query_coverage * X[:, coverage_idx]
-        if shared_idx is not None:
-            blended += settings.weight_shared_char * (
-                X[:, shared_idx] / max(float(len(query.replace("_", " ").split())), 1.0)
-            )
-        if exact_idx is not None:
-            blended += settings.weight_exact_phrase * X[:, exact_idx]
-        if keyword_idx is not None:
-            blended += settings.weight_keyword_hit * X[:, keyword_idx]
+        if weighting_mode == "learned" and self.is_fitted:
+            return self._model_predict(self.model, X)
 
         if not self.is_fitted:
             return blended
 
-        if hasattr(self.model, "predict_proba"):
-            probs = self.model.predict_proba(X)
-            if probs.ndim == 2 and probs.shape[1] > 1:
-                model_scores = np.asarray(probs[:, 1], dtype=np.float32)
-            else:
-                model_scores = np.asarray(probs[:, 0], dtype=np.float32)
-        elif hasattr(self.model, "predict"):
-            model_scores = np.asarray(self.model.predict(X), dtype=np.float32)
-        else:
-            model_scores = np.zeros(X.shape[0], dtype=np.float32)
+        model_scores = self._model_predict(self.model, X)
         return np.asarray((model_scores + blended) / 2.0, dtype=np.float32)
 
-    def rerank(self, query: str, docs: list[str]) -> list[RankedDoc]:
-        if docs:
-            lexical = BM25Engine()
+    def rerank(
+        self, query: str, docs: list[str], *, bm25: BM25Engine | None = None
+    ) -> list[RankedDoc]:
+        lexical = bm25
+        if lexical is None and docs:
+            lexical = BM25Engine(tokenize_fn=self.embedder.tokenize)
             lexical.fit(docs)
-        else:
-            lexical = None
         scores = self.score(query, docs, bm25=lexical)
         ranked = sorted(
             zip(docs, scores, strict=False),
@@ -318,6 +414,11 @@ class HybridFusionReranker:
     def save(self, path: str | Path) -> None:
         target = Path(path)
         adapter_types = [type(adapter).__name__ for adapter in self.adapters]
+        router_payload = None
+        if self._router is not None and self._router.is_fitted:
+            import pickle
+
+            router_payload = pickle.dumps(self._router)
         if self.model_backend == "xgboost" and target.suffix == ".json":
             self.model.save_model(str(target))
             write_json(
@@ -330,23 +431,27 @@ class HybridFusionReranker:
                         "feature_names": self.feature_names_,
                         "feature_registry": self._feature_registry,
                         "adapter_types": adapter_types,
+                        "has_router": router_payload is not None,
                     },
                 ),
             )
+            if router_payload is not None:
+                dump_pickle(str(target.with_suffix(".router.pkl")), router_payload)
             return
-        dump_pickle(
+        save_safe(
             target,
-            build_artifact_metadata(
-                "hybrid_reranker",
-                format_name="pickle",
-                embedder_model_name=self.embedder.model_name,
-                extra={
-                    "model": self.model,
-                    "feature_names": self.feature_names_,
-                    "feature_registry": self._feature_registry,
-                    "adapter_types": adapter_types,
-                },
-            ),
+            artifact_type="hybrid_reranker",
+            metadata={
+                "embedder_model_name": self.embedder.model_name,
+                "feature_names": self.feature_names_,
+                "feature_registry": self._feature_registry,
+                "adapter_types": adapter_types,
+                "has_router": router_payload is not None,
+            },
+            weights={
+                "model": self.model,
+                "router": router_payload,
+            },
         )
 
     @classmethod
@@ -356,6 +461,8 @@ class HybridFusionReranker:
         adapters: list[HeuristicAdapter] | None = None,
         embedder: Embedder | None = None,
     ) -> HybridFusionReranker:
+        import pickle
+
         target = Path(path)
         if target.suffix == ".json":
             from xgboost import XGBClassifier  # type: ignore
@@ -376,17 +483,19 @@ class HybridFusionReranker:
             instance.model_backend = "xgboost"
             instance._feature_registry = dict(payload.get("feature_registry", {}))
             instance.is_fitted = True
+            router_path = target.with_suffix(".router.pkl")
+            if payload.get("has_router") and router_path.exists():
+                instance._router = pickle.loads(router_path.read_bytes())
             return instance
 
-        payload = load_pickle(target)
-        validate_artifact_metadata(
-            payload,
+        payload = try_load_safe_or_warn(
+            target,
             expected_type="hybrid_reranker",
-            expected_formats={"pickle"},
+            legacy_loader=load_pickle,
         )
         instance = cls(
             adapters=adapters,
-            embedder=embedder or Embedder(payload["embedder_model_name"]),
+            embedder=embedder or Embedder(payload.get("embedder_model_name")),
         )
         instance.model = payload["model"]
         instance.model_backend = (
@@ -394,4 +503,7 @@ class HybridFusionReranker:
         )
         instance._feature_registry = dict(payload.get("feature_registry", {}))
         instance.is_fitted = True
+        router_data = payload.get("router")
+        if router_data is not None:
+            instance._router = pickle.loads(router_data)
         return instance
