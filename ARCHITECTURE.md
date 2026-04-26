@@ -40,7 +40,9 @@ RankedDoc list
 | `reranker.strategies.*` | Reranking implementations (see Strategy Registry below) |
 | `reranker.persistence` | Safe model serialization (joblib + JSON) with pickle backward compatibility |
 | `reranker.eval.runner` | Training/evaluation orchestration for each strategy |
+| `reranker.eval.metrics` | NDCG, MAP, MRR, P@1, accuracy, latency tracking |
 | `reranker.data.synth` | Synthetic dataset generation via OpenRouter LLM calls |
+| `benchmarks/` | Consolidated benchmark suite (see Benchmarking below) |
 
 ## Strategy Registry
 
@@ -58,6 +60,8 @@ Strategies live in `reranker/strategies/` and are re-exported from `reranker/str
 | `MultiReranker` | Sum of components | Varies | N/A | RRF fusion of multiple rankers |
 | `CascadeReranker` | Avg of primary+fallback | High | N/A | Confidence-based routing |
 | `ConsistencyEngine` | ~0.05ms/claim | N/A | N/A | Claim extraction + contradiction detection |
+| `FlashRankEnsemble` | Varies | High | N/A | Multi-teacher ensemble (TinyBERT + MiniLM) |
+| `MetaRouter` | ~0.01ms | N/A | N/A | Decision tree query-type routing for feature weights |
 
 ## Model Persistence
 
@@ -99,6 +103,22 @@ Active distillation (`ActiveDistiller`) mines contested/hard-negative examples a
 | Unit | `tests/unit/` | Pure functions, no I/O |
 | Integration | `tests/integration/` | Local models, mocked services |
 | E2E | `tests/e2e/` | Full pipeline, real LLM calls (gated by `llm` marker) |
+
+## Benchmarking
+
+All benchmark scripts are consolidated in `benchmarks/`:
+
+```
+benchmarks/
+├── run.py          # Single CLI entry point (synthetic, sweep, roi, full)
+├── runner.py       # BenchmarkRunner class with all 12 strategies
+├── run_sweep.py    # YAML-driven config sweep runner
+├── measure_roi.py  # ROI/cost analysis
+├── configs/        # YAML sweep configurations
+└── results/        # Output directory
+```
+
+Usage: `uv run benchmarks/run.py synthetic` or `uv run benchmarks/run.py full`
 
 ## Dependency Groups
 

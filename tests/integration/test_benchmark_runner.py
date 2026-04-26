@@ -1,4 +1,4 @@
-from reranker.benchmark import BenchmarkRunner
+from benchmarks.runner import BenchmarkRunner
 
 
 def test_build_reranker_for_embedder_test_uses_binary_fit_api(monkeypatch) -> None:
@@ -14,7 +14,7 @@ def test_build_reranker_for_embedder_test_uses_binary_fit_api(monkeypatch) -> No
             captured["labels"] = labels
             return self
 
-    monkeypatch.setattr("reranker.benchmark.BinaryQuantizedReranker", StubBinaryQuantizedReranker)
+    monkeypatch.setattr("benchmarks.runner.BinaryQuantizedReranker", StubBinaryQuantizedReranker)
 
     runner = BenchmarkRunner.__new__(BenchmarkRunner)
     train_rows = [

@@ -13,9 +13,7 @@ from reranker.config import (
 
 
 def _load_benchmark_sweep_module():
-    module_path = (
-        Path(__file__).resolve().parents[2] / "scripts" / "benchmarks" / "run_sweep.py"
-    )
+    module_path = Path(__file__).resolve().parents[2] / "benchmarks" / "run_sweep.py"
     spec = importlib.util.spec_from_file_location("benchmark_sweep_test_module", module_path)
     assert spec is not None
     assert spec.loader is not None
@@ -88,7 +86,7 @@ def test_run_sweep_cli_executable(monkeypatch, tmp_path: Path) -> None:
 
     project_root = Path(__file__).resolve().parents[2]
     result = subprocess.run(
-        [sys.executable, "scripts/benchmarks/run_sweep.py", "--config", str(config_path)],
+        [sys.executable, "benchmarks/run_sweep.py", "--config", str(config_path)],
         capture_output=True,
         text=True,
         cwd=str(project_root),

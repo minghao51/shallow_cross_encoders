@@ -54,7 +54,7 @@ uv run python scripts/distill_ensemble_to_hybrid.py \
 
 **Use when:** You have query-doc pairs but no relevance labels. FlashRank provides high-quality soft labels that capture ranking nuance better than binary judgments.
 
-**Expected results:** 95-98% of teacher ensemble NDCG@10 with ~0.45ms latency for distilled models (vs ~40ms for teacher). See [Ensemble Distillation Guide](docs/ensemble-distillation-guide.md) for details.
+**Expected results:** 95-98% of teacher ensemble NDCG@10 with ~0.45ms latency for distilled models (vs ~40ms for teacher). See [Ensemble Distillation Guide](docs/guides/ensemble-distillation-guide.md) for details.
 
 **BEIR dataset support:**
 - `fluent-legal` and `scifact` added in recent update

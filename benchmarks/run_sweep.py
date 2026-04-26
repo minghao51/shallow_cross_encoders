@@ -1,9 +1,9 @@
 """Benchmark sweep runner that evaluates config variants from YAML files.
 
 Usage:
-    uv run scripts/benchmarks/run_sweep.py --config benchmarks/sweep_hybrid.yaml
-    uv run scripts/benchmarks/run_sweep.py --config benchmarks/full_sweep.yaml \
-        --output .benchmarks/full_sweep.json
+    uv run benchmarks/run_sweep.py --config benchmarks/configs/sweep_hybrid.yaml
+    uv run benchmarks/run_sweep.py --config benchmarks/configs/full_sweep.yaml \
+        --output benchmarks/results/full_sweep.json
 """
 
 from __future__ import annotations
@@ -242,7 +242,7 @@ def main() -> None:
         "--config",
         type=str,
         required=True,
-        help="Path to YAML sweep config (e.g., benchmarks/sweep_hybrid.yaml)",
+        help="Path to YAML sweep config (e.g., benchmarks/configs/sweep_hybrid.yaml)",
     )
     parser.add_argument(
         "--output",

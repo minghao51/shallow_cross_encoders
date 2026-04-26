@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from reranker.benchmark import BenchmarkRunner
+from benchmarks.runner import BenchmarkRunner
+from reranker.lexical import BM25Engine
 from reranker.protocols import RankedDoc
 
 
@@ -17,6 +18,7 @@ class _ReverseReranker:
 def test_benchmark_runner_uses_ranked_order_for_metrics() -> None:
     runner = BenchmarkRunner.__new__(BenchmarkRunner)
     runner.quick = True
+    runner.bm25 = BM25Engine()
     test_data = [
         {"query": "q1", "doc": "high_rel", "score": 3},
         {"query": "q1", "doc": "low_rel", "score": 0},

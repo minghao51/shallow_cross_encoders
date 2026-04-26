@@ -1,13 +1,14 @@
 """Measure ROI of distilled vs semantic baseline.
 
 Usage:
-    uv run scripts/benchmarks/measure_roi.py
+    uv run benchmarks/measure_roi.py
 """
 
 from __future__ import annotations
 
 import time
 from pathlib import Path
+from typing import Any
 
 from reranker.config import get_settings
 from reranker.data.synth import SyntheticDataGenerator
@@ -21,7 +22,7 @@ def _semantic_baseline(query: str, doc_a: str, doc_b: str, ranker: DistilledPair
     return 1 if float(q_vec @ a_vec) >= float(q_vec @ b_vec) else 0
 
 
-def _teacher_cost_baseline(settings, rows: list[dict[str, object]]) -> tuple[float, str]:
+def _teacher_cost_baseline(settings: Any, rows: list[dict[str, object]]) -> tuple[float, str]:
     cost_rows = read_jsonl(settings.paths.api_cost_log)
     preference_costs = [
         float(row.get("cost_usd", 0.0))
