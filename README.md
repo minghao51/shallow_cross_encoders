@@ -58,7 +58,7 @@ uv run python scripts/distill_ensemble_to_hybrid.py \
 
 **BEIR dataset support:**
 - `fluent-legal` and `scifact` added in recent update
-- Run: `uv run python scripts/benchmark_beir.py nfcorpus` for standard benchmarks
+- Run: `uv run scripts/benchmarks/run_beir.py nfcorpus` for standard benchmarks
 - Use `uv run python scripts/download_beir.py nfcorpus` to materialize a local dataset copy
 
 ### Synthetic Data Generation (OpenRouter)
@@ -85,9 +85,9 @@ Compare all reranking methods (FlashRank, SentenceTransformers, local models):
 uv sync --extra flashrank --extra sentence-transformers
 
 # Run speed/quality comparison
-uv run python scripts/benchmark_flashrank.py
-uv run python scripts/benchmark_beir.py nfcorpus
-uv run python scripts/benchmark_all.py --quick
+uv run scripts/benchmarks/run_flashrank.py
+uv run scripts/benchmarks/run_beir.py nfcorpus
+uv run scripts/benchmarks/run_unified.py --quick
 ```
 
 **Use when:** Choosing between FlashRank (ONNX), SentenceTransformers (PyTorch), or local models (Hybrid, Binary) for deployment.
@@ -113,8 +113,8 @@ uv run python -m reranker.eval --strategy distilled --split test
 uv run python -m reranker.eval --strategy late_interaction --split test
 uv run python -m reranker.eval --strategy binary_reranker --split test
 uv run python -m reranker.eval --strategy consistency --split test
-uv run python scripts/measure_roi.py
-uv run python scripts/benchmark_all.py --quick
+uv run scripts/benchmarks/measure_roi.py
+uv run scripts/benchmarks/run_unified.py --quick
 ```
 
 ### Environment Variables
@@ -170,7 +170,7 @@ uv run python scripts/benchmark_all.py --quick
 
 [→ Full analysis with BEIR results](docs/20260415-benchmark-analysis.md)
 
-Run: `uv run python scripts/benchmark_flashrank.py` (speed) | `uv run python scripts/benchmark_beir.py nfcorpus` (quality)
+Run: `uv run scripts/benchmarks/run_flashrank.py` (speed) | `uv run scripts/benchmarks/run_beir.py nfcorpus` (quality)
 
 ## Production Patterns
 
@@ -226,4 +226,3 @@ print(f"Fallback rate: {stats['fallback_rate']:.1%}")
 | **PipelineReranker** | Large candidate sets, need filtering | Reduces compute progressively |
 | **Standalone** | Small candidate sets, simple use case | Easiest to deploy |
 | **Combine** | Production systems with SLAs | Pipeline → Cascade for maximum efficiency |
-

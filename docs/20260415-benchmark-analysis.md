@@ -211,4 +211,4 @@ def cascade_rerank(query, docs):
 
 ---
 
-**Run benchmark:** `uv run python scripts/benchmark_flashrank.py`
+**Run benchmark:** `uv run scripts/benchmarks/run_flashrank.py`

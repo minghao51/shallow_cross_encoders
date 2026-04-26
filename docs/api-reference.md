@@ -465,10 +465,10 @@ report = evaluate_strategy(
 
 | Strategy | Metrics |
 |---|---|
-| `hybrid` | `ndcg@10`, `bm25_ndcg@10`, `ndcg@10_uplift_vs_bm25`, `mrr`, `p@1`, `latency_p50_ms`, `latency_p99_ms` |
+| `hybrid` | `ndcg@10`, `bm25_ndcg@10`, `ndcg@10_uplift_vs_bm25`, `mrr`, `map`, `p@1`, `latency_p50_ms`, `latency_p99_ms` |
 | `distilled` | `accuracy`, `latency_p50_ms`, `latency_p99_ms` |
-| `late_interaction` | `ndcg@10`, `bm25_ndcg@10`, `ndcg@10_uplift_vs_bm25`, `mrr`, `p@1`, `latency_p50_ms`, `latency_p99_ms` |
-| `binary_reranker` | `ndcg@10`, `bm25_ndcg@10`, `ndcg@10_uplift_vs_bm25`, `mrr`, `p@1`, `latency_p50_ms`, `latency_p99_ms` |
+| `late_interaction` | `ndcg@10`, `bm25_ndcg@10`, `ndcg@10_uplift_vs_bm25`, `mrr`, `map`, `p@1`, `latency_p50_ms`, `latency_p99_ms` |
+| `binary_reranker` | `ndcg@10`, `bm25_ndcg@10`, `ndcg@10_uplift_vs_bm25`, `mrr`, `map`, `p@1`, `latency_p50_ms`, `latency_p99_ms` |
 | `consistency` | `recall`, `false_positive_rate`, `latency_p50_ms`, `latency_p99_ms` |
 
 ### CLI Usage
@@ -502,27 +502,215 @@ All settings are in `src/reranker/config.py` and can be overridden via environme
 from reranker.config import get_settings
 
 settings = get_settings()
-settings.embedder.model_name        # "minishlab/potion-base-8M"
+settings.embedder.model_name        # "minishlab/potion-base-32M"
 settings.hybrid.xgb_max_depth       # 4
 settings.late_interaction.top_k_tokens  # 128
 settings.binary_reranker.hamming_top_k  # 500
 settings.pipeline.default_stage_top_k   # 200
 ```
 
+### YAML Configuration
+
+```python
+from reranker.config import load_yaml_config, settings_from_yaml, settings_from_dict
+
+# Load YAML file
+yaml_data = load_yaml_config("config.yaml")
+
+# Create settings override from YAML
+settings = settings_from_yaml("config.yaml")
+
+# Create settings override from dict
+settings = settings_from_dict({"hybrid": {"weighting_mode": "learned"}})
+```
+
 ### Environment Variables
 
 | Variable | Default | Description |
 |---|---|---|
-| `RERANKER_EMBEDDER_MODEL` | `minishlab/potion-base-8M` | Embedding model name |
+| `RERANKER_EMBEDDER_MODEL` | `minishlab/potion-base-32M` | Embedding model name |
 | `RERANKER_EMBEDDER_DIMENSION` | `256` | Embedding dimension |
 | `RERANKER_EMBEDDER_NORMALIZE` | `true` | Normalize embeddings |
 | `RERANKER_HYBRID_XGB_MAX_DEPTH` | `4` | XGBoost tree depth |
 | `RERANKER_LATE_INTERACTION_TOP_K_TOKENS` | `128` | Max tokens per doc for ColBERT |
 | `RERANKER_LATE_INTERACTION_USE_SALIENCE` | `true` | Use TF-IDF weighting |
+| `RERANKER_LATE_INTERACTION_QUANTIZATION` | `"none"` | Quantization mode (4bit, ternary) |
 | `RERANKER_BINARY_RERANKER_HAMMING_TOP_K` | `500` | Hamming stage top-k |
 | `RERANKER_BINARY_RERANKER_BILINEAR_TOP_K` | `50` | Bilinear refinement top-k |
 | `RERANKER_PIPELINE_DEFAULT_STAGE_TOP_K` | `200` | Default pipeline stage top-k |
+| `RERANKER_META_ROUTER_ENABLED` | `false` | Enable meta-router for query-adaptive weighting |
+| `RERANKER_LSH_ENABLED` | `false` | Enable LSH fuzzy matching |
+| `RERANKER_ACTIVE_DISTILLATION_ENABLED` | `false` | Enable active distillation |
 | `RERANKER_SEED` | `42` | Random seed |
+
+---
+
+## Heuristic Adapters
+
+### `KeywordMatchAdapter`
+
+Simple term hit-rate adapter for boosting scores when query terms appear verbatim in documents.
+
+```python
+from reranker.heuristics import KeywordMatchAdapter
+
+adapter = KeywordMatchAdapter()
+result = adapter.compute("hello world", "hello world, how are you?")
+# {"keyword_hit_rate": 1.0}
+```
+
+**Methods:**
+
+| Method | Signature | Description |
+|---|---|---|
+| `compute` | `(query: str, doc: str) -> dict[str, float]` | Returns `{"keyword_hit_rate": float}` |
+
+### `LSHAdapter`
+
+MinHash-based fuzzy matching for typo rescue. Uses character-level n-gram hashing.
+
+```python
+from reranker.heuristics import LSHAdapter
+
+adapter = LSHAdapter(ngram_size=3, num_perm=128)
+result = adapter.compute("hello world", "hello wrld")
+# {"lsh_score": <jaccard_approx>, "lsh_jaccard": <exact_jaccard>}
+```
+
+**Methods:**
+
+| Method | Signature | Description |
+|---|---|---|
+| `compute` | `(query: str, doc: str) -> dict[str, float]` | Returns `{"lsh_score": float, "lsh_jaccard": float}` |
+
+**Config (`LSHSettings`):**
+```python
+ngram_size = 3
+num_perm = 128
+threshold = 0.5
+```
+
+---
+
+## Meta-Router
+
+### `MetaRouter`
+
+Query-adaptive weighting strategy that classifies queries into intent categories and applies different weight profiles.
+
+```python
+from reranker import MetaRouter
+
+router = MetaRouter()
+router.fit(queries=["buy phone", "how to fix phone"], categories=[0, 1])
+
+weights = router.get_weights("best phone deals")
+# Returns weight profile dict for hybrid reranker
+```
+
+**Weight Profiles:**
+- `navigational`: High BM25 weight (40%), low semantic (10%)
+- `informational`: High semantic (40%), high keyword_hit (20%)
+- `balanced`: Equal weights across features
+
+**Methods:**
+
+| Method | Signature | Description |
+|---|---|---|
+| `fit` | `(queries, categories) -> MetaRouter` | Train router on query-category pairs |
+| `predict` | `(query) -> int` | Predict category for single query |
+| `get_weights` | `(query) -> dict[str, float]` | Get weight profile for query |
+| `predict_proba` | `(query) -> np.ndarray` | Category probability distribution |
+
+**Config (`MetaRouterSettings`):**
+```python
+enabled = False
+model_type = "decision_tree"  # or "mlp"
+n_categories = 2
+min_samples_leaf = 5
+```
+
+---
+
+## Quantization Utilities
+
+### `quantize`
+
+Compress embeddings to reduce memory footprint.
+
+```python
+from reranker.quantization import quantize, dequantize, compression_ratio
+
+# 4-bit quantization
+result = quantize(vectors, mode="4bit")
+print(f"Compression: {compression_ratio(result):.1f}x")
+
+# Ternary quantization
+result = quantize(vectors, mode="ternary")
+
+# Recover original
+recovered = dequantize(result)
+```
+
+**Modes:**
+- `"4bit"`: Pack into nibbles (2 vectors per byte)
+- `"ternary"`: -1/0/1 encoding (2-bit values)
+- `"none"`: No compression (passthrough)
+
+**Functions:**
+
+| Function | Description |
+|---|---|
+| `quantize(vectors, mode)` | Quantize to specified mode |
+| `dequantize(result)` | Recover float32 from quantized result |
+| `memory_bytes(result)` | Memory usage of quantized data |
+| `compression_ratio(result)` | Original vs compressed size ratio |
+
+---
+
+## Active Distillation
+
+### `ActiveDistiller`
+
+Reduces LLM labeling costs by mining uncertain or contested pairs for targeted labeling.
+
+```python
+from reranker.data.active_distill import ActiveDistiller
+
+distiller = ActiveDistiller()
+result = distiller.run(queries, docs_list)
+
+print(f"Mined {result.total_api_calls} pairs, cost: ${result.total_cost_estimate:.4f}")
+```
+
+**Mining Strategies:**
+- `contested`: Pairs where semantic and lexical rankers disagree by >50 positions
+- `max_entropy`: Pairs where model confidence is between 0.4 and 0.6
+- `diversity`: K-Means centroids for semantic coverage
+
+**Methods:**
+
+| Method | Signature | Description |
+|---|---|---|
+| `mine_contested` | `(queries, docs_list) -> list[tuple[str, str]]` | Mine disagreement pairs |
+| `mine_max_entropy` | `(queries, docs_list, model_predict_fn) -> list[tuple]` | Mine uncertain pairs |
+| `mine_diversity` | `(queries, docs_list) -> list[tuple[str, str]]` | Mine diverse representatives |
+| `label_with_teacher` | `(pairs, cost_log_path) -> list[dict]` | Label via LLM teacher |
+| `run` | `(queries, docs_list, model_predict_fn, cost_log_path) -> ActiveDistillationResult` | Full active distillation loop |
+
+**Config (`ActiveDistillationSettings`):**
+```python
+enabled = False
+mode = "oneshot"
+mining_strategy = "contested"
+active_iterations = 3
+uncertainty_low = 0.4
+uncertainty_high = 0.6
+contested_rank_gap = 50
+diversity_clusters = 10
+litellm_model = "openrouter/openai/gpt-4o-mini"
+litellm_batch_size = 20
+```
 
 ---
 

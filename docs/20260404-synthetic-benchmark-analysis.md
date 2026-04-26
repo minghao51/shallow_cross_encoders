@@ -256,19 +256,19 @@ SKIPPED — requires `sentence-transformers` and pretrained SPLADE model.
 
 ```bash
 # Run full benchmark (all phases)
-python -m scripts.benchmark_all
+uv run scripts/benchmarks/run_unified.py
 
 # Quick mode (faster, fewer samples)
-python -m scripts.benchmark_all --quick
+uv run scripts/benchmarks/run_unified.py --quick
 
 # Specific phases only
-python -m scripts.benchmark_all --phases baselines ablations
+uv run scripts/benchmarks/run_unified.py --phases baselines ablations
 
 # Custom embedder model
-python -m scripts.benchmark_all --embedder-model minishlab/potion-base-8M
+uv run scripts/benchmarks/run_unified.py --embedder-model minishlab/potion-base-8M
 
 # Custom output directory
-python -m scripts.benchmark_all --output-dir my_results/
+uv run scripts/benchmarks/run_unified.py --output-dir my_results/
 ```
 
 Results are saved to `docs/benchmark_results/`:

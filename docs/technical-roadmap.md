@@ -12,15 +12,19 @@
 
 ## Stack
 
-| Component | Technology | Role |
-|---|---|---|
-| Vector Engine | `model2vec` (`potion-base-8M` or `Potion-32M`) | Generates dense static representations locally |
-| Lexical Engine | `rank_bm25` | Provides exact-match and acronym signal |
-| Reranking Logic | `xgboost` / `scikit-learn` | Shallow cross-encoder that weighs fused features |
-| LLM Teacher | OpenRouter API | Generates synthetic labels — used in training only, never inference |
-| Structured Extraction | `pydantic` v2 | Schema-enforced claim extraction for consistency checks |
-| Environment | Python 3.11+ with `uv` | Ultra-fast dependency resolution and isolated execution |
-| Data Format | JSONL / Parquet | Reproducible synthetic datasets |
+| Component | Technology | Role | Status |
+|---|---|---|---|
+| Vector Engine | `model2vec` (`potion-base-8M` or `Potion-32M`) | Generates dense static representations locally | ✅ Implemented |
+| Lexical Engine | `rank_bm25` | Provides exact-match and acronym signal | ✅ Implemented |
+| Fuzzy Engine | `MinHash` / `LSH` | Character-level n-gram hashing for typo rescue | ✅ Implemented (`src/reranker/heuristics/lsh.py`) |
+| Reranking Logic | `xgboost` / `scikit-learn` | Shallow cross-encoder that weighs fused features | ✅ Implemented |
+| Meta-Router | `DecisionTree` / `MLP` | Predicts dynamic weights for semantic vs lexical signals | ✅ Implemented (`src/reranker/strategies/meta_router.py`) |
+| LLM Teacher | OpenRouter API | Generates synthetic labels — used in training only | ✅ Implemented |
+| Active Distillation | LiteLLM + uncertainty mining | Reduces LLM labeling costs by mining contested pairs | ✅ Implemented (`src/reranker/data/active_distill.py`) |
+| Quantization | 4-bit / ternary compression | Compresses token vectors for Shallow ColBERT | ✅ Implemented (`src/reranker/quantization.py`) |
+| Structured Extraction | `pydantic` v2 | Schema-enforced claim extraction for consistency checks | ✅ Implemented |
+| Environment | Python 3.11+ with `uv` | Ultra-fast dependency resolution and isolated execution | ✅ Implemented |
+| Data Format | JSONL / Parquet | Reproducible synthetic datasets | ✅ Implemented |
 
 ---
 
@@ -137,6 +141,19 @@ Return ONLY valid JSON matching this schema:
 - ~200 non-contradicting control pairs (same entity, consistent values)
 - Store as `data/raw/contradictions.jsonl`
 
+### 0.5 Active Distillation & Uncertainty Mining (Phase 0.5)
+
+> ✅ **Implemented:** `src/reranker/data/active_distill.py` with `ActiveDistiller` class
+
+To maximize the ROI of LLM calls, we implement an **Uncertainty-Sampling** loop instead of random batching.
+
+**Mining Strategy:**
+1. **Contested Pairs:** Mine pairs where `HybridFusion` (Semantic) and `BM25` (Lexical) strongly disagree on rank (>50 positions diff).
+2. **Maximum Entropy:** Identify query-doc pairs where the current student model's confidence is between 0.4 and 0.6.
+3. **Diversity Filter:** Use K-Means on query embeddings to ensure the mined samples cover the entire semantic space of the corpus.
+
+**Target:** Reduce LLM labeling costs by 60% while maintaining the same NDCG gain.
+
 ### Phase 0 Exit Criteria
 
 - [ ] All three JSONL datasets generated and versioned
@@ -168,7 +185,7 @@ class HeuristicAdapter(Protocol):
     """Domain-specific feature injector. Implement this to extend any reranker."""
     def compute(self, query: str, doc: str) -> dict[str, float]: ...
 
-@runtime_checkable  
+@runtime_checkable
 class BaseReranker(Protocol):
     def rerank(self, query: str, docs: list[str]) -> list[RankedDoc]: ...
 ```
@@ -181,7 +198,7 @@ class BaseReranker(Protocol):
 from model2vec import StaticModel
 
 class Embedder:
-    def __init__(self, model_name: str = "minishlab/potion-base-8M"):
+    def __init__(self, model_name: str = "minishlab/potion-base-32M"):
         self.model = StaticModel.from_pretrained(model_name)
 
     def encode(self, texts: list[str]) -> np.ndarray:
@@ -192,8 +209,8 @@ class Embedder:
 ```
 
 **Model selection note:**
-- `potion-base-8M` — default, lowest latency, good for high-throughput
-- `potion-base-32M` — higher accuracy ceiling, still CPU-native; switch if eval shows accuracy gap
+- `potion-base-32M` — default, best balance of accuracy and speed
+- `potion-base-8M` — lowest latency, good for high-throughput; switch if latency is critical and eval shows acceptable accuracy
 
 ### 1.3 Lexical Wrapper (`src/reranker/lexical.py`)
 
@@ -217,7 +234,7 @@ class BM25Engine:
 Run before any model training. This is your performance floor contract.
 
 ```python
-# scripts/benchmark_all.py --quick
+# scripts/benchmarks/run_unified.py --quick
 import time, numpy as np
 from reranker.embedder import Embedder
 
@@ -232,11 +249,21 @@ print(f"Avg embedding latency: {elapsed:.2f}ms per doc")
 # Target: < 2ms per doc on CPU
 ```
 
+### 1.5 LSH Typo-Rescue Layer
+Implement a character-level hashing mechanism to handle Out-Of-Vocabulary (OOV) terms and typos without requiring a heavy language model.
+
+* **Algorithm:** MinHash with Character 3-grams.
+* **Mechanism:**
+    1. Turn query and doc into sets of 3-grams (e.g., `author` -> `aut, uth, hor`).
+    2. Compute Jaccard Similarity via bitwise MinHash signatures.
+    3. Inject as a `HeuristicAdapter` feature into the Hybrid model.
+
 ### Phase 1 Exit Criteria
 
 - [ ] `Embedder`, `BM25Engine` importable and tested
 - [ ] `BaseReranker` and `HeuristicAdapter` protocols defined
 - [ ] Avg embedding latency < 2ms/doc on CPU (no GPU)
+- [ ] LSH typo-rescue functional and tested
 
 ---
 
@@ -244,7 +271,7 @@ print(f"Avg embedding latency: {elapsed:.2f}ms per doc")
 
 > **Goal:** Build the foundational reranker that fuses semantic, lexical, and pluggable domain signals into a single XGBoost model. This is the scaffold all other strategies extend.
 
-### 2.1 Feature Construction
+### 2.1 Feature Construction & Dynamic Weighting
 
 For a (query `Q`, document `D`) pair, construct:
 
@@ -252,10 +279,17 @@ For a (query `Q`, document `D`) pair, construct:
 |---|---|---|
 | `sem_score` | `Q_vec · D_vec` | Semantic similarity |
 | `bm25_score` | `BM25(Q, D)` | Exact lexical match |
+| `lsh_score` | `Jaccard(Q_grams, D_grams)` | **Typo/Fuzzy match** |
 | `vec_norm_diff` | `‖Q_vec - D_vec‖₂` | Embedding distance |
 | `query_len` | `len(Q.split())` | Query complexity proxy |
 | `doc_len` | `len(D.split())` | Document length bias |
+| `query_intent` | `Router(Q_vec)` | **Dynamic Weighting Vector** |
 | `heuristic_*` | `adapter.compute(Q, D)` | Pluggable domain signals |
+
+**Query-Adaptive Fusion:**
+Instead of static weights, a tiny "Meta-Router" (Decision Tree) classifies queries into categories (e.g., *Navigational* vs *Informational*).
+* **Navigational:** High weight on `bm25_score`.
+* **Informational:** High weight on `sem_score`.
 
 ```python
 # src/reranker/strategies/hybrid.py
@@ -317,6 +351,7 @@ Pipeline consumers implement `HeuristicAdapter` and pass their list to the const
 - [ ] XGBoost reranker trained on synthetic pairs
 - [ ] **NDCG@10 ≥ BM25-only + 10 points** on held-out test set
 - [ ] `HeuristicAdapter` protocol validated with at least one stub adapter
+- [ ] Dynamic weighting beats static weights by 3+ pts
 - [ ] `rerank()` end-to-end latency < 5ms for a 20-document candidate list
 
 ---
@@ -379,7 +414,7 @@ class DistilledPairwiseRanker:
 ### 3.2 ROI Measurement Script
 
 ```python
-# scripts/measure_roi.py
+# scripts/benchmarks/measure_roi.py
 # Compare three modes on identical preference test set:
 # Mode A: Full LLM judge (OpenRouter API call per pair) — log cost + latency
 # Mode B: Distilled model (local CPU) — log cost ($0) + latency
@@ -466,6 +501,27 @@ The LLM is used to populate `ClaimSet` from raw text during data generation and 
 
 ---
 
+## Phase 5 — Shallow ColBERT (Strategy 4)
+
+> **Goal:** Break the NDCG@10 ceiling by moving from pooled vectors to token-level interaction, while maintaining CPU-native speeds.
+> ✅ **Quantization implemented:** `src/reranker/quantization.py` provides 4-bit and ternary compression.
+
+### 5.1 Token-Level Interaction (MaxSim)
+Standard bi-encoders lose granularity. Shallow ColBERT preserves token-level signals.
+
+* **Representation:** Store `model2vec` token-level embeddings instead of a single pooled vector.
+* **Quantization:** Compress token vectors to **4-bit** or **2-bit** (ternary) representations to keep the memory footprint small.
+* **Inference:** Implement the **MaxSim** operator:
+    $$Score(Q, D) = \sum_{q \in Q} \max_{d \in D} (q \cdot d)$$
+* **Optimization:** Use SIMD-accelerated bitwise operations for the Dot Product calculation.
+
+### Phase 5 Exit Criteria
+- [ ] **NDCG@10 ≥ 0.38** on BEIR nfcorpus.
+- [ ] End-to-end latency < **10ms** for 50 documents on a single CPU thread.
+- [ ] Index size < **2x** the standard Hybrid index.
+
+---
+
 ## Cross-Cutting Concerns
 
 ### Evaluation Harness
@@ -502,13 +558,15 @@ No server spin-up. No environment variables beyond model paths. Drop-in.
 
 ## Milestone Summary
 
-| Phase | Deliverable | Exit Gate |
-|---|---|---|
-| **0** | Synthetic Data Engine | 3 JSONL datasets generated, costs logged |
-| **1** | Core Infrastructure | <2ms embedding, protocols defined, tests green |
-| **2** | Hybrid Fusion Reranker | NDCG@10 beats BM25 by ≥10pts, adapter pattern validated |
-| **3** | Distilled Pairwise Ranker | <1ms inference, within 5% of LLM judge, >80% cost reduction |
-| **4** | Consistency Engine | ≥90% contradiction recall, <50ms for 1k claims |
+| Phase | Deliverable | Exit Gate | Status |
+|---|---|---|---|
+| **0** | Synthetic Data Engine | 3 JSONL datasets generated, costs logged | ✅ Complete |
+| **0.5** | Active Distillation | 60% reduction in API cost for same accuracy gain | ✅ Implemented |
+| **1** | Core Infrastructure | <2ms embedding, LSH typo-rescue functional | ✅ Complete |
+| **2** | Hybrid Fusion | Dynamic weighting beats static weights by 3+ pts | ✅ Complete |
+| **3** | Distilled Pairwise | <1ms inference, >80% cost reduction | ✅ Complete |
+| **4** | Consistency Engine | ≥90% contradiction recall | ✅ Complete |
+| **5** | Shallow ColBERT | NDCG@10 ≥ 0.38 at <10ms latency | 🚧 In Progress |
 
 ---
 

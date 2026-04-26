@@ -3,7 +3,7 @@
 > **Status:** Speculative research note. Not implemented in the current codebase. Explores using 1-bit Mamba models for query normalization/expansion to improve static embedding retrieval.
 
 ## 1. Why 1-bit Mamba is the Right Tool
-Standard Transformers (like GPT-4o-mini) are overkill and too slow for a real-time query rewrite on a CPU. 
+Standard Transformers (like GPT-4o-mini) are overkill and too slow for a real-time query rewrite on a CPU.
 * **Linear Scaling:** Mamba-3 architectures have linear complexity. Unlike Transformers, they don't get bogged down as the query gets longer.
 * **1-Bit Efficiency:** A binarized model (Weights $\in \{-1, 1\}$ or ternary $\{-1, 0, 1\}$) performs almost no floating-point multiplications. It's mostly addition and bit-shifting, which CPUs handle with extreme efficiency.
 * **The Result:** You can run a "Normalization" pass in **<15ms** on a standard server CPU thread.
@@ -42,5 +42,5 @@ If you implement this, your retrieval pipeline looks like this:
 If you are moving forward with this, keep these "2026 hurdles" in mind:
 
 1.  **Vocabulary Alignment:** Ensure your 1-bit model and your Potion embedding use the same tokenizer (or at least handle subwords similarly). If the 1-bit model corrects a word to something your static model doesn't have in its vocab, you're back to square one.
-2.  **Over-Correction:** Small models can be "aggressive." For your healthcare projects, ensure the 1-bit model doesn't "correct" a rare medical acronym into a common word (e.g., correcting a specific drug name into a generic noun). 
+2.  **Over-Correction:** Small models can be "aggressive." For your healthcare projects, ensure the 1-bit model doesn't "correct" a rare medical acronym into a common word (e.g., correcting a specific drug name into a generic noun).
     * *Fix:* Use a "constrained" decoding or a very low temperature (0.1) for the correction task.
