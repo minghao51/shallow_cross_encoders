@@ -22,7 +22,8 @@ def _minhash_signature(ngrams: set[str], num_perm: int = 128) -> np.ndarray:
     signature = np.full(num_perm, np.iinfo(np.int64).max, dtype=np.int64)
     for gram in ngrams:
         for i in range(num_perm):
-            h = int(hashlib.md5(f"{gram}|{i}".encode()).hexdigest(), 16)
+            digest = hashlib.sha256(f"{gram}|{i}".encode()).digest()
+            h = int.from_bytes(digest[:8], byteorder="big", signed=False)
             signature[i] = min(signature[i], h)
     return signature
 

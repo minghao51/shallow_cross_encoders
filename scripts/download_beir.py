@@ -5,13 +5,38 @@ Downloads TREC-COVID and NFCorpus for benchmarking.
 
 from __future__ import annotations
 
+import hashlib
 import json
+import os
 import zipfile
 from pathlib import Path
 
 import httpx
 
 BEIR_BASE_URL = "https://public.ukp.informatik.tu-darmstadt.de/thakur/BEIR/datasets"
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _expected_dataset_sha256(name: str) -> str | None:
+    env_key = f"BEIR_SHA256_{name.upper().replace('-', '_')}"
+    value = os.getenv(env_key)
+    return value.lower() if value else None
+
+
+def _safe_extract_zip(zf: zipfile.ZipFile, dest: Path) -> None:
+    dest_resolved = dest.resolve()
+    for member in zf.infolist():
+        member_path = (dest / member.filename).resolve()
+        if member_path != dest_resolved and dest_resolved not in member_path.parents:
+            raise ValueError(f"Unsafe archive entry path: {member.filename}")
+    zf.extractall(dest)
 
 
 def download_dataset(
@@ -50,9 +75,17 @@ def download_dataset(
                 for chunk in response.iter_bytes(chunk_size=8192):
                     f.write(chunk)
 
+    expected_sha256 = _expected_dataset_sha256(name)
+    if expected_sha256 is not None:
+        actual_sha256 = _sha256_file(zip_path)
+        if actual_sha256 != expected_sha256:
+            raise ValueError(
+                f"SHA256 mismatch for {name}: expected {expected_sha256}, got {actual_sha256}"
+            )
+
     print(f"Extracting {name}...")
     with zipfile.ZipFile(zip_path, "r") as zf:
-        zf.extractall(save_path)
+        _safe_extract_zip(zf, save_path)
 
     # Clean up zip
     zip_path.unlink()
