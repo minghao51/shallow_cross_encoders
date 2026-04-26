@@ -42,7 +42,7 @@ class StaticColBERTReranker:
         self,
         embedder: Embedder | None = None,
         top_k_tokens: int | None = None,
-        use_salience: bool = False,
+        use_salience: bool | None = None,
         quantization_mode: str | None = None,
     ) -> None:
         settings = get_settings()
@@ -50,7 +50,9 @@ class StaticColBERTReranker:
         self.top_k_tokens = (
             top_k_tokens if top_k_tokens is not None else settings.late_interaction.top_k_tokens
         )
-        self.use_salience = use_salience
+        self.use_salience = (
+            use_salience if use_salience is not None else settings.late_interaction.use_salience
+        )
         self.quantization_mode = (
             quantization_mode
             if quantization_mode is not None

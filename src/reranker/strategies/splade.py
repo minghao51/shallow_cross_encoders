@@ -35,7 +35,7 @@ class SPLADEReranker:
     """
 
     DEFAULT_MODELS = {
-        "en": "naver/splade-v2-max",
+        "en": "naver/splade-cocondenser-ensembledistil",
         "multilingual": "naver/splade-base-es-en",
     }
 

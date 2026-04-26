@@ -16,9 +16,10 @@ from reranker.protocols import BaseReranker, RankedDoc
 class ConfidenceMetric(StrEnum):
     """Available confidence metrics for cascade triggering."""
 
-    MAX_SCORE = "max_score"  # Highest relevance score (simple, works across models)
-    TOP_MARGIN = "top_margin"  # Difference between top-2 scores (robustness indicator)
-    SCORE_VARIANCE = "score_variance"  # Variance of all scores (uncertainty indicator)
+    MAX_SCORE = "max_score"
+    TOP_MARGIN = "top_margin"
+    SCORE_VARIANCE = "score_variance"
+    NORMALIZED_MAX = "normalized_max"
 
 
 @dataclass(slots=True)
@@ -32,8 +33,8 @@ class CascadeConfig:
     """
 
     confidence_threshold: float = 0.6
-    confidence_metric: ConfidenceMetric = ConfidenceMetric.MAX_SCORE
-    fallback_strategy: str = "flashrank"  # or "always", "never"
+    confidence_metric: ConfidenceMetric = ConfidenceMetric.TOP_MARGIN
+    fallback_strategy: str = "flashrank"
 
 
 class CascadeReranker:
@@ -108,6 +109,11 @@ class CascadeReranker:
                 if len(scores) > 1:
                     return statistics.variance(scores)
                 return 0.0
+            case ConfidenceMetric.NORMALIZED_MAX:
+                score_range = max(scores) - min(scores)
+                if score_range == 0:
+                    return 1.0
+                return (max(scores) - min(scores)) / score_range if score_range > 0 else 0.0
             case _:
                 return max(scores)
 

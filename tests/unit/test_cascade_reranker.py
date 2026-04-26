@@ -23,11 +23,16 @@ def test_cascade_fast_path():
     primary = MockReranker([0.8, 0.6, 0.4], "primary")
     fallback = MockReranker([0.9, 0.7, 0.5], "fallback")
 
-    cascade = CascadeReranker(primary, fallback, config=CascadeConfig(confidence_threshold=0.6))
+    cascade = CascadeReranker(
+        primary,
+        fallback,
+        config=CascadeConfig(
+            confidence_threshold=0.6, confidence_metric=ConfidenceMetric.MAX_SCORE
+        ),
+    )
 
     results = cascade.rerank("test query", ["doc1", "doc2", "doc3"])
 
-    # Should use primary (max score 0.8 >= threshold 0.6)
     assert results[0].score == 0.8
     assert results[0].metadata["fallback_used"] is False
     assert results[0].metadata["confidence"] == 0.8
@@ -38,11 +43,16 @@ def test_cascade_fallback():
     primary = MockReranker([0.4, 0.3, 0.2], "primary")
     fallback = MockReranker([0.9, 0.7, 0.5], "fallback")
 
-    cascade = CascadeReranker(primary, fallback, config=CascadeConfig(confidence_threshold=0.6))
+    cascade = CascadeReranker(
+        primary,
+        fallback,
+        config=CascadeConfig(
+            confidence_threshold=0.6, confidence_metric=ConfidenceMetric.MAX_SCORE
+        ),
+    )
 
     results = cascade.rerank("test query", ["doc1", "doc2", "doc3"])
 
-    # Should use fallback (max score 0.4 < threshold 0.6)
     assert results[0].score == 0.9
     assert results[0].metadata["fallback_used"] is True
     assert results[0].metadata["confidence"] == 0.4
@@ -53,14 +63,22 @@ def test_cascade_threshold_configurable():
     primary = MockReranker([0.5, 0.4, 0.3], "primary")
     fallback = MockReranker([0.9, 0.7, 0.5], "fallback")
 
-    # Low threshold - should use primary
-    cascade_low = CascadeReranker(primary, fallback, config=CascadeConfig(confidence_threshold=0.4))
+    cascade_low = CascadeReranker(
+        primary,
+        fallback,
+        config=CascadeConfig(
+            confidence_threshold=0.4, confidence_metric=ConfidenceMetric.MAX_SCORE
+        ),
+    )
     results_low = cascade_low.rerank("test query", ["doc1", "doc2", "doc3"])
     assert results_low[0].metadata["fallback_used"] is False
 
-    # High threshold - should use fallback
     cascade_high = CascadeReranker(
-        primary, fallback, config=CascadeConfig(confidence_threshold=0.6)
+        primary,
+        fallback,
+        config=CascadeConfig(
+            confidence_threshold=0.6, confidence_metric=ConfidenceMetric.MAX_SCORE
+        ),
     )
     results_high = cascade_high.rerank("test query", ["doc1", "doc2", "doc3"])
     assert results_high[0].metadata["fallback_used"] is True
@@ -133,13 +151,18 @@ def test_cascade_stats():
     primary = MockReranker([0.8, 0.6, 0.4], "primary")
     fallback = MockReranker([0.9, 0.7, 0.5], "fallback")
 
-    cascade = CascadeReranker(primary, fallback, config=CascadeConfig(confidence_threshold=0.6))
+    cascade = CascadeReranker(
+        primary,
+        fallback,
+        config=CascadeConfig(
+            confidence_threshold=0.6, confidence_metric=ConfidenceMetric.MAX_SCORE
+        ),
+    )
 
-    # Run 3 queries: 2 fast path, 1 fallback
-    cascade.rerank("query1", ["doc1", "doc2", "doc3"])  # Fast (0.8 >= 0.6)
-    cascade.rerank("query2", ["doc1", "doc2", "doc3"])  # Fast (0.8 >= 0.6)
-    primary.scores = [0.4, 0.3, 0.2]  # Lower scores for next query
-    cascade.rerank("query3", ["doc1", "doc2", "doc3"])  # Fallback (0.4 < 0.6)
+    cascade.rerank("query1", ["doc1", "doc2", "doc3"])
+    cascade.rerank("query2", ["doc1", "doc2", "doc3"])
+    primary.scores = [0.4, 0.3, 0.2]
+    cascade.rerank("query3", ["doc1", "doc2", "doc3"])
 
     stats = cascade.get_stats()
 

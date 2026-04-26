@@ -120,7 +120,7 @@ class BinaryRerankerSettings(BaseModel):
 class SPLADESettings(BaseModel):
     model_config = ConfigDict(frozen=True)
 
-    model_name: str = "naver/splade-v2-max"
+    model_name: str = "naver/splade-cocondenser-ensembledistil"
     top_k_terms: int = 128
 
 
@@ -129,7 +129,7 @@ class MetaRouterSettings(BaseModel):
 
     enabled: bool = False
     model_type: str = "decision_tree"
-    n_categories: int = 2
+    n_categories: int = 3
     min_samples_leaf: int = 5
 
 
@@ -364,13 +364,17 @@ def _cached_settings() -> Settings:
             test_ratio=_env("RERANKER_EVAL_TEST_RATIO", 0.15, float),
         ),
         splade=SPLADESettings(
-            model_name=_env("RERANKER_SPLADE_MODEL_NAME", "naver/splade-v2-max", str),
+            model_name=_env(
+                "RERANKER_SPLADE_MODEL_NAME",
+                "naver/splade-cocondenser-ensembledistil",
+                str,
+            ),
             top_k_terms=_env("RERANKER_SPLADE_TOP_K_TERMS", 128, int),
         ),
         meta_router=MetaRouterSettings(
             enabled=_env("RERANKER_META_ROUTER_ENABLED", False, bool),
             model_type=_env("RERANKER_META_ROUTER_MODEL_TYPE", "decision_tree", str),
-            n_categories=_env("RERANKER_META_ROUTER_N_CATEGORIES", 2, int),
+            n_categories=_env("RERANKER_META_ROUTER_N_CATEGORIES", 3, int),
             min_samples_leaf=_env("RERANKER_META_ROUTER_MIN_SAMPLES_LEAF", 5, int),
         ),
         lsh=LSHSettings(
