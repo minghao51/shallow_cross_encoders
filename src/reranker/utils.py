@@ -63,6 +63,17 @@ def dump_pickle(path: str | Path, obj: Any) -> None:
 
 
 def load_pickle(path: str | Path) -> Any:
+    # SECURITY NOTE: pickle can execute arbitrary code on deserialization.
+    # Only load pickles from trusted sources. Consider using joblib for sklearn models
+    # or implementing a schema-validated alternative for untrusted input.
+    import warnings
+
+    warnings.warn(
+        f"Loading pickle from '{path}' can execute arbitrary code. "
+        "Only load artifacts from trusted sources.",
+        RuntimeWarning,
+        stacklevel=2,
+    )
     with Path(path).open("rb") as handle:
         if cloudpickle is not None:
             return cloudpickle.load(handle)
@@ -76,7 +87,7 @@ def to_serializable(value: Any) -> Any:
         return value.model_dump()
     if isinstance(value, dict):
         return {k: to_serializable(v) for k, v in value.items()}
-    if isinstance(value, (list, tuple)):
+    if isinstance(value, list | tuple):
         return [to_serializable(v) for v in value]
     return value
 
