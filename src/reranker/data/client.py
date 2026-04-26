@@ -9,7 +9,7 @@ from typing import Any
 import httpx
 from tenacity import (
     retry,
-    retry_if_exception_type,
+    retry_if_exception,
     stop_after_attempt,
     wait_exponential,
 )
@@ -20,6 +20,14 @@ DEFAULT_FALLBACK_OPENROUTER_MODEL = "openai/gpt-4o-mini"
 
 _http_clients: dict[tuple[str, float], httpx.Client] = {}
 _test_client: httpx.Client | None = None
+
+
+def _is_retryable_request_error(exc: BaseException) -> bool:
+    if isinstance(exc, httpx.TimeoutException):
+        return True
+    if isinstance(exc, httpx.HTTPStatusError):
+        return exc.response.status_code in {429, 500, 502, 503, 504}
+    return False
 
 
 def _set_test_client(client: httpx.Client | None) -> None:
@@ -62,19 +70,11 @@ class OpenRouterClient:
         reraise=True,
         stop=stop_after_attempt(3),
         wait=wait_exponential(min=1, max=8),
-        retry=retry_if_exception_type((httpx.TimeoutException, httpx.HTTPStatusError)),
+        retry=retry_if_exception(_is_retryable_request_error),
         before_sleep=lambda retry_state: None,
     )
     def _do_request(self, headers: dict[str, str], payload: dict[str, Any]) -> dict[str, Any]:
         response = self.http_client.post("/chat/completions", headers=headers, json=payload)
-        if response.status_code == 400:
-            response.raise_for_status()
-        if response.status_code == 429:
-            raise httpx.HTTPStatusError(
-                "Rate limited",
-                request=response.request,
-                response=response,
-            )
         response.raise_for_status()
         return response.json()
 
@@ -110,7 +110,7 @@ class OpenRouterClient:
             except httpx.HTTPStatusError as exc:
                 last_error = exc
                 if exc.response.status_code == 400:
-                    raise
+                    continue
                 continue
             except httpx.TimeoutException as exc:
                 last_timeout = exc
@@ -135,8 +135,39 @@ class OpenRouterClient:
         try:
             payload_result = json.loads(content)
         except json.JSONDecodeError:
-            payload_result = literal_eval(content)
+            payload_result = self._extract_json_or_raise(content)
         return payload_result, metadata
+
+    def _extract_json_or_raise(self, content: str) -> dict[str, Any]:
+        import re
+
+        candidates = [content.strip()]
+        candidates.extend(
+            block.strip()
+            for block in re.findall(r"```(?:json)?\s*(.*?)```", content, flags=re.DOTALL)
+            if block.strip()
+        )
+        candidates.extend(
+            match.strip()
+            for match in re.findall(r"\{.*?\}|\[.*?\]", content, flags=re.DOTALL)
+            if match.strip()
+        )
+        for candidate in candidates:
+            try:
+                parsed = json.loads(candidate)
+                if isinstance(parsed, dict):
+                    return parsed
+            except json.JSONDecodeError:
+                pass
+            try:
+                parsed_literal = literal_eval(candidate)
+                if isinstance(parsed_literal, dict):
+                    return parsed_literal
+            except (ValueError, SyntaxError):
+                pass
+        raise ValueError(
+            f"Failed to parse JSON from LLM response. Content preview: {content[:200]!r}"
+        )
 
 
 def close_http_client() -> None:

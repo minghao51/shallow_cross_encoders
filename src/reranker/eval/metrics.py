@@ -74,7 +74,7 @@ def mrr(relevance_scores: list[list[float]], k: int | None = None) -> float:
     return float(sum(reciprocal_ranks) / len(reciprocal_ranks)) if reciprocal_ranks else 0.0
 
 
-def map(relevance_scores: list[list[float]], k: int | None = None) -> float:
+def mean_average_precision(relevance_scores: list[list[float]], k: int | None = None) -> float:
     """Mean Average Precision across queries.
 
     Args:

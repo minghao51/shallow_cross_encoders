@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 import warnings
 from dataclasses import dataclass, field
 from typing import Any
@@ -11,9 +12,11 @@ from reranker.config import get_settings
 from reranker.deps import check_model2vec
 
 try:
-    from cachetools import TTLCache
+    from cachetools import TTLCache  # type: ignore[import-untyped]
 except Exception:
-    TTLCache = None
+    TTLCache = None  # type: ignore[assignment,misc]
+
+logger = logging.getLogger("reranker.embedder")
 
 
 def _normalize_rows(matrix: np.ndarray) -> np.ndarray:
@@ -50,8 +53,8 @@ class Embedder:
         if TTLCache is None:
             return
         settings = get_settings()
-        max_size = getattr(settings.embedder, "cache_max_size", 10000)
-        ttl = getattr(settings.embedder, "cache_ttl_seconds", 3600)
+        max_size = settings.embedder.cache_max_size
+        ttl = settings.embedder.cache_ttl_seconds
         self._encode_cache = TTLCache(maxsize=max_size, ttl=ttl)
 
     def __post_init__(self) -> None:
@@ -64,7 +67,14 @@ class Embedder:
                 self._backend = backend_cls.from_pretrained(self.model_name)
                 self.backend_name = status.backend
                 self._sync_backend_dimension()
-            except Exception:
+            except Exception as exc:
+                logger.warning(
+                    "Unable to load model2vec model '%s': %s. "
+                    "Falling back to deterministic hashed embeddings.",
+                    self.model_name,
+                    exc,
+                    exc_info=True,
+                )
                 warnings.warn(
                     (
                         f"Unable to load model2vec model '{self.model_name}'; "

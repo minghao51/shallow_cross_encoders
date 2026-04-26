@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any, cast
 
@@ -9,9 +10,10 @@ from reranker.data.synth import SyntheticDataGenerator
 from reranker.eval.metrics import (
     LatencyTracker,
     accuracy,
+    mean_average_precision,
+    mrr,
     ndcg_at_k,
     precision_at_k,
-    reciprocal_rank,
 )
 from reranker.lexical import BM25Engine
 from reranker.protocols import BaseReranker
@@ -57,7 +59,7 @@ def _hybrid_model_path(model_root: Path) -> Path:
 def _ensure_train_rows(
     rows: list[dict[str, Any]],
     train_rows: list[dict[str, Any]],
-    label_fn,
+    label_fn: Callable[[dict[str, Any]], int],
 ) -> list[dict[str, Any]]:
     labels = {label_fn(row) for row in train_rows}
     if train_rows and len(labels) > 1:
@@ -76,7 +78,8 @@ def _metrics_for_rows(
 
     ndcgs: list[float] = []
     bm25_ndcgs: list[float] = []
-    mrrs: list[float] = []
+    mrr_inputs: list[list[float]] = []
+    map_inputs: list[list[float]] = []
     p1s: list[float] = []
     lexical = BM25Engine()
     for query, items in grouped.items():
@@ -88,7 +91,8 @@ def _metrics_for_rows(
         relevances: list[float] = [float(label_map[result.doc]) for result in ranked]
         binary = [1 if rel >= 2 else 0 for rel in relevances]
         ndcgs.append(ndcg_at_k(relevances, 10))
-        mrrs.append(reciprocal_rank(binary))
+        mrr_inputs.append(relevances)
+        map_inputs.append(relevances)
         p1s.append(precision_at_k(binary, 1))
 
         lexical.fit(docs)
@@ -108,7 +112,8 @@ def _metrics_for_rows(
         "ndcg@10": round(hybrid_ndcg, 4),
         "bm25_ndcg@10": round(bm25_ndcg, 4),
         "ndcg@10_uplift_vs_bm25": round(hybrid_ndcg - bm25_ndcg, 4),
-        "mrr": round(_mean(mrrs), 4),
+        "mrr": round(mrr(mrr_inputs, k=10), 4),
+        "map": round(mean_average_precision(map_inputs, k=10), 4),
         "p@1": round(_mean(p1s), 4),
         "latency_p50_ms": round(summary["p50"], 4),
         "latency_p99_ms": round(summary["p99"], 4),
@@ -151,11 +156,11 @@ def evaluate_strategy(
         if model_path.exists():
             reranker = HybridFusionReranker.load(model_path, adapters=[KeywordMatchAdapter()])
         else:
-            reranker = HybridFusionReranker(adapters=[KeywordMatchAdapter()]).fit(
+            reranker = HybridFusionReranker(adapters=[KeywordMatchAdapter()]).fit_pointwise(
                 queries=[str(row["query"]) for row in train_rows],
-                doc_as=[str(row["doc"]) for row in train_rows],
-                doc_bs=[str(row["doc"]) for row in train_rows],
-                labels=binary_labels,
+                docs=[str(row["doc"]) for row in train_rows],
+                scores=[float(label) for label in binary_labels],
+                use_regression=True,
             )
             model_path = model_root / "hybrid_reranker.pkl"
             reranker.save(model_path)
@@ -347,7 +352,7 @@ def evaluate_strategy(
         late_reranker = StaticColBERTReranker()
         late_reranker.fit(unique_docs)
 
-        rerankers = [
+        rerankers: list[tuple[str, Any]] = [  # type: ignore[type-arg]
             ("bm25", bm25_for_multi),
             ("binary", binary_reranker),
             ("late_interaction", late_reranker),

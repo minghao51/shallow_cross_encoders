@@ -102,7 +102,7 @@ class BenchmarkRunner:
         self.bm25 = BM25Engine()
 
     def _evaluate_reranker(
-        self, reranker, test_data: list[dict], strategy_name: str, n_docs: int = 20
+        self, reranker: Any, test_data: list[dict[str, Any]], strategy_name: str, n_docs: int = 20
     ) -> dict[str, float]:
         unique_queries = list(set(str(row["query"]) for row in test_data))
         n_queries = 5 if self.quick else 50
@@ -135,13 +135,10 @@ class BenchmarkRunner:
             latencies.append(tracker.summary()["mean"])
 
             if ranked:
-                ranked_labels_map = {r.doc: i for i, r in enumerate(ranked)}
-                ranked_labels = []
-                for doc in query_docs:
-                    if doc in ranked_labels_map:
-                        ranked_labels.append(query_labels[query_docs.index(doc)])
-                    else:
-                        ranked_labels.append(0)
+                doc_to_label = {
+                    doc: label for doc, label in zip(query_docs, query_labels, strict=False)
+                }
+                ranked_labels = [float(doc_to_label.get(result.doc, 0.0)) for result in ranked]
 
                 binary_labels = [1 if label >= 2 else 0 for label in ranked_labels]
 
@@ -161,7 +158,7 @@ class BenchmarkRunner:
             "n_queries_evaluated": len(ndcg_scores),
         }
 
-    def _evaluate_distilled(self, ranker, test_data: list[dict]) -> dict[str, float]:
+    def _evaluate_distilled(self, ranker: Any, test_data: list[dict[str, Any]]) -> dict[str, float]:
         n_eval = 50 if self.quick else 200
         accuracies: list[float] = []
         latencies: list[float] = []
@@ -188,7 +185,9 @@ class BenchmarkRunner:
             "n_comparisons": len(accuracies),
         }
 
-    def _evaluate_consistency(self, engine, test_data: list[dict]) -> dict[str, float]:
+    def _evaluate_consistency(
+        self, engine: Any, test_data: list[dict[str, Any]],
+    ) -> dict[str, float]:
         n_eval = 25 if self.quick else 100
         latencies: list[float] = []
         tp = fp = tn = fn = 0
@@ -229,7 +228,7 @@ class BenchmarkRunner:
             "latency_std_ms": float(np.std(latencies)) if latencies else 0.0,
         }
 
-    def _print_metrics(self, metrics: dict[str, float], strategy: str):
+    def _print_metrics(self, metrics: dict[str, float], strategy: str) -> None:
         if "ndcg@10" in metrics:
             print(f"  NDCG@10: {metrics['ndcg@10']:.4f} ± {metrics['ndcg@10_std']:.4f}")
             print(f"  MRR:     {metrics['mrr']:.4f} ± {metrics['mrr_std']:.4f}")
@@ -243,7 +242,7 @@ class BenchmarkRunner:
             print(f"  FPR:    {metrics['false_positive_rate']:.4f}")
             print(f"  Latency: {metrics['latency_mean_ms']:.2f}ms")
 
-    def run_baselines(self):
+    def run_baselines(self) -> None:
         print("=" * 80)
         print("PHASE 1: BASELINE EXPERIMENTS")
         print("=" * 80)
@@ -271,10 +270,10 @@ class BenchmarkRunner:
             embedder=self.embedder,
             random_state=self.seed,
         )
-        hybrid.fit(
+        hybrid.fit_pointwise(
             queries=[str(row["query"]) for row in self.train_pairs],
             docs=[str(row["doc"]) for row in self.train_pairs],
-            labels=[1 if row["score"] >= 2 else 0 for row in self.train_pairs],
+            scores=[float(row["score"]) for row in self.train_pairs],
         )
         hybrid_metrics = self._evaluate_reranker(hybrid, self.test_pairs, "hybrid")
         self.results.append(
@@ -427,10 +426,10 @@ class BenchmarkRunner:
             embedder=self.embedder,
             random_state=self.seed,
         )
-        hybrid_no_adapters.fit(
+        hybrid_no_adapters.fit_pointwise(
             queries=[str(row["query"]) for row in self.train_pairs],
             docs=[str(row["doc"]) for row in self.train_pairs],
-            labels=[1 if row["score"] >= 2 else 0 for row in self.train_pairs],
+            scores=[float(row["score"]) for row in self.train_pairs],
         )
         multi_hybrid_bm25 = MultiReranker(
             rerankers=[("hybrid", hybrid_no_adapters), ("bm25", self.bm25)],
@@ -465,7 +464,7 @@ class BenchmarkRunner:
             )
         )
 
-    def run_ablations(self):
+    def run_ablations(self) -> None:
         print("\n" + "=" * 80)
         print("PHASE 2: ABLATION STUDIES")
         print("=" * 80)
@@ -476,10 +475,10 @@ class BenchmarkRunner:
             embedder=self.embedder,
             random_state=self.seed,
         )
-        hybrid_no_adapters.fit(
+        hybrid_no_adapters.fit_pointwise(
             queries=[str(row["query"]) for row in self.train_pairs],
             docs=[str(row["doc"]) for row in self.train_pairs],
-            labels=[1 if row["score"] >= 2 else 0 for row in self.train_pairs],
+            scores=[float(row["score"]) for row in self.train_pairs],
         )
         metrics = self._evaluate_reranker(hybrid_no_adapters, self.test_pairs, "hybrid")
         self.results.append(
@@ -629,7 +628,7 @@ class BenchmarkRunner:
         )
         self._print_metrics(metrics, "consistency")
 
-    def run_scaling(self):
+    def run_scaling(self) -> None:
         print("\n" + "=" * 80)
         print("PHASE 3: SCALING EXPERIMENTS")
         print("=" * 80)
@@ -639,10 +638,10 @@ class BenchmarkRunner:
             embedder=self.embedder,
             random_state=self.seed,
         )
-        hybrid.fit(
+        hybrid.fit_pointwise(
             queries=[str(row["query"]) for row in self.train_pairs],
             docs=[str(row["doc"]) for row in self.train_pairs],
-            labels=[1 if row["score"] >= 2 else 0 for row in self.train_pairs],
+            scores=[float(row["score"]) for row in self.train_pairs],
         )
 
         colbert = StaticColBERTReranker(
@@ -736,7 +735,7 @@ class BenchmarkRunner:
             )
         )
 
-    def run_embedder_comparison(self):
+    def run_embedder_comparison(self) -> None:
         print("\n" + "=" * 80)
         print("PHASE 4: EMBEDDER MODEL COMPARISON")
         print("=" * 80)
@@ -832,7 +831,7 @@ class BenchmarkRunner:
                                 "mrr_std": float(np.std(mrrs)),
                                 "p@1": p1_mean,
                                 "p@1_std": float(np.std(p1s)),
-                                "latency_mean_ms": lat_mean,
+                                "latency_mean_ms": float(lat_mean),
                                 "latency_std_ms": float(np.std(rerank_latencies)),
                                 "n_queries_evaluated": len(ndcgs),
                             },
@@ -846,8 +845,8 @@ class BenchmarkRunner:
         self,
         strategy: str,
         embedder: Embedder,
-        train_rows: list[dict],
-    ):
+        train_rows: list[dict[str, Any]],
+    ) -> Any:
         if not train_rows:
             return None
 
@@ -856,10 +855,10 @@ class BenchmarkRunner:
             return HybridFusionReranker(
                 adapters=[KeywordMatchAdapter()],
                 embedder=embedder,
-            ).fit(
+            ).fit_pointwise(
                 queries=[str(row["query"]) for row in train_rows],
                 docs=[str(row["doc"]) for row in train_rows],
-                labels=labels,
+                scores=[float(row["score"]) for row in train_rows],
             )
 
         if strategy == "binary_reranker":
@@ -878,7 +877,7 @@ class BenchmarkRunner:
 
         return None
 
-    def save_results(self, output_dir: Path):
+    def save_results(self, output_dir: Path) -> None:
         output_dir.mkdir(parents=True, exist_ok=True)
 
         metadata = {
@@ -924,7 +923,7 @@ class BenchmarkRunner:
         print("  - benchmark_results.json")
         print("  - benchmark_summary.md")
 
-    def _generate_summary(self, metadata: dict) -> str:
+    def _generate_summary(self, metadata: dict[str, Any]) -> str:
         lines = []
         lines.append("# Unified Benchmark Results")
         lines.append("")
@@ -1023,20 +1022,20 @@ class BenchmarkRunner:
                 baseline_recall = baseline.metrics.get("recall", 0) if baseline else 0
                 for r in strategy_results:
                     m = r.metrics
-                    recall = m.get("recall", 0)
-                    fpr = m.get("false_positive_rate", 0)
-                    delta = recall - baseline_recall
+                    recall_val = float(m.get("recall", 0))
+                    fpr_val = float(m.get("false_positive_rate", 0))
+                    delta = recall_val - baseline_recall
                     lines.append(
-                        f"| {r.experiment_name} | {recall:.4f} | {fpr:.4f} | {delta:+.4f} |"
+                        f"| {r.experiment_name} | {recall_val:.4f} | {fpr_val:.4f} | {delta:+.4f} |"
                     )  # noqa: E501
             else:
                 lines.append("| Experiment | NDCG@10 | Δ vs Baseline |")
                 lines.append("|------------|---------|---------------|")
                 baseline_ndcg = baseline.metrics.get("ndcg@10", 0) if baseline else 0
                 for r in strategy_results:
-                    ndcg = r.metrics.get("ndcg@10", 0)
-                    delta = ndcg - baseline_ndcg
-                    lines.append(f"| {r.experiment_name} | {ndcg:.4f} | {delta:+.4f} |")
+                    ndcg_val = float(r.metrics.get("ndcg@10", 0))
+                    delta = ndcg_val - baseline_ndcg
+                    lines.append(f"| {r.experiment_name} | {ndcg_val:.4f} | {delta:+.4f} |")
 
             lines.append("")
 

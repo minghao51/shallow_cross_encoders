@@ -52,6 +52,11 @@ class MultiReranker:
     ) -> None:
         self.rerankers = rerankers
         self.config = config or MultiRerankerConfig()
+        if self.config.weights is not None and len(self.config.weights) != len(rerankers):
+            raise ValueError(
+                "weights length must match number of rerankers: "
+                f"{len(self.config.weights)} != {len(rerankers)}"
+            )
         self.weights = self.config.weights or [1.0] * len(rerankers)
 
     def rerank(self, query: str, docs: list[str]) -> list[RankedDoc]:
@@ -60,17 +65,15 @@ class MultiReranker:
 
         if len(self.rerankers) == 1:
             name, ranker = self.rerankers[0]
+            results = ranker.rerank(query, docs)
             return [
                 RankedDoc(
-                    doc=doc,
-                    score=score,
+                    doc=result.doc,
+                    score=float(result.score),
                     rank=rank,
-                    metadata={"strategy": f"multi_{name}"},
+                    metadata={"strategy": f"multi_{name}", "component_strategies": [name]},
                 )
-                for rank, (doc, score) in enumerate(
-                    zip(docs, [r.score for r in ranker.rerank(query, docs)], strict=False),
-                    start=1,
-                )
+                for rank, result in enumerate(results, start=1)
             ]
 
         score_arrays: list[np.ndarray] = []
@@ -78,7 +81,8 @@ class MultiReranker:
 
         for (name, ranker), weight in zip(self.rerankers, self.weights, strict=False):
             results = ranker.rerank(query, docs)
-            scores = np.array([r.score for r in results], dtype=np.float32)
+            score_by_doc = {result.doc: float(result.score) for result in results}
+            scores = np.array([score_by_doc.get(doc, 0.0) for doc in docs], dtype=np.float32)
             if weight != 1.0:
                 scores = np.clip(scores, 0, None) * weight
             score_arrays.append(scores)
