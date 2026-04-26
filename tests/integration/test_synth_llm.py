@@ -242,7 +242,7 @@ class TestOpenRouterClient:
         }
 
         mock_client = Mock()
-        mock_client.post.side_effect = [strict_failure, strict_failure, relaxed_success]
+        mock_client.post.side_effect = [strict_failure, relaxed_success]
 
         _set_test_client(mock_client)
         try:

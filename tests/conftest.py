@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 from typing import Any
 
@@ -10,17 +9,6 @@ import numpy as np
 import pytest
 
 from reranker.data.client import close_http_client
-
-_env_path = Path(__file__).resolve().parent.parent / ".env"
-if _env_path.exists():
-    for line in _env_path.read_text().splitlines():
-        line = line.strip()
-        if line and not line.startswith("#") and "=" in line:
-            key, _, value = line.partition("=")
-            key = key.strip()
-            value = value.strip()
-            if key and value and key not in os.environ:
-                os.environ[key] = value
 
 
 def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:

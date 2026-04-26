@@ -31,6 +31,9 @@ htmlcov/
 # Local environment files
 .env
 
+# Generated benchmark/results artifacts
+benchmarks/results/
+docs/benchmarks/results/
 
 # Local tool directories
 .claude/
@@ -40,6 +43,8 @@ htmlcov/
 data/raw/*
 data/beir/*
 data/processed/*
+data/raw_expanded/*
+data/trec-covid/*
 data/logs/*
 data/models/*
 data/cache/*
@@ -48,6 +53,5 @@ data/cache/*
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 !data/logs/.gitkeep
-!data/models/.gitkeep
 !data/cache/.gitkeep
 !notebooks/.gitkeep
