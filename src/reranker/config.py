@@ -1,13 +1,17 @@
 from __future__ import annotations
 
+import contextvars
 import os
 from functools import lru_cache
 from pathlib import Path
-from typing import TypeVar
+from typing import Any, TypeVar
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
 _T = TypeVar("_T")
+_settings_override: contextvars.ContextVar[Settings | None] = contextvars.ContextVar(
+    "_settings_override", default=None
+)
 
 
 def _env(name: str, default: _T, typ: type[_T]) -> _T:
@@ -44,6 +48,8 @@ class EmbedderSettings(BaseModel):
     model_name: str = "minishlab/potion-base-32M"
     dimension: int = 256
     normalize: bool = True
+    cache_max_size: int = 10000
+    cache_ttl_seconds: int = 3600
 
 
 class SyntheticDataSettings(BaseModel):
@@ -81,6 +87,7 @@ class HybridSettings(BaseModel):
     weight_keyword_hit: float = 0.05
     ensemble_mode: str = "xgboost"
     rrf_k: int = 60
+    weighting_mode: str = "static"
 
 
 class DistilledSettings(BaseModel):
@@ -99,6 +106,7 @@ class LateInteractionSettings(BaseModel):
 
     top_k_tokens: int = 128
     use_salience: bool = True
+    quantization: str = "none"
 
 
 class BinaryRerankerSettings(BaseModel):
@@ -114,6 +122,40 @@ class SPLADESettings(BaseModel):
 
     model_name: str = "naver/splade-v2-max"
     top_k_terms: int = 128
+
+
+class MetaRouterSettings(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    enabled: bool = False
+    model_type: str = "decision_tree"
+    n_categories: int = 2
+    min_samples_leaf: int = 5
+
+
+class LSHSettings(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    enabled: bool = False
+    ngram_size: int = 3
+    num_perm: int = 128
+    threshold: float = 0.5
+
+
+class ActiveDistillationSettings(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    enabled: bool = False
+    mode: str = "oneshot"
+    mining_strategy: str = "contested"
+    active_iterations: int = 3
+    uncertainty_low: float = 0.4
+    uncertainty_high: float = 0.6
+    contested_rank_gap: int = 50
+    diversity_clusters: int = 10
+    litellm_model: str = "openrouter/openai/gpt-4o-mini"
+    litellm_api_key: str | None = None
+    litellm_batch_size: int = 20
 
 
 class PipelineSettings(BaseModel):
@@ -189,10 +231,13 @@ class Settings(BaseModel):
     benchmark: BenchmarkSettings
     eval: EvalSettings
     splade: SPLADESettings
+    meta_router: MetaRouterSettings
+    lsh: LSHSettings
+    active_distillation: ActiveDistillationSettings
 
 
 @lru_cache(maxsize=1)
-def get_settings() -> Settings:
+def _cached_settings() -> Settings:
     return Settings(
         openrouter=OpenRouterSettings(
             api_key=os.getenv("OPENROUTER_API_KEY"),
@@ -211,6 +256,8 @@ def get_settings() -> Settings:
             model_name=_env("RERANKER_EMBEDDER_MODEL", "minishlab/potion-base-32M", str),
             dimension=_env("RERANKER_EMBEDDER_DIMENSION", 256, int),
             normalize=_env("RERANKER_EMBEDDER_NORMALIZE", True, bool),
+            cache_max_size=_env("RERANKER_EMBEDDER_CACHE_MAX_SIZE", 10000, int),
+            cache_ttl_seconds=_env("RERANKER_EMBEDDER_CACHE_TTL_SECONDS", 3600, int),
         ),
         synthetic_data=SyntheticDataSettings(
             seed=_env("RERANKER_SEED", 42, int),
@@ -242,6 +289,7 @@ def get_settings() -> Settings:
             weight_keyword_hit=_env("RERANKER_HYBRID_WEIGHT_KEYWORD_HIT", 0.05, float),
             ensemble_mode=_env("RERANKER_HYBRID_ENSEMBLE_MODE", "xgboost", str),
             rrf_k=_env("RERANKER_HYBRID_RRF_K", 60, int),
+            weighting_mode=_env("RERANKER_HYBRID_WEIGHTING_MODE", "static", str),
         ),
         distilled=DistilledSettings(
             random_state=_env("RERANKER_DISTILLED_RANDOM_STATE", 42, int),
@@ -258,6 +306,7 @@ def get_settings() -> Settings:
         late_interaction=LateInteractionSettings(
             top_k_tokens=_env("RERANKER_LATE_INTERACTION_TOP_K_TOKENS", 128, int),
             use_salience=_env("RERANKER_LATE_INTERACTION_USE_SALIENCE", True, bool),
+            quantization=_env("RERANKER_LATE_INTERACTION_QUANTIZATION", "none", str),
         ),
         binary_reranker=BinaryRerankerSettings(
             hamming_top_k=_env("RERANKER_BINARY_RERANKER_HAMMING_TOP_K", 500, int),
@@ -318,8 +367,80 @@ def get_settings() -> Settings:
             model_name=_env("RERANKER_SPLADE_MODEL_NAME", "naver/splade-v2-max", str),
             top_k_terms=_env("RERANKER_SPLADE_TOP_K_TERMS", 128, int),
         ),
+        meta_router=MetaRouterSettings(
+            enabled=_env("RERANKER_META_ROUTER_ENABLED", False, bool),
+            model_type=_env("RERANKER_META_ROUTER_MODEL_TYPE", "decision_tree", str),
+            n_categories=_env("RERANKER_META_ROUTER_N_CATEGORIES", 2, int),
+            min_samples_leaf=_env("RERANKER_META_ROUTER_MIN_SAMPLES_LEAF", 5, int),
+        ),
+        lsh=LSHSettings(
+            enabled=_env("RERANKER_LSH_ENABLED", False, bool),
+            ngram_size=_env("RERANKER_LSH_NGRAM_SIZE", 3, int),
+            num_perm=_env("RERANKER_LSH_NUM_PERM", 128, int),
+            threshold=_env("RERANKER_LSH_THRESHOLD", 0.5, float),
+        ),
+        active_distillation=ActiveDistillationSettings(
+            enabled=_env("RERANKER_ACTIVE_DISTILLATION_ENABLED", False, bool),
+            mode=_env("RERANKER_ACTIVE_DISTILLATION_MODE", "oneshot", str),
+            mining_strategy=_env("RERANKER_ACTIVE_DISTILLATION_MINING_STRATEGY", "contested", str),
+            active_iterations=_env("RERANKER_ACTIVE_DISTILLATION_ACTIVE_ITERATIONS", 3, int),
+            uncertainty_low=_env("RERANKER_ACTIVE_DISTILLATION_UNCERTAINTY_LOW", 0.4, float),
+            uncertainty_high=_env("RERANKER_ACTIVE_DISTILLATION_UNCERTAINTY_HIGH", 0.6, float),
+            contested_rank_gap=_env("RERANKER_ACTIVE_DISTILLATION_CONTESTED_RANK_GAP", 50, int),
+            diversity_clusters=_env("RERANKER_ACTIVE_DISTILLATION_DIVERSITY_CLUSTERS", 10, int),
+            litellm_model=_env(
+                "RERANKER_ACTIVE_DISTILLATION_LITELLM_MODEL", "openrouter/openai/gpt-4o-mini", str
+            ),
+            litellm_api_key=os.getenv("LITELLM_API_KEY"),
+            litellm_batch_size=_env("RERANKER_ACTIVE_DISTILLATION_LITELLM_BATCH_SIZE", 20, int),
+        ),
     )
 
 
+def get_settings() -> Settings:
+    override = _settings_override.get()
+    if override is not None:
+        return override
+    return _cached_settings()
+
+
 def reset_settings_cache() -> None:
-    get_settings.cache_clear()
+    _cached_settings.cache_clear()
+
+
+def apply_settings_override(settings: Settings) -> None:
+    _settings_override.set(settings)
+
+
+def clear_settings_override() -> None:
+    _settings_override.set(None)
+
+
+def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
+    merged = dict(base)
+    for key, value in override.items():
+        if key in merged and isinstance(merged[key], dict) and isinstance(value, dict):
+            merged[key] = _deep_merge(merged[key], value)
+        else:
+            merged[key] = value
+    return merged
+
+
+def load_yaml_config(path: str | Path) -> dict[str, Any]:
+    import yaml
+
+    raw = Path(path).read_text(encoding="utf-8")
+    return yaml.safe_load(raw) or {}
+
+
+def settings_from_yaml(path: str | Path) -> Settings:
+    yaml_data = load_yaml_config(path)
+    current = get_settings().model_dump()
+    merged = _deep_merge(current, yaml_data)
+    return Settings(**merged)
+
+
+def settings_from_dict(data: dict[str, Any]) -> Settings:
+    current = get_settings().model_dump()
+    merged = _deep_merge(current, data)
+    return Settings(**merged)
