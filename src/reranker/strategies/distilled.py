@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import Literal
 
@@ -9,13 +10,13 @@ from sklearn.linear_model import LogisticRegression
 
 from reranker.config import get_settings
 from reranker.embedder import Embedder
+from reranker.persistence import save_safe, try_load_safe_or_warn
 from reranker.protocols import RankedDoc
 from reranker.utils import (
-    build_artifact_metadata,
-    dump_pickle,
     load_pickle,
-    validate_artifact_metadata,
 )
+
+logger = logging.getLogger("reranker.strategies.distilled")
 
 
 class DistilledPairwiseRanker:
@@ -358,36 +359,33 @@ class DistilledPairwiseRanker:
         ]
 
     def save(self, path: str | Path) -> None:
-        extra = {
-            "model": self.model,
+        metadata = {
+            "embedder_model_name": self.embedder.model_name,
             "full_tournament_max_docs": self.full_tournament_max_docs,
             "loss_type": self.loss_type,
         }
+        weights = {"model": self.model}
         if self._cross_encoder is not None:
             cross_encoder_path = str(Path(path).with_suffix("")) + "_cross_encoder"
             self._cross_encoder.save(cross_encoder_path)
-            extra["cross_encoder_path"] = cross_encoder_path
-        dump_pickle(
+            metadata["cross_encoder_path"] = cross_encoder_path
+        save_safe(
             path,
-            build_artifact_metadata(
-                "pairwise_ranker",
-                format_name="pickle",
-                embedder_model_name=self.embedder.model_name,
-                extra=extra,
-            ),
+            artifact_type="pairwise_ranker",
+            metadata=metadata,
+            weights=weights,
         )
 
     @classmethod
     def load(cls, path: str | Path, embedder: Embedder | None = None) -> DistilledPairwiseRanker:
-        payload = load_pickle(path)
-        validate_artifact_metadata(
-            payload,
+        payload = try_load_safe_or_warn(
+            path,
             expected_type="pairwise_ranker",
-            expected_formats={"pickle"},
+            legacy_loader=load_pickle,
         )
         loss_type = payload.get("loss_type", "pairwise")
         instance = cls(
-            embedder=embedder or Embedder(payload["embedder_model_name"]),
+            embedder=embedder or Embedder(payload.get("embedder_model_name")),
             loss_type=loss_type,
         )
         instance.model = payload["model"]
@@ -401,7 +399,14 @@ class DistilledPairwiseRanker:
                 from sentence_transformers import CrossEncoder
 
                 instance._cross_encoder = CrossEncoder(cross_encoder_path)
-            except Exception:
+            except Exception as exc:
+                logger.warning(
+                    "Failed to load cross-encoder from '%s': %s. "
+                    "Pairwise comparisons will fall back to the logistic model.",
+                    cross_encoder_path,
+                    exc,
+                    exc_info=True,
+                )
                 instance._cross_encoder = None
 
         instance.is_fitted = True

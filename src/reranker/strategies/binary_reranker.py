@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 import numpy as np
@@ -8,13 +9,13 @@ from sklearn.linear_model import LogisticRegression
 
 from reranker.config import get_settings
 from reranker.embedder import Embedder
+from reranker.persistence import save_safe, try_load_safe_or_warn
 from reranker.protocols import RankedDoc
 from reranker.utils import (
-    build_artifact_metadata,
-    dump_pickle,
     load_pickle,
-    validate_artifact_metadata,
 )
+
+logger = logging.getLogger("reranker.strategies.binary_reranker")
 
 
 class BinaryQuantizedReranker:
@@ -89,7 +90,13 @@ class BinaryQuantizedReranker:
                 self._bilinear_weights = np.abs(self._bilinear_model.coef_[0]).astype(np.float32)
             else:
                 self._bilinear_weights = np.ones(self.embedder.dimension, dtype=np.float32)
-        except Exception:
+        except Exception as exc:
+            logger.warning(
+                "Bilinear model fit failed (%s). Falling back to uniform weights. "
+                "This usually means the training data has too few samples or no variance.",
+                exc,
+                exc_info=True,
+            )
             self._bilinear_weights = np.ones(self.embedder.dimension, dtype=np.float32)
             self._bilinear_model = DummyClassifier(strategy="constant", constant=0)
             self._bilinear_model.fit(np.zeros((1, 1)), np.array([0]))
@@ -184,21 +191,20 @@ class BinaryQuantizedReranker:
         ]
 
     def save(self, path: str | Path) -> None:
-        dump_pickle(
+        save_safe(
             path,
-            build_artifact_metadata(
-                "binary_reranker",
-                format_name="pickle",
-                embedder_model_name=self.embedder.model_name,
-                extra={
-                    "doc_vectors": self._doc_vectors,
-                    "doc_bits": self._doc_bits,
-                    "bilinear_weights": self._bilinear_weights,
-                    "bilinear_model": self._bilinear_model,
-                    "hamming_top_k": self.hamming_top_k,
-                    "bilinear_top_k": self.bilinear_top_k,
-                },
-            ),
+            artifact_type="binary_reranker",
+            metadata={
+                "embedder_model_name": self.embedder.model_name,
+                "hamming_top_k": self.hamming_top_k,
+                "bilinear_top_k": self.bilinear_top_k,
+            },
+            weights={
+                "doc_vectors": self._doc_vectors,
+                "doc_bits": self._doc_bits,
+                "bilinear_weights": self._bilinear_weights,
+                "bilinear_model": self._bilinear_model,
+            },
         )
 
     @classmethod
@@ -207,14 +213,13 @@ class BinaryQuantizedReranker:
         path: str | Path,
         embedder: Embedder | None = None,
     ) -> BinaryQuantizedReranker:
-        payload = load_pickle(path)
-        validate_artifact_metadata(
-            payload,
+        payload = try_load_safe_or_warn(
+            path,
             expected_type="binary_reranker",
-            expected_formats={"pickle"},
+            legacy_loader=load_pickle,
         )
         instance = cls(
-            embedder=embedder or Embedder(payload["embedder_model_name"]),
+            embedder=embedder or Embedder(payload.get("embedder_model_name")),
             hamming_top_k=payload.get("hamming_top_k"),
             bilinear_top_k=payload.get("bilinear_top_k"),
         )

@@ -2,17 +2,17 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 
 from reranker.config import get_settings
 from reranker.embedder import Embedder
+from reranker.persistence import save_safe, try_load_safe_or_warn
 from reranker.protocols import RankedDoc
+from reranker.quantization import QuantizationResult, dequantize, quantize
 from reranker.utils import (
-    build_artifact_metadata,
-    dump_pickle,
     load_pickle,
-    validate_artifact_metadata,
 )
 
 
@@ -23,7 +23,8 @@ class TokenIndex:
     text: str
     tokens: list[str]
     vectors: np.ndarray  # shape: (num_tokens, dim)
-    salience: np.ndarray | None = None  # optional per-token importance weights
+    salience: np.ndarray | None = None
+    quantized: QuantizationResult | None = None
 
 
 class StaticColBERTReranker:
@@ -42,6 +43,7 @@ class StaticColBERTReranker:
         embedder: Embedder | None = None,
         top_k_tokens: int | None = None,
         use_salience: bool = False,
+        quantization_mode: str | None = None,
     ) -> None:
         settings = get_settings()
         self.embedder = embedder or Embedder()
@@ -49,6 +51,11 @@ class StaticColBERTReranker:
             top_k_tokens if top_k_tokens is not None else settings.late_interaction.top_k_tokens
         )
         self.use_salience = use_salience
+        self.quantization_mode = (
+            quantization_mode
+            if quantization_mode is not None
+            else settings.late_interaction.quantization
+        )
         self._index: list[TokenIndex] = []
         self.is_fitted = False
 
@@ -121,6 +128,11 @@ class StaticColBERTReranker:
             tokens = self._tokenize(doc)
             vectors = self._encode_tokens(tokens)
             entry = self._prune_tokens(doc, tokens, vectors)
+            if self.quantization_mode != "none" and entry.vectors.shape[0] > 0:
+                entry.quantized = quantize(
+                    entry.vectors,
+                    mode=self.quantization_mode,
+                )
             self._index.append(entry)
         self.is_fitted = True
         return self
@@ -155,14 +167,21 @@ class StaticColBERTReranker:
         scores = np.zeros(len(docs), dtype=np.float32)
         for idx, doc_text in enumerate(docs):
             doc_index = doc_to_index.get(doc_text)
-            if doc_index is None or doc_index.vectors.shape[0] == 0:
+            if doc_index is None:
+                scores[idx] = 0.0
+                continue
+
+            if doc_index.quantized is not None:
+                doc_vectors = dequantize(doc_index.quantized)
+            else:
+                doc_vectors = doc_index.vectors
+
+            if doc_vectors.shape[0] == 0:
                 scores[idx] = 0.0
                 continue
 
             if doc_index.salience is not None:
-                doc_vectors = doc_index.vectors * doc_index.salience[:, np.newaxis]
-            else:
-                doc_vectors = doc_index.vectors
+                doc_vectors = doc_vectors * doc_index.salience[:, np.newaxis]
 
             scores[idx] = self._maxsim(query_vectors, doc_vectors)
 
@@ -192,27 +211,36 @@ class StaticColBERTReranker:
         ]
 
     def save(self, path: str | Path) -> None:
-        index_data = [
-            {
+        index_data = []
+        for entry in self._index:
+            item: dict[str, Any] = {
                 "text": entry.text,
                 "tokens": entry.tokens,
-                "vectors": entry.vectors,
                 "salience": entry.salience,
+                "quantization_mode": self.quantization_mode,
             }
-            for entry in self._index
-        ]
-        dump_pickle(
+            if entry.quantized is not None and entry.quantized.mode != "none":
+                item["quantized_codes"] = entry.quantized.codes
+                item["quantized_mode"] = entry.quantized.mode
+                item["quantized_original_shape"] = entry.quantized.original_shape
+                if entry.quantized.scale is not None:
+                    item["quantized_scale"] = entry.quantized.scale
+                if entry.quantized.min_val is not None:
+                    item["quantized_min_val"] = entry.quantized.min_val
+                item["vectors"] = np.zeros((0,), dtype=np.float32)
+            else:
+                item["vectors"] = entry.vectors
+            index_data.append(item)
+        save_safe(
             path,
-            build_artifact_metadata(
-                "late_interaction_reranker",
-                format_name="pickle",
-                embedder_model_name=self.embedder.model_name,
-                extra={
-                    "index_data": index_data,
-                    "top_k_tokens": self.top_k_tokens,
-                    "use_salience": self.use_salience,
-                },
-            ),
+            artifact_type="late_interaction_reranker",
+            metadata={
+                "embedder_model_name": self.embedder.model_name,
+                "top_k_tokens": self.top_k_tokens,
+                "use_salience": self.use_salience,
+                "quantization_mode": self.quantization_mode,
+            },
+            weights={"index_data": index_data},
         )
 
     @classmethod
@@ -221,26 +249,42 @@ class StaticColBERTReranker:
         path: str | Path,
         embedder: Embedder | None = None,
     ) -> StaticColBERTReranker:
-        payload = load_pickle(path)
-        validate_artifact_metadata(
-            payload,
+        payload = try_load_safe_or_warn(
+            path,
             expected_type="late_interaction_reranker",
-            expected_formats={"pickle"},
+            legacy_loader=load_pickle,
         )
+        q_mode = payload.get("quantization_mode", "none")
         instance = cls(
-            embedder=embedder or Embedder(payload["embedder_model_name"]),
+            embedder=embedder or Embedder(payload.get("embedder_model_name")),
             top_k_tokens=payload.get("top_k_tokens"),
             use_salience=payload.get("use_salience", False),
+            quantization_mode=q_mode,
         )
         index_data = payload.get("index_data", [])
-        instance._index = [
-            TokenIndex(
-                text=item.get("text", ""),
-                tokens=item["tokens"],
-                vectors=item["vectors"],
-                salience=item.get("salience"),
+        instance._index = []
+        for item in index_data:
+            quantized = None
+            if "quantized_codes" in item and q_mode != "none":
+                quantized = QuantizationResult(
+                    codes=item["quantized_codes"],
+                    codebook=None,
+                    scale=item.get("quantized_scale"),
+                    min_val=item.get("quantized_min_val"),
+                    mode=item.get("quantized_mode", q_mode),
+                    original_shape=tuple(item.get("quantized_original_shape", (0,))),
+                )
+                vectors = dequantize(quantized)
+            else:
+                vectors = item["vectors"]
+            instance._index.append(
+                TokenIndex(
+                    text=item.get("text", ""),
+                    tokens=item["tokens"],
+                    vectors=vectors,
+                    salience=item.get("salience"),
+                    quantized=quantized,
+                )
             )
-            for item in index_data
-        ]
         instance.is_fitted = True
         return instance
