@@ -124,9 +124,7 @@ def prepare_benchmark_data_with_hard_negatives(
     try:
         from rank_bm25 import BM25Okapi
     except ImportError as e:
-        raise ImportError(
-            "rank_bm25 not installed. Install with: uv pip install rank-bm25"
-        ) from e
+        raise ImportError("rank_bm25 not installed. Install with: uv pip install rank-bm25") from e
 
     corpus = dataset["corpus"]
     queries = dataset["queries"]

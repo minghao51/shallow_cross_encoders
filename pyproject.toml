@@ -46,6 +46,10 @@ dev = [
   "pytest-mock>=3.14",
   "ruff>=0.15.7",
 ]
+docs = [
+  "mkdocs-material>=9.5.0",
+  "mkdocstrings[python]>=0.25.0",
+]
 
 [build-system]
 requires = ["setuptools>=68.0"]
@@ -110,4 +114,5 @@ dev = [
     "mypy>=1.20.0",
     "pre-commit>=4.6.0",
     "ruff>=0.15.7",
+    "types-pyyaml>=6.0.12.20260408",
 ]

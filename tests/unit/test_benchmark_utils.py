@@ -112,8 +112,9 @@ def test_train_strategies_basic():
     }
 
     # Mock the HybridFusionReranker to avoid actual training
-    with patch("reranker.strategies.hybrid.HybridFusionReranker") as MockHybrid, patch(
-        "reranker.strategies.hybrid.KeywordMatchAdapter"
+    with (
+        patch("reranker.strategies.hybrid.HybridFusionReranker") as MockHybrid,
+        patch("reranker.strategies.hybrid.KeywordMatchAdapter"),
     ):
         mock_instance = MagicMock()
         mock_instance.is_fitted = True

@@ -31,8 +31,7 @@ def _should_generate_synthetic_data(prompt: str) -> bool:
         if normalized in ("0", "false", "n", "no", ""):
             return False
         raise ValueError(
-            "RERANKER_AUTO_CONFIRM_SYNTHETIC_DATA must be one of: "
-            "1, true, yes, y, 0, false, no, n"
+            "RERANKER_AUTO_CONFIRM_SYNTHETIC_DATA must be one of: 1, true, yes, y, 0, false, no, n"
         )
     if not hasattr(sys.stdin, "isatty") or not sys.stdin.isatty():
         return False

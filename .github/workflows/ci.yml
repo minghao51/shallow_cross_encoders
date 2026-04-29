@@ -3,39 +3,56 @@ name: CI
 on:
   pull_request:
   push:
-    branches:
-      - main
+    branches: [main]
+
+permissions:
+  contents: read
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-
+  lint:
+    runs-on: ubuntu-24.04
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
         with:
-          python-version: "3.11"
+          enable-cache: true
+      - run: uv sync --all-extras --group dev
+      - uses: pre-commit/action@v3.0.1
 
-      - name: Setup uv
-        uses: astral-sh/setup-uv@v5
+  typecheck:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --all-extras --group dev
+      - run: uv run mypy
 
-      - name: Install dependencies
-        run: uv sync --all-extras --group dev
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --all-extras --group dev
+      - run: uv run pytest -q --cov=src --cov-report=term-missing --cov-fail-under=85
 
-      - name: Ruff
-        run: uv run ruff check .
+  security:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uvx bandit -r src -c pyproject.toml -lll
+      - run: uvx pip-audit --ignore-vuln CVE-2026-3219
 
-      - name: Mypy
-        run: uv run mypy
-
-      - name: Bandit
-        run: uvx bandit -r src -c pyproject.toml -lll
-
-      - name: Pip Audit
-        run: uvx pip-audit --ignore-vuln CVE-2026-3219
-
-      - name: Pytest
-        run: uv run pytest -q --cov=src --cov-report=term-missing --cov-fail-under=85
+  docs:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --extra docs
+      - run: uv run mkdocs build --strict

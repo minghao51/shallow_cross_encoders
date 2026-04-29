@@ -1,0 +1,3 @@
+# Embedder
+
+::: reranker.embedder

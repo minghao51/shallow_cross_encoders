@@ -1,7 +1,6 @@
 """Tests for FlashRank adapter."""
 
 
-
 def test_flashrank_wrapper_init():
     """Test FlashRankWrapper initialization."""
     from reranker.adapters.flashrank_wrapper import FlashRankWrapper

@@ -13,9 +13,7 @@ import numpy as np
 from reranker.eval.metrics import LatencyTracker, ndcg_at_k, precision_at_k, reciprocal_rank
 
 
-def evaluate_reranker_on_rows(
-    rows: list[dict[str, Any]], reranker: Any
-) -> dict[str, float]:
+def evaluate_reranker_on_rows(rows: list[dict[str, Any]], reranker: Any) -> dict[str, float]:
     """Evaluate a reranker on benchmark rows.
 
     This function groups rows by query, runs the reranker for each query,
@@ -68,9 +66,7 @@ def evaluate_reranker_on_rows(
             ranked = reranker.rerank(query, docs)
 
         # Get relevance scores
-        doc_to_relevance = {
-            str(item.get("doc", "")): int(item.get("score", 0)) for item in items
-        }
+        doc_to_relevance = {str(item.get("doc", "")): int(item.get("score", 0)) for item in items}
 
         # Handle both dict (FlashRank) and RankedDoc (current) formats
         relevances = []
