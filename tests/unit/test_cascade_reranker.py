@@ -254,5 +254,44 @@ def test_cascade_fallback_never():
     results = cascade.rerank("test query", ["doc1", "doc2", "doc3"])
 
     # Should use primary despite low confidence
-    assert results[0].score == 0.3  # From primary
+    assert results[0].score == 0.3
+    assert results[0].metadata["fallback_used"] is False
+
+
+def test_cascade_normalized_max_metric():
+    primary = MockReranker([0.8, 0.2, 0.1], "primary")
+    fallback = MockReranker([0.9, 0.7, 0.5], "fallback")
+
+    cascade = CascadeReranker(
+        primary,
+        fallback,
+        config=CascadeConfig(
+            confidence_threshold=0.6, confidence_metric=ConfidenceMetric.NORMALIZED_MAX
+        ),
+    )
+
+    results = cascade.rerank("test query", ["doc1", "doc2", "doc3"])
+
+    # score_range = 0.8 - 0.1 = 0.7, confidence = 0.8 / 0.7 ≈ 1.14
+    assert results[0].metadata["metric"] == "normalized_max"
+    assert results[0].metadata["confidence"] > 0.6
+    assert results[0].metadata["fallback_used"] is False
+
+
+def test_cascade_normalized_max_equal_scores():
+    primary = MockReranker([0.5, 0.5, 0.5], "primary")
+    fallback = MockReranker([0.9, 0.7, 0.5], "fallback")
+
+    cascade = CascadeReranker(
+        primary,
+        fallback,
+        config=CascadeConfig(
+            confidence_threshold=0.6, confidence_metric=ConfidenceMetric.NORMALIZED_MAX
+        ),
+    )
+
+    results = cascade.rerank("test query", ["doc1", "doc2", "doc3"])
+
+    # All scores equal → range=0 → confidence=1.0 (max certainty)
+    assert results[0].metadata["confidence"] == 1.0
     assert results[0].metadata["fallback_used"] is False

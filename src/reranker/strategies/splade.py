@@ -5,13 +5,8 @@ from typing import Any
 
 import numpy as np
 
+from reranker.persistence import save_safe, try_load_safe_or_warn
 from reranker.protocols import RankedDoc
-from reranker.utils import (
-    build_artifact_metadata,
-    dump_pickle,
-    load_pickle,
-    validate_artifact_metadata,
-)
 
 
 class SPLADEReranker:
@@ -145,26 +140,19 @@ class SPLADEReranker:
         ]
 
     def save(self, path: str | Path) -> None:
-        dump_pickle(
+        save_safe(
             path,
-            build_artifact_metadata(
-                "splade_reranker",
-                format_name="pickle",
-                embedder_model_name=self.model_name,
-                extra={
-                    "index": self._index,
-                    "top_k_terms": self.top_k_terms,
-                },
-            ),
+            artifact_type="splade_reranker",
+            metadata={"embedder_model_name": self.model_name, "top_k_terms": self.top_k_terms},
+            weights={"index": self._index},
         )
 
     @classmethod
     def load(cls, path: str | Path) -> SPLADEReranker:
-        payload = load_pickle(path)
-        validate_artifact_metadata(
-            payload,
+        payload = try_load_safe_or_warn(
+            path,
             expected_type="splade_reranker",
-            expected_formats={"pickle"},
+            legacy_loader=_legacy_load,
         )
         instance = cls(
             model_name=payload.get("embedder_model_name"),
@@ -173,3 +161,13 @@ class SPLADEReranker:
         instance._index = payload.get("index", [])
         instance.is_fitted = True
         return instance
+
+
+def _legacy_load(path: Path) -> dict[str, Any]:
+    from reranker.utils import load_pickle, validate_artifact_metadata
+
+    payload = load_pickle(path)
+    validate_artifact_metadata(
+        payload, expected_type="splade_reranker", expected_formats={"pickle"}
+    )
+    return payload

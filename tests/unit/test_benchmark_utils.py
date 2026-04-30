@@ -23,14 +23,13 @@ def test_evaluate_reranker_on_rows_none():
 
 
 def test_evaluate_reranker_on_rows_basic():
-    """Test evaluate_reranker_on_rows with basic data."""
     from reranker.eval.benchmark_utils import evaluate_reranker_on_rows
+    from reranker.protocols import RankedDoc
 
-    # Mock reranker
     mock_reranker = MagicMock()
     mock_reranker.rerank.return_value = [
-        {"doc": "relevant doc", "score": 0.9, "rank": 1},
-        {"doc": "irrelevant doc", "score": 0.1, "rank": 2},
+        RankedDoc(doc="relevant doc", score=0.9, rank=1),
+        RankedDoc(doc="irrelevant doc", score=0.1, rank=2),
     ]
 
     rows = [
@@ -60,11 +59,12 @@ def test_evaluate_reranker_on_rows_basic():
 def test_evaluate_reranker_on_rows_tracks_queries_without_relevant_docs():
     """Test query counting/latency are still reported when no docs are relevant."""
     from reranker.eval.benchmark_utils import evaluate_reranker_on_rows
+    from reranker.protocols import RankedDoc
 
     mock_reranker = MagicMock()
     mock_reranker.rerank.return_value = [
-        {"doc": "doc one", "score": 0.2, "rank": 1},
-        {"doc": "doc two", "score": 0.1, "rank": 2},
+        RankedDoc(doc="doc one", score=0.2, rank=1),
+        RankedDoc(doc="doc two", score=0.1, rank=2),
     ]
 
     rows = [
@@ -114,7 +114,7 @@ def test_train_strategies_basic():
     # Mock the HybridFusionReranker to avoid actual training
     with (
         patch("reranker.strategies.hybrid.HybridFusionReranker") as MockHybrid,
-        patch("reranker.strategies.hybrid.KeywordMatchAdapter"),
+        patch("reranker.heuristics.keyword.KeywordMatchAdapter"),
     ):
         mock_instance = MagicMock()
         mock_instance.is_fitted = True

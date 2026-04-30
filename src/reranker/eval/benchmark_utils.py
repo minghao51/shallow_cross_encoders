@@ -68,14 +68,9 @@ def evaluate_reranker_on_rows(rows: list[dict[str, Any]], reranker: Any) -> dict
         # Get relevance scores
         doc_to_relevance = {str(item.get("doc", "")): int(item.get("score", 0)) for item in items}
 
-        # Handle both dict (FlashRank) and RankedDoc (current) formats
         relevances = []
         for r in ranked:
-            if isinstance(r, dict):
-                doc_text = r.get("doc", "")
-            else:
-                doc_text = r.doc
-            relevances.append(float(doc_to_relevance.get(doc_text, 0)))
+            relevances.append(float(doc_to_relevance.get(r.doc, 0)))
 
         binary = [1 if rel > 0 else 0 for rel in relevances]
 
@@ -138,7 +133,8 @@ def train_strategies(
 
     # Train Hybrid Fusion (use pointwise for simple classification)
     if "hybrid" in strategies_config:
-        from reranker.strategies.hybrid import HybridFusionReranker, KeywordMatchAdapter
+        from reranker.heuristics.keyword import KeywordMatchAdapter
+        from reranker.strategies.hybrid import HybridFusionReranker
 
         config = strategies_config["hybrid"]
         adapters = config.get("adapters", [KeywordMatchAdapter()])

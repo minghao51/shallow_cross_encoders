@@ -1,11 +1,12 @@
 """Ranking and consistency strategies."""
 
+from reranker.heuristics.keyword import KeywordMatchAdapter
 from reranker.strategies.binary_reranker import BinaryQuantizedReranker
 from reranker.strategies.cascade import CascadeConfig, CascadeReranker, ConfidenceMetric
 from reranker.strategies.consistency import ConsistencyEngine
 from reranker.strategies.distilled import DistilledPairwiseRanker
 from reranker.strategies.flashrank_ensemble import FlashRankEnsemble
-from reranker.strategies.hybrid import HybridFusionReranker, KeywordMatchAdapter
+from reranker.strategies.hybrid import HybridFusionReranker
 from reranker.strategies.late_interaction import StaticColBERTReranker
 from reranker.strategies.multi import MultiReranker, MultiRerankerConfig
 from reranker.strategies.pipeline import PipelineReranker, PipelineResult, PipelineStage

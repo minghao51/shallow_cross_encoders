@@ -34,12 +34,13 @@ from reranker.eval.metrics import (
     precision_at_k,
     reciprocal_rank,
 )
+from reranker.heuristics.keyword import KeywordMatchAdapter
 from reranker.lexical import BM25Engine
 from reranker.strategies.binary_reranker import BinaryQuantizedReranker
 from reranker.strategies.cascade import CascadeConfig, CascadeReranker, ConfidenceMetric
 from reranker.strategies.consistency import ConsistencyEngine
 from reranker.strategies.distilled import DistilledPairwiseRanker
-from reranker.strategies.hybrid import HybridFusionReranker, KeywordMatchAdapter
+from reranker.strategies.hybrid import HybridFusionReranker
 from reranker.strategies.late_interaction import StaticColBERTReranker
 from reranker.strategies.multi import MultiReranker, MultiRerankerConfig
 from reranker.strategies.pipeline import PipelineReranker

@@ -10,6 +10,7 @@ from scipy.spatial.distance import cdist
 
 from reranker.config import get_settings
 from reranker.embedder import Embedder
+from reranker.persistence import save_safe, try_load_safe_or_warn
 from reranker.protocols import RankedDoc
 from reranker.strategies.patterns import (
     ENTITY_PATTERN,
@@ -18,7 +19,6 @@ from reranker.strategies.patterns import (
     STRUCTURED_PATTERNS,
     VALUE_PATTERN,
 )
-from reranker.utils import dump_pickle, load_pickle
 
 
 class Claim(BaseModel):
@@ -398,23 +398,35 @@ class ConsistencyEngine:
         ]
 
     def save(self, path: str | Path) -> None:
-        dump_pickle(
+        save_safe(
             path,
-            {
+            artifact_type="consistency_engine",
+            metadata={
                 "sim_threshold": self.sim_threshold,
                 "value_tolerance": self.value_tolerance,
                 "embedder_model_name": self.embedder.model_name,
             },
+            weights={},
         )
 
     @classmethod
     def load(cls, path: str | Path, embedder: Embedder | None = None) -> ConsistencyEngine:
-        payload = load_pickle(path)
+        payload = try_load_safe_or_warn(
+            path,
+            expected_type="consistency_engine",
+            legacy_loader=_legacy_load,
+        )
         return cls(
             sim_threshold=payload["sim_threshold"],
             value_tolerance=payload["value_tolerance"],
             embedder=embedder or Embedder(payload["embedder_model_name"]),
         )
+
+
+def _legacy_load(path: Path) -> dict[str, Any]:
+    from reranker.utils import load_pickle
+
+    return load_pickle(path)
 
     def diagnose_misses(self, contradictions_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Analyze which contradictions were missed and why.

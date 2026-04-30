@@ -25,6 +25,9 @@ dist/
 .coverage.*
 htmlcov/
 
+# MkDocs build output
+site/
+
 # Notebook checkpoints
 .ipynb_checkpoints/
 

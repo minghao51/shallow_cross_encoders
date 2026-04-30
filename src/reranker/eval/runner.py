@@ -15,12 +15,13 @@ from reranker.eval.metrics import (
     ndcg_at_k,
     precision_at_k,
 )
+from reranker.heuristics.keyword import KeywordMatchAdapter
 from reranker.lexical import BM25Engine
 from reranker.protocols import BaseReranker
 from reranker.strategies.binary_reranker import BinaryQuantizedReranker
 from reranker.strategies.consistency import ConsistencyEngine
 from reranker.strategies.distilled import DistilledPairwiseRanker
-from reranker.strategies.hybrid import HybridFusionReranker, KeywordMatchAdapter
+from reranker.strategies.hybrid import HybridFusionReranker
 from reranker.strategies.late_interaction import StaticColBERTReranker
 from reranker.strategies.multi import MultiReranker, MultiRerankerConfig
 from reranker.strategies.splade import SPLADEReranker

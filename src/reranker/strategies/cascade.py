@@ -110,10 +110,12 @@ class CascadeReranker:
                     return statistics.variance(scores)
                 return 0.0
             case ConfidenceMetric.NORMALIZED_MAX:
-                score_range = max(scores) - min(scores)
+                score_max = max(scores)
+                score_min = min(scores)
+                score_range = score_max - score_min
                 if score_range == 0:
                     return 1.0
-                return (max(scores) - min(scores)) / score_range if score_range > 0 else 0.0
+                return score_max / score_range if score_range > 0 else 0.0
             case _:
                 return max(scores)
 

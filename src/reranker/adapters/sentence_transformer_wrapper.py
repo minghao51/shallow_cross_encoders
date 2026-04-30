@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from typing import Any
 
+from reranker.protocols import RankedDoc
+
 
 class SentenceTransformerWrapper:
-    """Wrapper for SentenceTransformer cross-encoders."""
-
     def __init__(self, model_name: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"):
         self.model_name = model_name
         self._model = None
@@ -27,7 +27,7 @@ class SentenceTransformerWrapper:
         self._model = CrossEncoder(self.model_name)
         return self._model
 
-    def rerank(self, query: str, docs: list[str]) -> list[dict[str, Any]]:
+    def rerank(self, query: str, docs: list[str]) -> list[RankedDoc]:
         if not docs:
             return []
 
@@ -39,14 +39,12 @@ class SentenceTransformerWrapper:
         indexed_scores = list(enumerate(scores))
         indexed_scores.sort(key=lambda x: x[1], reverse=True)
 
-        ranked_docs = []
-        for rank, (idx, score) in enumerate(indexed_scores, start=1):
-            ranked_docs.append(
-                {
-                    "doc": docs[idx],
-                    "score": float(score),
-                    "rank": rank,
-                }
+        return [
+            RankedDoc(
+                doc=docs[idx],
+                score=float(score),
+                rank=rank,
+                metadata={"strategy": "cross_encoder"},
             )
-
-        return ranked_docs
+            for rank, (idx, score) in enumerate(indexed_scores, start=1)
+        ]

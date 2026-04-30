@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from reranker.config import get_settings
+from reranker.persistence import save_safe, try_load_safe_or_warn
 from reranker.protocols import RankedDoc
 
 
@@ -141,8 +142,6 @@ class PipelineReranker:
         )
 
     def save(self, path: str | Path) -> None:
-        from reranker.utils import build_artifact_metadata, dump_pickle
-
         stage_data = []
         for stage in self.stages:
             stage_path = Path(path).parent / f"{stage.name}.pkl"
@@ -156,17 +155,14 @@ class PipelineReranker:
                 }
             )
 
-        dump_pickle(
+        save_safe(
             path,
-            build_artifact_metadata(
-                "pipeline_reranker",
-                format_name="pickle",
-                embedder_model_name="multiple",
-                extra={
-                    "stages": stage_data,
-                    "default_top_k": self.default_top_k,
-                },
-            ),
+            artifact_type="pipeline_reranker",
+            metadata={
+                "embedder_model_name": "multiple",
+                "default_top_k": self.default_top_k,
+            },
+            weights={"stages": stage_data},
         )
 
     @classmethod
@@ -175,14 +171,12 @@ class PipelineReranker:
         path: str | Path,
         stage_rerankers: dict[str, Any] | None = None,
     ) -> PipelineReranker:
-        from reranker.utils import load_pickle, validate_artifact_metadata
-
-        payload = load_pickle(path)
-        validate_artifact_metadata(
-            payload,
+        payload = try_load_safe_or_warn(
+            path,
             expected_type="pipeline_reranker",
-            expected_formats={"pickle"},
+            legacy_loader=_legacy_load,
         )
+
         instance = cls(
             default_top_k=payload.get("default_top_k"),
         )
@@ -200,3 +194,15 @@ class PipelineReranker:
             instance.add_stage(name=name, reranker=reranker, top_k=top_k)
 
         return instance
+
+
+def _legacy_load(path: Path) -> dict[str, Any]:
+    from reranker.utils import load_pickle, validate_artifact_metadata
+
+    payload = load_pickle(path)
+    validate_artifact_metadata(
+        payload,
+        expected_type="pipeline_reranker",
+        expected_formats={"pickle"},
+    )
+    return payload

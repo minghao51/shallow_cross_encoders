@@ -8,8 +8,9 @@ from reranker.config import (
     reset_settings_cache,
     settings_from_dict,
 )
+from reranker.heuristics.keyword import KeywordMatchAdapter
 from reranker.persistence import load_safe
-from reranker.strategies.hybrid import HybridFusionReranker, KeywordMatchAdapter
+from reranker.strategies.hybrid import HybridFusionReranker
 
 
 def test_hybrid_reranks_relevant_doc_first() -> None:
