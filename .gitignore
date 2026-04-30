@@ -27,9 +27,11 @@ htmlcov/
 
 # MkDocs build output
 site/
+docs/notebooks/
 
 # Notebook checkpoints
 .ipynb_checkpoints/
+__marimo__/
 
 # Local environment files
 .env

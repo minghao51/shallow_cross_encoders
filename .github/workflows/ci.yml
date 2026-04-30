@@ -55,4 +55,6 @@ jobs:
         with:
           enable-cache: true
       - run: uv sync --extra docs
+      - run: uv run scripts/generate_notebook_pages.py
       - run: uv run mkdocs build --strict
+    timeout-minutes: 10

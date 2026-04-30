@@ -1,5 +1,6 @@
 site_name: shallow-cross-encoders
 site_description: CPU-native reranking and consistency pipeline using static embeddings, lexical signals, and shallow models.
+site_url: https://minghao.github.io/shallow_cross_encoders/
 repo_url: https://github.com/minghao/shallow_cross_encoders
 edit_uri: edit/main/docs/
 
@@ -69,6 +70,7 @@ nav:
     - Evaluation: api/eval.md
     - Data: api/data.md
     - Heuristics: api/heuristics.md
+  - Notebooks: notebooks/index.md
   - About: about.md
 
 markdown_extensions:

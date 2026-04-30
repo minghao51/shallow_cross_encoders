@@ -26,7 +26,8 @@ repos:
           (?x)(
             _expanded/seeds\.py |
             data/_expanded/ |
-            tests/
+            tests/ |
+            notebooks/
           )
       - id: ruff-format
 
@@ -46,7 +47,7 @@ repos:
     hooks:
       - id: mypy
         name: mypy
-        entry: uv run mypy . --exclude tests/ --exclude scripts/ --exclude benchmarks/
+        entry: uv run mypy . --exclude tests/ --exclude scripts/ --exclude benchmarks/ --exclude notebooks/
         language: system
         types: [python]
         pass_filenames: false
