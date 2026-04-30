@@ -205,6 +205,5 @@ cascade = CascadeReranker(primary, fallback)
 
 ## References
 
-- [Benchmark Analysis](../20260415-benchmark-analysis.md) - Performance comparison
 - [Hybrid Fusion Reranker](./hybrid_fusion_reranker.md) - Primary model options
-- [FlashRank Ensemble](../ensemble-distillation-guide.md) - Fallback teacher setup
+- [Ensemble Distillation Guide](../guides/ensemble-distillation-guide.md) - Fallback teacher setup

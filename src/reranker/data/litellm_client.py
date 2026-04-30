@@ -1,3 +1,5 @@
+"""LiteLLM client wrapper for active distillation teacher calls."""
+
 from __future__ import annotations
 
 import json
@@ -29,6 +31,12 @@ def _get_litellm() -> Any:
 
 @dataclass(slots=True)
 class LiteLLMClient:
+    """Client for LiteLLM-based teacher model completions with JSON mode.
+
+    Wraps the litellm.completion API with JSON response format and metadata
+    extraction for cost tracking.
+    """
+
     model: str = field(default_factory=lambda: get_settings().active_distillation.litellm_model)
     api_key: str | None = None
     batch_size: int = field(
@@ -41,9 +49,18 @@ class LiteLLMClient:
 
     @property
     def enabled(self) -> bool:
+        """Whether an API key is configured for the LiteLLM client."""
         return bool(self.api_key)
 
     def complete_json(self, prompt: str) -> tuple[dict[str, Any], dict[str, Any]]:
+        """Send a prompt and get a parsed JSON response with metadata.
+
+        Args:
+            prompt: The prompt to send to the LLM.
+
+        Returns:
+            Tuple of (parsed JSON dict, metadata dict with timing, model, usage).
+        """
         litellm = _get_litellm()
         started = datetime.now(UTC)
 

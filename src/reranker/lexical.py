@@ -1,3 +1,9 @@
+"""BM25 lexical scoring engine.
+
+Wraps rank_bm25 when available with a pure-Python BM25Okapi fallback
+so that lexical scoring always works, even without optional dependencies.
+"""
+
 from __future__ import annotations
 
 import math
@@ -13,6 +19,11 @@ class BM25Engine:
     """BM25 wrapper with a pure-Python fallback when rank_bm25 is unavailable."""
 
     def __init__(self, tokenize_fn: Callable[[str], list[str]] | None = None) -> None:
+        """Initialize the BM25 engine.
+
+        Args:
+            tokenize_fn: Custom tokenizer. Defaults to whitespace splitting.
+        """
         self._corpus: list[str] = []
         self._tokenized: list[list[str]] = []
         self._bm25 = None
@@ -22,6 +33,11 @@ class BM25Engine:
         self._tokenize_fn = tokenize_fn or (lambda text: text.lower().split())
 
     def fit(self, corpus: list[str]) -> None:
+        """Index a corpus for BM25 scoring.
+
+        Args:
+            corpus: List of document strings to index.
+        """
         self._corpus = corpus
         self._tokenized = [self._tokenize_fn(doc) for doc in corpus]
         self._avgdl = float(sum(len(tokens) for tokens in self._tokenized)) / max(
@@ -39,6 +55,11 @@ class BM25Engine:
             self.backend_name = "pure_python"
 
     def _fallback_scores(self, query: str) -> np.ndarray:
+        """Compute BM25 scores using pure-Python implementation.
+
+        Uses BM25Okapi formulation with k1=1.5, b=0.75.
+        Used when rank_bm25 is not available.
+        """
         query_tokens = self._tokenize_fn(query)
         n_docs = len(self._tokenized)
         scores = np.zeros(n_docs, dtype=np.float32)
@@ -59,6 +80,15 @@ class BM25Engine:
         return scores
 
     def score(self, query: str, normalize: bool = True) -> np.ndarray:
+        """Compute BM25 scores for all indexed documents.
+
+        Args:
+            query: Search query string.
+            normalize: Whether to L2-normalize scores. Defaults to True.
+
+        Returns:
+            Array of BM25 scores, one per document in the corpus.
+        """
         if not self._corpus:
             return np.zeros(0, dtype=np.float32)
         scores = (
@@ -76,6 +106,17 @@ class BM25Engine:
         return scores
 
     def rerank(self, query: str, docs: list[str]) -> list:
+        """Score and rank documents by BM25 relevance.
+
+        Implements the BaseReranker protocol for drop-in compatibility.
+
+        Args:
+            query: Search query string.
+            docs: Documents to rank.
+
+        Returns:
+            List of RankedDoc sorted by BM25 score descending.
+        """
         from reranker.protocols import RankedDoc
 
         self.fit(docs)

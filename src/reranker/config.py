@@ -1,3 +1,13 @@
+"""Configuration management for the reranker package.
+
+All settings are defined as frozen Pydantic models with environment variable
+overrides. The central :class:`Settings` model composes all sub-configurations
+and is accessed via :func:`get_settings`.
+
+Settings can be overridden at runtime via :func:`apply_settings_override`
+or loaded from YAML files via :func:`settings_from_yaml`.
+"""
+
 from __future__ import annotations
 
 import contextvars
@@ -24,6 +34,12 @@ def _env(name: str, default: _T, typ: type[_T]) -> _T:
 
 
 class OpenRouterSettings(BaseModel):
+    """LLM API configuration for OpenRouter.
+
+    Controls which model is used for synthetic data generation and
+    LLM-based judgments. Falls back to environment variables.
+    """
+
     model_config = ConfigDict(frozen=True)
 
     api_key: str | None = None
@@ -34,6 +50,8 @@ class OpenRouterSettings(BaseModel):
 
 
 class PathSettings(BaseModel):
+    """Filesystem paths for data, models, and logs."""
+
     model_config = ConfigDict(frozen=True)
 
     raw_data_dir: Path = Path("data/raw")
@@ -43,6 +61,8 @@ class PathSettings(BaseModel):
 
 
 class EmbedderSettings(BaseModel):
+    """Configuration for the static embedding model."""
+
     model_config = ConfigDict(frozen=True)
 
     model_name: str = "minishlab/potion-base-32M"
@@ -53,6 +73,8 @@ class EmbedderSettings(BaseModel):
 
 
 class SyntheticDataSettings(BaseModel):
+    """Controls for LLM-based synthetic data generation."""
+
     model_config = ConfigDict(frozen=True)
 
     seed: int = 42
@@ -70,6 +92,8 @@ class SyntheticDataSettings(BaseModel):
 
 
 class HybridSettings(BaseModel):
+    """XGBoost/sklearn hybrid fusion reranker parameters."""
+
     model_config = ConfigDict(frozen=True)
 
     random_state: int = 42
@@ -91,6 +115,8 @@ class HybridSettings(BaseModel):
 
 
 class DistilledSettings(BaseModel):
+    """Logistic regression / cross-encoder distilled reranker parameters."""
+
     model_config = ConfigDict(frozen=True)
 
     random_state: int = 42
@@ -102,6 +128,8 @@ class DistilledSettings(BaseModel):
 
 
 class LateInteractionSettings(BaseModel):
+    """ColBERT-style late interaction reranker parameters."""
+
     model_config = ConfigDict(frozen=True)
 
     top_k_tokens: int = 128
@@ -110,6 +138,8 @@ class LateInteractionSettings(BaseModel):
 
 
 class BinaryRerankerSettings(BaseModel):
+    """Binary quantization + Hamming distance reranker parameters."""
+
     model_config = ConfigDict(frozen=True)
 
     hamming_top_k: int = 500
@@ -118,6 +148,8 @@ class BinaryRerankerSettings(BaseModel):
 
 
 class SPLADESettings(BaseModel):
+    """SPLADE sparse lexical reranker parameters."""
+
     model_config = ConfigDict(frozen=True)
 
     model_name: str = "naver/splade-cocondenser-ensembledistil"
@@ -125,6 +157,8 @@ class SPLADESettings(BaseModel):
 
 
 class MetaRouterSettings(BaseModel):
+    """Query-type routing model parameters."""
+
     model_config = ConfigDict(frozen=True)
 
     enabled: bool = False
@@ -134,6 +168,8 @@ class MetaRouterSettings(BaseModel):
 
 
 class LSHSettings(BaseModel):
+    """LSH-based near-duplicate detection parameters."""
+
     model_config = ConfigDict(frozen=True)
 
     enabled: bool = False
@@ -143,6 +179,8 @@ class LSHSettings(BaseModel):
 
 
 class ActiveDistillationSettings(BaseModel):
+    """Active learning distillation loop parameters."""
+
     model_config = ConfigDict(frozen=True)
 
     enabled: bool = False
@@ -159,12 +197,16 @@ class ActiveDistillationSettings(BaseModel):
 
 
 class PipelineSettings(BaseModel):
+    """Multi-stage pipeline defaults."""
+
     model_config = ConfigDict(frozen=True)
 
     default_stage_top_k: int = 200
 
 
 class CascadeSettings(BaseModel):
+    """Cascade reranker confidence thresholding."""
+
     model_config = ConfigDict(frozen=True)
 
     confidence_threshold: float = 0.6
@@ -172,6 +214,8 @@ class CascadeSettings(BaseModel):
 
 
 class ConsistencySettings(BaseModel):
+    """Consistency engine similarity and tolerance thresholds."""
+
     model_config = ConfigDict(frozen=True)
 
     sim_threshold: float = 0.95
@@ -179,6 +223,8 @@ class ConsistencySettings(BaseModel):
 
 
 class RoiSettings(BaseModel):
+    """ROI estimation parameters for cost-benefit analysis."""
+
     model_config = ConfigDict(frozen=True)
 
     llm_cost_per_judgment_usd: float = 0.0004
@@ -186,6 +232,8 @@ class RoiSettings(BaseModel):
 
 
 class BenchmarkSettings(BaseModel):
+    """Benchmark timing targets and sample configuration."""
+
     model_config = ConfigDict(frozen=True)
 
     sample_doc: str = "This is a sample document for latency measurement."
@@ -198,6 +246,8 @@ class BenchmarkSettings(BaseModel):
 
 
 class EvalSettings(BaseModel):
+    """Dataset split ratios for evaluation."""
+
     model_config = ConfigDict(frozen=True)
 
     default_split: str = "test"
@@ -214,6 +264,8 @@ class EvalSettings(BaseModel):
 
 
 class Settings(BaseModel):
+    """Root configuration composing all sub-configurations."""
+
     model_config = ConfigDict(frozen=True)
 
     openrouter: OpenRouterSettings
@@ -402,6 +454,10 @@ def _cached_settings() -> Settings:
 
 
 def get_settings() -> Settings:
+    """Return the current global settings instance.
+
+    Returns the context-local override if set, otherwise the cached default.
+    """
     override = _settings_override.get()
     if override is not None:
         return override
@@ -409,14 +465,17 @@ def get_settings() -> Settings:
 
 
 def reset_settings_cache() -> None:
+    """Clear the cached default settings so they are re-read on next access."""
     _cached_settings.cache_clear()
 
 
 def apply_settings_override(settings: Settings) -> None:
+    """Apply a settings override for the current context."""
     _settings_override.set(settings)
 
 
 def clear_settings_override() -> None:
+    """Clear any context-local settings override."""
     _settings_override.set(None)
 
 
@@ -431,6 +490,14 @@ def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any
 
 
 def load_yaml_config(path: str | Path) -> dict[str, Any]:
+    """Load a YAML configuration file.
+
+    Args:
+        path: Path to the YAML file.
+
+    Returns:
+        Parsed configuration as a nested dictionary.
+    """
     import yaml
 
     raw = Path(path).read_text(encoding="utf-8")
@@ -438,6 +505,14 @@ def load_yaml_config(path: str | Path) -> dict[str, Any]:
 
 
 def settings_from_yaml(path: str | Path) -> Settings:
+    """Load settings from a YAML file, deep-merged with current defaults.
+
+    Args:
+        path: Path to the YAML configuration file.
+
+    Returns:
+        New Settings instance with YAML values overriding defaults.
+    """
     yaml_data = load_yaml_config(path)
     current = get_settings().model_dump()
     merged = _deep_merge(current, yaml_data)
@@ -445,6 +520,14 @@ def settings_from_yaml(path: str | Path) -> Settings:
 
 
 def settings_from_dict(data: dict[str, Any]) -> Settings:
+    """Create settings from a dictionary, deep-merged with current defaults.
+
+    Args:
+        data: Dictionary of configuration values.
+
+    Returns:
+        New Settings instance with provided values overriding defaults.
+    """
     current = get_settings().model_dump()
     merged = _deep_merge(current, data)
     return Settings(**merged)

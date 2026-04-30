@@ -1,3 +1,5 @@
+"""Evaluation metrics and latency tracking utilities."""
+
 from __future__ import annotations
 
 import math
@@ -11,11 +13,29 @@ import numpy as np
 
 
 def dcg_at_k(relevances: list[float], k: int) -> float:
+    """Compute Discounted Cumulative Gain at k.
+
+    Args:
+        relevances: Relevance scores in ranked order.
+        k: Rank position to compute up to.
+
+    Returns:
+        DCG value.
+    """
     gains = [((2**rel) - 1) / math.log2(idx + 2) for idx, rel in enumerate(relevances[:k])]
     return float(sum(gains))
 
 
 def ndcg_at_k(relevances: list[float], k: int) -> float:
+    """Compute Normalized Discounted Cumulative Gain at k.
+
+    Args:
+        relevances: Relevance scores in ranked order.
+        k: Rank position.
+
+    Returns:
+        NDCG value (0.0 to 1.0).
+    """
     ideal = sorted(relevances, reverse=True)
     denom = dcg_at_k(ideal, k)
     if denom == 0:
@@ -24,6 +44,14 @@ def ndcg_at_k(relevances: list[float], k: int) -> float:
 
 
 def reciprocal_rank(binary_relevances: list[int]) -> float:
+    """Compute the reciprocal rank of the first relevant document.
+
+    Args:
+        binary_relevances: Binary relevance indicators in ranked order.
+
+    Returns:
+        Reciprocal rank (0.0 to 1.0), or 0.0 if no relevant doc found.
+    """
     for idx, rel in enumerate(binary_relevances, start=1):
         if rel:
             return 1.0 / idx
@@ -31,6 +59,15 @@ def reciprocal_rank(binary_relevances: list[int]) -> float:
 
 
 def precision_at_k(binary_relevances: list[int], k: int) -> float:
+    """Compute Precision at k.
+
+    Args:
+        binary_relevances: Binary relevance indicators in ranked order.
+        k: Rank position.
+
+    Returns:
+        Precision at k (0.0 to 1.0).
+    """
     if k <= 0:
         return 0.0
     top = binary_relevances[:k]
@@ -40,6 +77,15 @@ def precision_at_k(binary_relevances: list[int], k: int) -> float:
 
 
 def accuracy(y_true: list[int], y_pred: list[int]) -> float:
+    """Compute classification accuracy.
+
+    Args:
+        y_true: Ground truth labels.
+        y_pred: Predicted labels.
+
+    Returns:
+        Accuracy score (0.0 to 1.0).
+    """
     compared = list(zip(y_true, y_pred, strict=False))
     if not compared:
         return 0.0
@@ -108,10 +154,13 @@ def mean_average_precision(relevance_scores: list[list[float]], k: int | None = 
 
 @dataclass(slots=True)
 class LatencyTracker:
+    """Track latency samples and compute summary statistics."""
+
     samples_ms: list[float] = field(default_factory=list)
 
     @contextmanager
     def measure(self) -> Iterator[None]:
+        """Context manager to measure and record elapsed time in milliseconds."""
         start = time.perf_counter()
         try:
             yield
@@ -119,6 +168,11 @@ class LatencyTracker:
             self.samples_ms.append((time.perf_counter() - start) * 1000)
 
     def summary(self) -> dict[str, float]:
+        """Compute p50, p99, and mean latency from recorded samples.
+
+        Returns:
+            Dict with keys p50, p99, mean (in milliseconds).
+        """
         if not self.samples_ms:
             return {"p50": 0.0, "p99": 0.0, "mean": 0.0}
         ordered = sorted(self.samples_ms)

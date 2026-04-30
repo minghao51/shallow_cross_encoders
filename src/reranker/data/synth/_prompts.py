@@ -1,3 +1,5 @@
+"""Prompt templates for teacher-based synthetic data generation."""
+
 from __future__ import annotations
 
 PAIR_PROMPT = """

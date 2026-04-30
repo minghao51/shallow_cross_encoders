@@ -1,3 +1,5 @@
+"""Core helpers shared across synthetic data generator modules."""
+
 from __future__ import annotations
 
 import json
@@ -19,15 +21,39 @@ from reranker.utils import append_jsonl
 
 
 def should_use_teacher(gen: GeneratorState, use_teacher: bool | None) -> bool:
+    """Determine whether to use teacher mode based on config and override.
+
+    Args:
+        gen: Generator state with client.enabled flag.
+        use_teacher: Explicit override, or None to use client.enabled.
+
+    Returns:
+        True if teacher mode should be used.
+    """
     return gen.client.enabled if use_teacher is None else use_teacher
 
 
 def require_teacher(gen: GeneratorState) -> None:
+    """Ensure teacher mode is available, raising if not.
+
+    Args:
+        gen: Generator state with client.enabled flag.
+
+    Raises:
+        RuntimeError: If the teacher client is not enabled.
+    """
     if not gen.client.enabled:
         raise RuntimeError("Teacher mode requires OPENROUTER_API_KEY to be set.")
 
 
 def log_cost(gen: GeneratorState, metadata: JsonDict, dataset_name: str) -> None:
+    """Log API usage and cost information to the cost log file.
+
+    Args:
+        gen: Generator state with log_path.
+        metadata: Response metadata dict from the client.
+        dataset_name: Name of the dataset being generated.
+    """
     usage = metadata.get("usage", {})
     if not usage:
         return
@@ -48,6 +74,18 @@ def log_cost(gen: GeneratorState, metadata: JsonDict, dataset_name: str) -> None
 
 
 def validate_record(model_cls: ValidateModel, payload: JsonDict) -> JsonDict:
+    """Validate a record dict against a Pydantic model and return the dump.
+
+    Args:
+        model_cls: Pydantic model class to validate against.
+        payload: Record dict to validate.
+
+    Returns:
+        Validated, serialized record dict.
+
+    Raises:
+        ValueError: If validation fails.
+    """
     try:
         return model_cls.model_validate(payload).model_dump()
     except ValidationError as exc:
@@ -126,6 +164,15 @@ def stabilize_contradiction_record(
 
 
 def chunk_specs(specs: list[JsonDict], batch_size: int) -> list[list[JsonDict]]:
+    """Split a list of specs into chunks of at most batch_size.
+
+    Args:
+        specs: List of spec dicts.
+        batch_size: Maximum chunk size.
+
+    Returns:
+        List of spec chunks.
+    """
     return [specs[idx : idx + batch_size] for idx in range(0, len(specs), batch_size)]
 
 
@@ -136,6 +183,17 @@ def parallel_teacher_batches(
     batch_size: int,
     fn: BatchGenerator,
 ) -> list[JsonDict]:
+    """Process teacher batches in parallel using a thread pool.
+
+    Args:
+        gen: Generator state.
+        specs: List of spec dicts.
+        batch_size: Batch size for chunking.
+        fn: Batch generator function to call per chunk.
+
+    Returns:
+        Flattened list of record dicts from all batches.
+    """
     settings = get_settings()
     chunks = chunk_specs(specs, batch_size)
     if len(chunks) <= 1:
@@ -151,4 +209,12 @@ def collect_records(records: Iterable[JsonDict]) -> list[JsonDict]:
 
 
 def batch_prompt_payload(specs: list[JsonDict]) -> str:
+    """Serialize specs to JSON string for inclusion in batch prompts.
+
+    Args:
+        specs: List of spec dicts.
+
+    Returns:
+        Indented JSON string.
+    """
     return json.dumps(specs, indent=2)

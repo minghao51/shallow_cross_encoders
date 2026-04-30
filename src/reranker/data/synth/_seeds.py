@@ -1,3 +1,5 @@
+"""Default seed data for synthetic pair generation across domains."""
+
 from __future__ import annotations
 
 # ruff: noqa: E501

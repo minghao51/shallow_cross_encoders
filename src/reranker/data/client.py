@@ -1,3 +1,5 @@
+"""OpenRouter-based LLM client for teacher label generation."""
+
 from __future__ import annotations
 
 import json
@@ -23,6 +25,14 @@ _test_client: httpx.Client | None = None
 
 
 def _is_retryable_request_error(exc: BaseException) -> bool:
+    """Check if an HTTP exception should trigger a retry.
+
+    Args:
+        exc: The exception to check.
+
+    Returns:
+        True if the status code is 429, 500, 502, 503, or 504, or if it's a timeout.
+    """
     if isinstance(exc, httpx.TimeoutException):
         return True
     if isinstance(exc, httpx.HTTPStatusError):
@@ -31,12 +41,23 @@ def _is_retryable_request_error(exc: BaseException) -> bool:
 
 
 def _set_test_client(client: httpx.Client | None) -> None:
+    """Set a test client override for unit testing.
+
+    Args:
+        client: HTTPX client to use for testing, or None to clear.
+    """
     global _test_client
     _test_client = client
 
 
 @dataclass(slots=True)
 class OpenRouterClient:
+    """Client for OpenRouter-compatible LLM API with JSON mode and fallback support.
+
+    Provides retry logic, model fallback chains, and JSON extraction from
+    LLM responses. Uses a shared connection pool for efficiency.
+    """
+
     model: str = field(default_factory=lambda: get_settings().openrouter.model)
     api_key: str | None = None
     base_url: str = field(default_factory=lambda: get_settings().openrouter.base_url)
@@ -49,10 +70,12 @@ class OpenRouterClient:
 
     @property
     def enabled(self) -> bool:
+        """Whether an API key is configured and the client can make requests."""
         return bool(self.api_key)
 
     @property
     def http_client(self) -> httpx.Client:
+        """Get or create a cached HTTPX client with connection pooling."""
         if _test_client is not None:
             return _test_client
         client_key = (self.base_url, self.timeout)
@@ -79,6 +102,23 @@ class OpenRouterClient:
         return response.json()
 
     def complete_json(self, prompt: str) -> tuple[dict[str, Any], dict[str, Any]]:
+        """Send a prompt and get a parsed JSON response with model fallbacks.
+
+        Attempts the primary model first with JSON mode enabled, then falls
+        back to the default model, and finally retries without JSON mode.
+
+        Args:
+            prompt: The prompt to send to the LLM.
+
+        Returns:
+            Tuple of (parsed JSON dict, metadata dict with timing, model, usage).
+
+        Raises:
+            RuntimeError: If OPENROUTER_API_KEY is not set.
+            httpx.TimeoutException: If all attempts time out.
+            httpx.HTTPStatusError: If all attempts return HTTP errors.
+            ValueError: If the response content cannot be parsed as JSON.
+        """
         if not self.enabled:
             raise RuntimeError("OPENROUTER_API_KEY is not set.")
         headers = {
@@ -171,6 +211,7 @@ class OpenRouterClient:
 
 
 def close_http_client() -> None:
+    """Close all cached HTTP clients and reset test client."""
     global _test_client
     for client in _http_clients.values():
         client.close()

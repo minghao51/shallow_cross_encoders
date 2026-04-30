@@ -1,3 +1,9 @@
+"""Late-interaction reranker using token-level MaxSim scoring.
+
+Stores per-token embeddings for documents and computes MaxSim between
+query tokens and document tokens at inference time.
+"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -125,6 +131,17 @@ class StaticColBERTReranker:
         )
 
     def fit(self, docs: list[str]) -> StaticColBERTReranker:
+        """Fit the reranker by indexing document token embeddings.
+
+        Tokenises each document, encodes tokens, prunes to top-k,
+        and optionally quantises the stored vectors.
+
+        Args:
+            docs: Documents to index.
+
+        Returns:
+            Self, fitted.
+        """
         self._index = []
         for doc in docs:
             tokens = self._tokenize(doc)
@@ -157,6 +174,18 @@ class StaticColBERTReranker:
         return float(np.sum(max_sims))
 
     def score(self, query: str, docs: list[str]) -> np.ndarray:
+        """Score documents using MaxSim late interaction.
+
+        Args:
+            query: Search query.
+            docs: Documents to score (must be a subset of fitted docs).
+
+        Returns:
+            Array of MaxSim scores.
+
+        Raises:
+            RuntimeError: If the reranker has not been fitted.
+        """
         if not self.is_fitted:
             raise RuntimeError("StaticColBERTReranker must be fitted before scoring.")
         if not docs:
@@ -190,6 +219,17 @@ class StaticColBERTReranker:
         return scores
 
     def rerank(self, query: str, docs: list[str]) -> list[RankedDoc]:
+        """Rerank documents by late-interaction MaxSim score.
+
+        Auto-fits on the provided documents if not already fitted.
+
+        Args:
+            query: Search query.
+            docs: Documents to rerank.
+
+        Returns:
+            Ranked list of RankedDoc.
+        """
         if not docs:
             return []
 
@@ -213,6 +253,13 @@ class StaticColBERTReranker:
         ]
 
     def save(self, path: str | Path) -> None:
+        """Persist the late-interaction reranker to disk.
+
+        Saves token indices, quantised vectors, and configuration.
+
+        Args:
+            path: Destination file path.
+        """
         index_data = []
         for entry in self._index:
             item: dict[str, Any] = {
@@ -251,6 +298,15 @@ class StaticColBERTReranker:
         path: str | Path,
         embedder: Embedder | None = None,
     ) -> StaticColBERTReranker:
+        """Load a saved StaticColBERTReranker from disk.
+
+        Args:
+            path: Path to the saved artifact.
+            embedder: Optional embedder override.
+
+        Returns:
+            Loaded StaticColBERTReranker instance.
+        """
         payload = try_load_safe_or_warn(
             path,
             expected_type="late_interaction_reranker",

@@ -69,6 +69,20 @@ def iter_hard_negatives(
     target_count: int | None = None,
     use_teacher: bool | None = None,
 ) -> Iterator[JsonDict]:
+    """Yield hard-negative examples for reranker training.
+
+    In teacher mode, uses the LLM to generate realistic hard negatives.
+    In offline mode, uses domain-specific hard negative pools.
+
+    Args:
+        gen: Generator state.
+        pairs: Existing pair records to derive from.
+        target_count: Number of hard-negative examples.
+        use_teacher: Whether to use teacher model.
+
+    Yields:
+        Validated HardNegativeRecord dicts.
+    """
     resolved_target_count = (
         get_settings().synthetic_data.pair_count if target_count is None else target_count
     )
@@ -156,6 +170,17 @@ def iter_listwise_preferences(
     target_count: int | None = None,
     use_teacher: bool | None = None,
 ) -> Iterator[JsonDict]:
+    """Yield listwise preference records built from pair data grouped by query.
+
+    Args:
+        gen: Generator state.
+        pairs: Existing pair records.
+        target_count: Number of listwise records.
+        use_teacher: Whether to use teacher model.
+
+    Yields:
+        Validated ListwisePreferenceRecord dicts.
+    """
     resolved_target_count = (
         get_settings().synthetic_data.preference_count if target_count is None else target_count
     )
@@ -227,6 +252,17 @@ def iter_query_expansions(
     target_count: int | None = None,
     use_teacher: bool | None = None,
 ) -> Iterator[JsonDict]:
+    """Yield query expansion suggestions for retrieval augmentation tasks.
+
+    Args:
+        gen: Generator state.
+        pairs: Existing pair records.
+        target_count: Number of expansion records.
+        use_teacher: Whether to use teacher model.
+
+    Yields:
+        Validated QueryExpansionRecord dicts.
+    """
     resolved_target_count = (
         get_settings().synthetic_data.pair_count if target_count is None else target_count
     )

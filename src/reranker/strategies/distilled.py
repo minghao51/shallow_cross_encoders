@@ -1,3 +1,9 @@
+"""Distilled pairwise ranker using LLM-generated preference comparisons.
+
+Trains a lightweight model (logistic regression or cross-encoder) to
+approximate an expensive teacher reranker's pairwise preferences.
+"""
+
 from __future__ import annotations
 
 import logging
@@ -290,6 +296,21 @@ class DistilledPairwiseRanker:
         return merged
 
     def rerank(self, query: str, docs: list[str]) -> list[RankedDoc]:
+        """Rerank documents using the fitted pairwise model.
+
+        For listwise/lambdaloss cross-encoder models, scores directly.
+        For pairwise logistic, runs a full or merge-sort tournament.
+
+        Args:
+            query: Search query.
+            docs: Documents to rerank.
+
+        Returns:
+            Ranked list of RankedDoc.
+
+        Raises:
+            RuntimeError: If the ranker has not been fitted.
+        """
         if not self.is_fitted:
             raise RuntimeError("DistilledPairwiseRanker must be fitted before reranking.")
         if not docs:
@@ -359,6 +380,13 @@ class DistilledPairwiseRanker:
         ]
 
     def save(self, path: str | Path) -> None:
+        """Persist the distilled ranker to disk.
+
+        Saves the logistic model (and cross-encoder if present).
+
+        Args:
+            path: Destination file path.
+        """
         metadata = {
             "embedder_model_name": self.embedder.model_name,
             "full_tournament_max_docs": self.full_tournament_max_docs,
@@ -378,6 +406,15 @@ class DistilledPairwiseRanker:
 
     @classmethod
     def load(cls, path: str | Path, embedder: Embedder | None = None) -> DistilledPairwiseRanker:
+        """Load a saved DistilledPairwiseRanker from disk.
+
+        Args:
+            path: Path to the saved artifact.
+            embedder: Optional embedder override.
+
+        Returns:
+            Loaded DistilledPairwiseRanker instance.
+        """
         payload = try_load_safe_or_warn(
             path,
             expected_type="pairwise_ranker",

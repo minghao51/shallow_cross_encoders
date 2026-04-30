@@ -44,6 +44,19 @@ def teacher_contradiction_record(
     value_b: str,
     is_contradiction: bool,
 ) -> JsonDict:
+    """Generate a single contradiction record using the teacher model.
+
+    Args:
+        gen: Generator state with client access.
+        subject: Entity subject for the contradiction.
+        field_name: Contradicted field name.
+        value_a: Value claimed in document A.
+        value_b: Value claimed in document B.
+        is_contradiction: Whether this is a contradiction or control.
+
+    Returns:
+        Validated contradiction record dict.
+    """
     core.require_teacher(gen)
     payload, metadata = gen.client.complete_json(
         CONTRADICTION_PROMPT.format(
@@ -76,6 +89,17 @@ def teacher_contradiction_records(
     gen: GeneratorState,
     batch_specs: list[JsonDict],
 ) -> list[JsonDict]:
+    """Generate contradiction records in batch via the teacher model.
+
+    Falls back to single-record generation and binary splitting on failure.
+
+    Args:
+        gen: Generator state with client access.
+        batch_specs: List of contradiction spec dicts.
+
+    Returns:
+        List of validated contradiction record dicts.
+    """
     if len(batch_specs) == 1:
         spec = batch_specs[0]
         return [
@@ -137,6 +161,17 @@ def iter_contradictions(
     control_count: int | None = None,
     use_teacher: bool | None = None,
 ) -> Iterator[JsonDict]:
+    """Yield contradiction and control records.
+
+    Args:
+        gen: Generator state.
+        contradiction_count: Number of contradiction records.
+        control_count: Number of control records.
+        use_teacher: Whether to use teacher model.
+
+    Yields:
+        Validated contradiction or control record dicts.
+    """
     """Yield contradiction and control records."""
     settings = get_settings()
     resolved_contradictions = (

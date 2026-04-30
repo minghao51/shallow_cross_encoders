@@ -1,3 +1,5 @@
+"""Heuristic feature adapters for hybrid reranking."""
+
 from reranker.heuristics.keyword import KeywordMatchAdapter
 from reranker.heuristics.lsh import LSHAdapter
 

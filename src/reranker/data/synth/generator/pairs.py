@@ -37,6 +37,16 @@ def get_expanded_seeds() -> list[ExpandedSeed]:
 
 
 def teacher_pair_record(gen: GeneratorState, seed: JsonDict, target_score: int) -> JsonDict:
+    """Generate a single pair record via the teacher model.
+
+    Args:
+        gen: Generator state with client access.
+        seed: Seed dict with query, positive, negative.
+        target_score: Desired relevance score for the generated pair.
+
+    Returns:
+        Validated pair record dict.
+    """
     core.require_teacher(gen)
     payload, metadata = gen.client.complete_json(
         PAIR_PROMPT.format(
@@ -65,6 +75,22 @@ def teacher_pair_records(
     batch_specs: list[JsonDict],
     _depth: int = 0,
 ) -> list[JsonDict]:
+    """Generate pair records in batch via the teacher model.
+
+    Falls back to single-record generation and binary splitting on failure.
+    Maximum recursion depth is bounded by _MAX_BATCH_RECURSION_DEPTH.
+
+    Args:
+        gen: Generator state with client access.
+        batch_specs: List of pair spec dicts with query, positive, negative, target_score.
+        _depth: Internal recursion depth counter.
+
+    Returns:
+        List of validated pair record dicts.
+
+    Raises:
+        RecursionError: If max recursion depth is exceeded.
+    """
     if _depth >= _MAX_BATCH_RECURSION_DEPTH:
         raise RecursionError(
             f"Max recursion depth ({_MAX_BATCH_RECURSION_DEPTH}) exceeded in "

@@ -1,3 +1,9 @@
+"""Hybrid fusion reranker combining semantic and lexical features.
+
+Trains a classifier (XGBoost or GradientBoosting) on pairwise feature
+differences between documents, using both semantic and lexical signals.
+"""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -72,6 +78,13 @@ BASE_FEATURES = [
 
 
 class HybridFusionReranker:
+    """Reranker that fuses semantic similarity and lexical (BM25) features.
+
+    Builds feature vectors from semantic score, BM25 score, token overlap,
+    and adapter features, then uses a gradient-boosted classifier (XGBoost
+    or sklearn) to predict pairwise document preference.
+    """
+
     def __init__(
         self,
         adapters: list[HeuristicAdapter] | None = None,
@@ -181,6 +194,17 @@ class HybridFusionReranker:
     def fit(
         self, queries: list[str], doc_as: list[str], doc_bs: list[str], labels: list[int]
     ) -> HybridFusionReranker:
+        """Fit the reranker on pairwise preference data.
+
+        Args:
+            queries: List of query strings.
+            doc_as: First document for each pair.
+            doc_bs: Second document for each pair.
+            labels: 1 if doc_a is preferred over doc_b, 0 otherwise.
+
+        Returns:
+            Self, fitted.
+        """
         self._init_feature_registry()
         for query, doc_a, doc_b in zip(queries, doc_as, doc_bs, strict=False):
             self._register_adapter_feature_names(query, [doc_a, doc_b])
@@ -214,6 +238,20 @@ class HybridFusionReranker:
         scores: list[float],
         use_regression: bool = True,
     ) -> HybridFusionReranker:
+        """Fit the reranker on pointwise relevance scores.
+
+        Supports regression or classification (thresholded at median).
+        Optionally trains a MetaRouter for per-query weight adaptation.
+
+        Args:
+            queries: List of query strings.
+            docs: List of document strings.
+            scores: Relevance scores for each (query, doc) pair.
+            use_regression: If True, train a regressor; otherwise classifier.
+
+        Returns:
+            Self, fitted.
+        """
         self._init_feature_registry()
         for query, doc in zip(queries, docs, strict=False):
             self._register_adapter_feature_names(query, [doc])
@@ -356,6 +394,16 @@ class HybridFusionReranker:
         return np.zeros(X.shape[0], dtype=np.float32)
 
     def score(self, query: str, docs: list[str], *, bm25: BM25Engine | None = None) -> np.ndarray:
+        """Score documents against a query using the fitted model.
+
+        Args:
+            query: Search query.
+            docs: Documents to score.
+            bm25: Optional pre-built BM25 engine for lexical features.
+
+        Returns:
+            Array of relevance scores.
+        """
         if not docs:
             return np.zeros(0, dtype=np.float32)
         X = self._build_features(query, docs, bm25=bm25)
@@ -380,6 +428,16 @@ class HybridFusionReranker:
     def rerank(
         self, query: str, docs: list[str], *, bm25: BM25Engine | None = None
     ) -> list[RankedDoc]:
+        """Rerank documents by hybrid fusion score.
+
+        Args:
+            query: Search query.
+            docs: Documents to rerank.
+            bm25: Optional pre-built BM25 engine.
+
+        Returns:
+            Ranked list of RankedDoc.
+        """
         lexical = bm25
         if lexical is None and docs:
             lexical = BM25Engine(tokenize_fn=self.embedder.tokenize)
@@ -396,6 +454,13 @@ class HybridFusionReranker:
         ]
 
     def save(self, path: str | Path) -> None:
+        """Persist the reranker to disk.
+
+        Supports XGBoost JSON format and generic pickle-based serialisation.
+
+        Args:
+            path: Destination file path.
+        """
         target = Path(path)
         adapter_types = [type(adapter).__name__ for adapter in self.adapters]
         router_payload = None
@@ -445,6 +510,16 @@ class HybridFusionReranker:
         adapters: list[HeuristicAdapter] | None = None,
         embedder: Embedder | None = None,
     ) -> HybridFusionReranker:
+        """Load a saved HybridFusionReranker from disk.
+
+        Args:
+            path: Path to the saved artifact.
+            adapters: Optional list of heuristic adapters to restore.
+            embedder: Optional embedder override.
+
+        Returns:
+            Loaded HybridFusionReranker instance.
+        """
         import pickle
 
         target = Path(path)

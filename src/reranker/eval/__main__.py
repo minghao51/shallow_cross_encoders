@@ -1,3 +1,5 @@
+"""CLI entrypoint for evaluating reranking strategies."""
+
 from __future__ import annotations
 
 import argparse
@@ -8,6 +10,7 @@ from reranker.eval.runner import evaluate_strategy
 
 
 def main() -> None:
+    """CLI entrypoint: parse args and run evaluation for a given strategy."""
     settings = get_settings()
     parser = argparse.ArgumentParser(description="Evaluate a reranking strategy.")
     parser.add_argument(

@@ -1,3 +1,5 @@
+"""Type definitions and protocols for the synthetic data generator."""
+
 from __future__ import annotations
 
 import random
@@ -13,6 +15,8 @@ JsonDict = dict[str, Any]
 
 
 class ExpandedSeed(TypedDict, total=False):
+    """A seed entry with query, positive/negative docs, domain, and optional variations."""
+
     query: str
     positive: str
     negative: str
@@ -21,6 +25,8 @@ class ExpandedSeed(TypedDict, total=False):
 
 
 class PairSpec(TypedDict):
+    """Spec for generating a pair record with target score."""
+
     query: str
     positive: str
     negative: str
@@ -28,6 +34,8 @@ class PairSpec(TypedDict):
 
 
 class PreferenceSpec(TypedDict, total=False):
+    """Spec for generating a preference record with optional swap."""
+
     query: str
     positive: str
     negative: str
@@ -36,6 +44,8 @@ class PreferenceSpec(TypedDict, total=False):
 
 
 class ContradictionSpec(TypedDict):
+    """Spec for generating a contradiction or control record."""
+
     subject: str
     field_name: str
     value_a: str
@@ -44,20 +54,28 @@ class ContradictionSpec(TypedDict):
 
 
 class HardNegativeSpec(TypedDict):
+    """Spec for generating a hard negative example."""
+
     query: str
     positive: str
 
 
 class ListwiseSpec(TypedDict):
+    """Spec for generating a listwise preference example."""
+
     query: str
     docs: list[str]
 
 
 class QueryExpansionSpec(TypedDict):
+    """Spec for generating query expansions."""
+
     query: str
 
 
 class GeneratorState(Protocol):
+    """Protocol describing the minimal state needed by generator helpers."""
+
     seed: int
     client: OpenRouterClient
     log_path: str | Path
@@ -65,6 +83,8 @@ class GeneratorState(Protocol):
 
 
 class GeneratorFacade(GeneratorState, Protocol):
+    """Extended protocol with iterator methods for dataset generation."""
+
     def iter_pairs(
         self,
         target_count: int | None = None,
@@ -98,6 +118,8 @@ ValidateModel = type[BaseModel]
 
 
 class ArtifactPaths(TypedDict):
+    """Paths for all generated dataset artifacts."""
+
     pairs: str
     preferences: str
     contradictions: str

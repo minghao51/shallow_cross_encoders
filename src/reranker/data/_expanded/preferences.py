@@ -20,6 +20,19 @@ def _build_preference_record(
     confidence: float,
     domain: str,
 ) -> ExpandedPreferenceRecord:
+    """Construct an ExpandedPreferenceRecord dict.
+
+    Args:
+        query: Query string.
+        doc_a: First document.
+        doc_b: Second document.
+        preferred: Which document is preferred.
+        confidence: Confidence score 0.0-1.0.
+        domain: Domain label.
+
+    Returns:
+        ExpandedPreferenceRecord dict.
+    """
     return {
         "query": query,
         "doc_a": doc_a,
@@ -36,6 +49,16 @@ def iter_expanded_preferences(
     *,
     seed_map: ExpandedSeedMap | None = None,
 ) -> Iterator[ExpandedPreferenceRecord]:
+    """Yield expanded pairwise preferences with deterministic shuffling.
+
+    Args:
+        target_count: Number of preference records.
+        seed: Random seed.
+        seed_map: Optional custom seed map. Defaults to DOMAIN_SEEDS.
+
+    Yields:
+        ExpandedPreferenceRecord dicts.
+    """
     """Yield expanded pairwise preferences with deterministic shuffling."""
     active_seed_map = DOMAIN_SEEDS if seed_map is None else seed_map
     rng = random.Random(seed)
@@ -131,5 +154,14 @@ def generate_expanded_preferences(
     target_count: int = 5000,
     seed: int = 42,
 ) -> list[ExpandedPreferenceRecord]:
+    """Generate an expanded preference dataset with balanced A/B labels.
+
+    Args:
+        target_count: Number of preference records.
+        seed: Random seed.
+
+    Returns:
+        List of ExpandedPreferenceRecord dicts.
+    """
     """Generate an expanded preference dataset with balanced A/B labels."""
     return list(iter_expanded_preferences(target_count=target_count, seed=seed))

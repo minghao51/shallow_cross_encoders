@@ -1,9 +1,13 @@
+"""Type definitions for expanded offline dataset generation."""
+
 from __future__ import annotations
 
 from typing import Literal, TypedDict
 
 
 class TopicDocs(TypedDict):
+    """A topic with a query and docs mapped by relevance score."""
+
     query: str
     docs: dict[int, str]
 
@@ -12,6 +16,8 @@ ExpandedSeedMap = dict[str, list[TopicDocs]]
 
 
 class ExpandedPairRecord(TypedDict):
+    """A generated pair record in the expanded dataset."""
+
     query: str
     doc: str
     score: int
@@ -19,6 +25,8 @@ class ExpandedPairRecord(TypedDict):
 
 
 class ExpandedPreferenceRecord(TypedDict):
+    """A generated preference record in the expanded dataset."""
+
     query: str
     doc_a: str
     doc_b: str
@@ -28,6 +36,8 @@ class ExpandedPreferenceRecord(TypedDict):
 
 
 class ExpandedContradictionRecord(TypedDict):
+    """A generated contradiction or control record in the expanded dataset."""
+
     subject: str
     doc_a: str
     doc_b: str

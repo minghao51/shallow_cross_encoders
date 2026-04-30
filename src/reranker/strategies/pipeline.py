@@ -19,6 +19,15 @@ class PipelineStage:
     top_k: int
 
     def run(self, query: str, docs: list[str]) -> tuple[list[RankedDoc], float]:
+        """Execute this pipeline stage.
+
+        Args:
+            query: Search query.
+            docs: Documents to rerank at this stage.
+
+        Returns:
+            Tuple of (ranked documents, latency in milliseconds).
+        """
         start = time.perf_counter()
         ranked = self.reranker.rerank(query, docs)
         elapsed = (time.perf_counter() - start) * 1000
@@ -66,6 +75,16 @@ class PipelineReranker:
         reranker: Any,
         top_k: int | None = None,
     ) -> PipelineReranker:
+        """Append a stage to the pipeline.
+
+        Args:
+            name: Stage name (used as identifier during load).
+            reranker: Reranker instance for this stage.
+            top_k: Number of candidates to pass to the next stage.
+
+        Returns:
+            Self, for chaining.
+        """
         self.stages.append(
             PipelineStage(
                 name=name,
@@ -76,6 +95,15 @@ class PipelineReranker:
         return self
 
     def rerank(self, query: str, docs: list[str]) -> list[RankedDoc]:
+        """Rerank documents through all pipeline stages.
+
+        Args:
+            query: Search query.
+            docs: Documents to rerank.
+
+        Returns:
+            Final reranked list of RankedDoc.
+        """
         if not docs:
             return []
         if not self.stages:
@@ -88,6 +116,15 @@ class PipelineReranker:
         return result.final_ranking
 
     def run_pipeline(self, query: str, docs: list[str]) -> PipelineResult:
+        """Run the full pipeline and return detailed stage results.
+
+        Args:
+            query: Search query.
+            docs: Documents to process.
+
+        Returns:
+            PipelineResult with final ranking and per-stage metadata.
+        """
         if not docs:
             return PipelineResult(
                 final_ranking=[],
@@ -142,6 +179,13 @@ class PipelineReranker:
         )
 
     def save(self, path: str | Path) -> None:
+        """Persist the pipeline reranker to disk.
+
+        Saves each stage's reranker individually alongside pipeline metadata.
+
+        Args:
+            path: Destination file path.
+        """
         stage_data = []
         for stage in self.stages:
             stage_path = Path(path).parent / f"{stage.name}.pkl"
@@ -171,6 +215,16 @@ class PipelineReranker:
         path: str | Path,
         stage_rerankers: dict[str, Any] | None = None,
     ) -> PipelineReranker:
+        """Load a saved PipelineReranker from disk.
+
+        Args:
+            path: Path to the saved artifact.
+            stage_rerankers: Dict mapping stage names to pre-constructed
+                reranker instances.
+
+        Returns:
+            Loaded PipelineReranker instance.
+        """
         payload = try_load_safe_or_warn(
             path,
             expected_type="pipeline_reranker",

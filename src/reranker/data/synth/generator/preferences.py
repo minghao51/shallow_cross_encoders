@@ -13,6 +13,17 @@ from reranker.data.synth.generator.types import GeneratorState, JsonDict, Prefer
 
 
 def apply_preference_swap(record: JsonDict, swap_output: bool) -> JsonDict:
+    """Optionally swap doc_a/doc_b and invert the preferred label.
+
+    Used to balance A/B label distribution in generated preferences.
+
+    Args:
+        record: Preference record dict.
+        swap_output: If True, swap docs and invert preferred.
+
+    Returns:
+        Modified or original preference record dict.
+    """
     if not swap_output:
         return record
     preferred = "B" if record["preferred"] == "A" else "A"
@@ -25,6 +36,15 @@ def apply_preference_swap(record: JsonDict, swap_output: bool) -> JsonDict:
 
 
 def teacher_preference_record(gen: GeneratorState, seed: JsonDict) -> JsonDict:
+    """Generate a single preference record via the teacher model.
+
+    Args:
+        gen: Generator state with client access.
+        seed: Seed dict with query, positive, negative.
+
+    Returns:
+        Validated preference record dict.
+    """
     core.require_teacher(gen)
     payload, metadata = gen.client.complete_json(
         PREFERENCE_PROMPT.format(
@@ -45,6 +65,17 @@ def teacher_preference_record(gen: GeneratorState, seed: JsonDict) -> JsonDict:
 
 
 def teacher_preference_records(gen: GeneratorState, batch_specs: list[JsonDict]) -> list[JsonDict]:
+    """Generate preference records in batch via the teacher model.
+
+    Falls back to single-record generation on failure.
+
+    Args:
+        gen: Generator state with client access.
+        batch_specs: List of preference spec dicts.
+
+    Returns:
+        List of validated preference record dicts.
+    """
     if len(batch_specs) == 1:
         spec = batch_specs[0]
         record = teacher_preference_record(gen, spec)

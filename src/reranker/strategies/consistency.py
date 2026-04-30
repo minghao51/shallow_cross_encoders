@@ -1,3 +1,9 @@
+"""Consistency engine that detects contradictions across document claims.
+
+Extracts structured claims from documents using pattern matching, then
+compares semantically aligned claims to find contradictions.
+"""
+
 from __future__ import annotations
 
 import re
@@ -190,6 +196,17 @@ class ConsistencyEngine:
         return claims
 
     def extract_claims(self, docs: list[str], doc_ids: list[str] | None = None) -> list[ClaimSet]:
+        """Extract structured claims from documents.
+
+        Uses pattern matching to identify entity-attribute-value triples.
+
+        Args:
+            docs: List of document strings.
+            doc_ids: Optional list of document IDs; defaults to doc_0, doc_1, ...
+
+        Returns:
+            List of ClaimSets, one per document.
+        """
         doc_ids = doc_ids or [f"doc_{idx}" for idx in range(len(docs))]
         sets: list[ClaimSet] = []
         pattern = re.compile(
@@ -281,6 +298,18 @@ class ConsistencyEngine:
                 return canon_a != canon_b
 
     def check(self, claim_sets: list[ClaimSet]) -> list[Contradiction]:
+        """Check claim sets for contradictions.
+
+        Compares claims with the same entity and attribute (fast path)
+        and semantically similar attributes (fuzzy path), flagging
+        conflicting values.
+
+        Args:
+            claim_sets: ClaimSets to check for contradictions.
+
+        Returns:
+            List of Contradictions found.
+        """
         all_claims = [claim for claim_set in claim_sets for claim in claim_set.claims]
         if len(all_claims) < 2:
             return []
@@ -374,6 +403,17 @@ class ConsistencyEngine:
         return contradictions
 
     def rerank(self, query: str, docs: list[str]) -> list[RankedDoc]:
+        """Rerank documents by contradiction penalty.
+
+        Documents with more contradictions receive lower scores.
+
+        Args:
+            query: Search query (unused, kept for interface compatibility).
+            docs: Documents to rerank.
+
+        Returns:
+            Ranked list of RankedDoc.
+        """
         claim_sets = self.extract_claims(docs)
         contradictions = self.check(claim_sets)
         penalties = {f"doc_{idx}": 0.0 for idx in range(len(docs))}
@@ -397,44 +437,13 @@ class ConsistencyEngine:
             for rank, (idx, doc) in enumerate(ranked, start=1)
         ]
 
-    def save(self, path: str | Path) -> None:
-        save_safe(
-            path,
-            artifact_type="consistency_engine",
-            metadata={
-                "sim_threshold": self.sim_threshold,
-                "value_tolerance": self.value_tolerance,
-                "embedder_model_name": self.embedder.model_name,
-            },
-            weights={},
-        )
-
-    @classmethod
-    def load(cls, path: str | Path, embedder: Embedder | None = None) -> ConsistencyEngine:
-        payload = try_load_safe_or_warn(
-            path,
-            expected_type="consistency_engine",
-            legacy_loader=_legacy_load,
-        )
-        return cls(
-            sim_threshold=payload["sim_threshold"],
-            value_tolerance=payload["value_tolerance"],
-            embedder=embedder or Embedder(payload["embedder_model_name"]),
-        )
-
-
-def _legacy_load(path: Path) -> dict[str, Any]:
-    from reranker.utils import load_pickle
-
-    return load_pickle(path)
-
     def diagnose_misses(self, contradictions_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Analyze which contradictions were missed and why.
 
         Args:
-            contradictions_data: list of dicts with keys:
+            contradictions_data: List of dicts with keys:
                 subject, doc_a, doc_b, is_contradiction, contradicted_field,
-                value_a, value_b
+                value_a, value_b.
 
         Returns:
             List of dicts with diagnosis info for each contradiction.
@@ -469,7 +478,7 @@ def _legacy_load(path: Path) -> dict[str, Any]:
                     attr_match = False
                     for ca in claims_a:
                         for cb in claims_b:
-                            if (  # noqa: E501
+                            if (
                                 ca.attribute == cb.attribute
                                 or ca.attribute in cb.attribute
                                 or cb.attribute in ca.attribute
@@ -504,3 +513,48 @@ def _legacy_load(path: Path) -> dict[str, Any]:
                     }
                 )
         return results
+
+    def save(self, path: str | Path) -> None:
+        """Persist the consistency engine to disk.
+
+        Args:
+            path: Destination file path.
+        """
+        save_safe(
+            path,
+            artifact_type="consistency_engine",
+            metadata={
+                "sim_threshold": self.sim_threshold,
+                "value_tolerance": self.value_tolerance,
+                "embedder_model_name": self.embedder.model_name,
+            },
+            weights={},
+        )
+
+    @classmethod
+    def load(cls, path: str | Path, embedder: Embedder | None = None) -> ConsistencyEngine:
+        """Load a saved ConsistencyEngine from disk.
+
+        Args:
+            path: Path to the saved artifact.
+            embedder: Optional embedder override.
+
+        Returns:
+            Loaded ConsistencyEngine instance.
+        """
+        payload = try_load_safe_or_warn(
+            path,
+            expected_type="consistency_engine",
+            legacy_loader=_legacy_load,
+        )
+        return cls(
+            sim_threshold=payload["sim_threshold"],
+            value_tolerance=payload["value_tolerance"],
+            embedder=embedder or Embedder(payload["embedder_model_name"]),
+        )
+
+
+def _legacy_load(path: Path) -> dict[str, Any]:
+    from reranker.utils import load_pickle
+
+    return load_pickle(path)

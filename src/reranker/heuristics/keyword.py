@@ -1,3 +1,5 @@
+"""Keyword hit-rate heuristic adapter for hybrid reranking."""
+
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -11,6 +13,15 @@ class KeywordMatchAdapter:
     tokenize_fn: Callable[[str], list[str]] | None = None
 
     def compute(self, query: str, doc: str) -> dict[str, float]:
+        """Compute keyword hit-rate between query and document.
+
+        Args:
+            query: Query text.
+            doc: Document text.
+
+        Returns:
+            Dict with "keyword_hit_rate" (fraction of query terms in doc).
+        """
         tokenize = self.tokenize_fn or (lambda t: t.lower().split())
         terms = tokenize(query.lower())
         doc_lower = doc.lower()

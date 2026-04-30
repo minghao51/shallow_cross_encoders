@@ -1,3 +1,5 @@
+"""SyntheticDataGenerator facade for offline and teacher-backed dataset creation."""
+
 from __future__ import annotations
 
 import random
@@ -75,7 +77,15 @@ class SyntheticDataGenerator:
         target_count: int | None = None,
         use_teacher: bool | None = None,
     ) -> list[JsonDict]:
-        """Return graded query-document pairs as a convenience wrapper over `iter_pairs`."""
+        """Return graded query-document pairs as a convenience wrapper over ``iter_pairs``.
+
+        Args:
+            target_count: Number of pairs to generate.
+            use_teacher: Whether to use teacher model.
+
+        Returns:
+            List of pair record dicts.
+        """
         return list(self.iter_pairs(target_count=target_count, use_teacher=use_teacher))
 
     def iter_preferences(
@@ -98,7 +108,16 @@ class SyntheticDataGenerator:
         target_count: int | None = None,
         use_teacher: bool | None = None,
     ) -> list[JsonDict]:
-        """Return pairwise preference examples for training or evaluation."""
+        """Return pairwise preference examples for training or evaluation.
+
+        Args:
+            pairs: Existing pair records to derive preferences from.
+            target_count: Number of preferences to generate.
+            use_teacher: Whether to use teacher model.
+
+        Returns:
+            List of preference record dicts.
+        """
         return list(
             self.iter_preferences(
                 pairs,
@@ -127,7 +146,16 @@ class SyntheticDataGenerator:
         control_count: int | None = None,
         use_teacher: bool | None = None,
     ) -> list[JsonDict]:
-        """Return contradiction and control examples as JSON-serializable records."""
+        """Return contradiction and control examples as JSON-serializable records.
+
+        Args:
+            contradiction_count: Number of contradiction records.
+            control_count: Number of control records.
+            use_teacher: Whether to use teacher model.
+
+        Returns:
+            List of contradiction/control record dicts.
+        """
         return list(
             self.iter_contradictions(
                 contradiction_count=contradiction_count,
@@ -198,6 +226,16 @@ class SyntheticDataGenerator:
         target_count: int | None = None,
         use_teacher: bool | None = None,
     ) -> list[JsonDict]:
+        """Return hard-negative examples for reranker training.
+
+        Args:
+            pairs: Existing pair records to derive from.
+            target_count: Number of hard-negative examples.
+            use_teacher: Whether to use teacher model.
+
+        Returns:
+            List of HardNegativeRecord dicts.
+        """
         return list(
             self.iter_hard_negatives(
                 pairs,
@@ -226,6 +264,16 @@ class SyntheticDataGenerator:
         target_count: int | None = None,
         use_teacher: bool | None = None,
     ) -> list[JsonDict]:
+        """Return listwise preference examples built from pair data grouped by query.
+
+        Args:
+            pairs: Existing pair records.
+            target_count: Number of listwise records.
+            use_teacher: Whether to use teacher model.
+
+        Returns:
+            List of ListwisePreferenceRecord dicts.
+        """
         return list(
             self.iter_listwise_preferences(
                 pairs,
@@ -254,6 +302,16 @@ class SyntheticDataGenerator:
         target_count: int | None = None,
         use_teacher: bool | None = None,
     ) -> list[JsonDict]:
+        """Return query expansion suggestions for retrieval augmentation tasks.
+
+        Args:
+            pairs: Existing pair records.
+            target_count: Number of expansion records.
+            use_teacher: Whether to use teacher model.
+
+        Returns:
+            List of QueryExpansionRecord dicts.
+        """
         return list(
             self.iter_query_expansions(
                 pairs,

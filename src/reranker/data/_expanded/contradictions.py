@@ -212,6 +212,16 @@ def iter_expanded_contradictions(
     control_count: int = 400,
     seed: int = 42,
 ) -> Iterator[ExpandedContradictionRecord]:
+    """Yield contradiction/control records without forcing eager consumers.
+
+    Args:
+        contradiction_count: Number of contradiction records to generate.
+        control_count: Number of control records to generate.
+        seed: Random seed for shuffling.
+
+    Yields:
+        ExpandedContradictionRecord dicts.
+    """
     """Yield contradiction/control records without forcing eager consumers."""
     rng = random.Random(seed)
     records: list[ExpandedContradictionRecord] = []
@@ -252,6 +262,16 @@ def generate_expanded_contradictions(
     control_count: int = 400,
     seed: int = 42,
 ) -> list[ExpandedContradictionRecord]:
+    """Generate expanded contradiction/control examples.
+
+    Args:
+        contradiction_count: Number of contradiction records.
+        control_count: Number of control records.
+        seed: Random seed.
+
+    Returns:
+        List of ExpandedContradictionRecord dicts.
+    """
     """Generate expanded contradiction/control examples."""
     return list(
         iter_expanded_contradictions(

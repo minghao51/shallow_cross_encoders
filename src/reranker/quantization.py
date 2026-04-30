@@ -1,3 +1,9 @@
+"""Embedding quantization utilities.
+
+Supports 4-bit and ternary quantization modes for reducing memory
+footprint of embedding vectors at the cost of minor precision loss.
+"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -7,6 +13,17 @@ import numpy as np
 
 @dataclass(slots=True)
 class QuantizationResult:
+    """Container for quantized embedding data and reconstruction parameters.
+
+    Attributes:
+        codes: Packed quantized codes.
+        codebook: Optional codebook for vector quantization.
+        scale: Per-dimension scale factors for dequantization.
+        min_val: Per-dimension minimum values for dequantization.
+        mode: Quantization mode ("4bit", "ternary", "none").
+        original_shape: Shape of the original float32 matrix.
+    """
+
     codes: np.ndarray
     codebook: list[np.ndarray] | None = None
     scale: np.ndarray | None = None
@@ -18,6 +35,17 @@ class QuantizationResult:
 def quantize_4bit(
     vectors: np.ndarray,
 ) -> QuantizationResult:
+    """Quantize float32 vectors to packed 4-bit representations.
+
+    Each dimension is independently scaled to a 4-bit range (0-15),
+    then two values are packed per byte.
+
+    Args:
+        vectors: Float32 matrix of shape (n, d).
+
+    Returns:
+        QuantizationResult with packed uint8 codes.
+    """
     n, d = vectors.shape
 
     min_val = vectors.min(axis=0)
@@ -45,6 +73,14 @@ def quantize_4bit(
 
 
 def dequantize_4bit(result: QuantizationResult) -> np.ndarray:
+    """Dequantize packed 4-bit codes back to float32.
+
+    Args:
+        result: QuantizationResult from quantize_4bit().
+
+    Returns:
+        Reconstructed float32 matrix.
+    """
     n, packed_d = result.codes.shape
     d = result.original_shape[1]
     if result.scale is None or result.min_val is None:
@@ -62,6 +98,17 @@ def dequantize_4bit(result: QuantizationResult) -> np.ndarray:
 
 
 def quantize_ternary(vectors: np.ndarray, delta: float = 0.7) -> QuantizationResult:
+    """Quantize vectors to ternary ( -1, 0, +1 ) values.
+
+    Values above delta * max_abs become +1, below -delta * max_abs become -1.
+
+    Args:
+        vectors: Float32 matrix of shape (n, d).
+        delta: Threshold ratio. Default 0.7.
+
+    Returns:
+        QuantizationResult with int8 codes in {-1, 0, 1}.
+    """
     max_abs = np.max(np.abs(vectors), axis=0, keepdims=True)
     max_abs = np.where(max_abs == 0, 1.0, max_abs)
     threshold = max_abs * delta
@@ -78,6 +125,14 @@ def quantize_ternary(vectors: np.ndarray, delta: float = 0.7) -> QuantizationRes
 
 
 def dequantize_ternary(result: QuantizationResult) -> np.ndarray:
+    """Dequantize ternary codes back to float32.
+
+    Args:
+        result: QuantizationResult from quantize_ternary().
+
+    Returns:
+        Reconstructed float32 matrix.
+    """
     scale = result.scale
     if scale is None:
         raise ValueError("Invalid ternary quantization result: missing scale")
@@ -90,6 +145,15 @@ def quantize(
     vectors: np.ndarray,
     mode: str = "none",
 ) -> QuantizationResult:
+    """Quantize vectors using the specified mode.
+
+    Args:
+        vectors: Float32 matrix of shape (n, d).
+        mode: One of "4bit", "ternary", or "none" (passthrough).
+
+    Returns:
+        QuantizationResult.
+    """
     if mode == "4bit":
         return quantize_4bit(vectors)
     if mode == "ternary":
@@ -105,6 +169,16 @@ def quantize(
 
 
 def dequantize(result: QuantizationResult) -> np.ndarray:
+    """Dequantize vectors back to float32.
+
+    Dispatches to the appropriate dequantizer based on result.mode.
+
+    Args:
+        result: QuantizationResult from quantize().
+
+    Returns:
+        Reconstructed float32 matrix.
+    """
     if result.mode == "4bit":
         return dequantize_4bit(result)
     if result.mode == "ternary":
@@ -113,9 +187,25 @@ def dequantize(result: QuantizationResult) -> np.ndarray:
 
 
 def memory_bytes(result: QuantizationResult) -> int:
+    """Return the memory footprint of the quantized data in bytes.
+
+    Args:
+        result: QuantizationResult.
+
+    Returns:
+        Number of bytes used by the quantized codes.
+    """
     return result.codes.nbytes
 
 
 def compression_ratio(result: QuantizationResult) -> float:
+    """Compute the compression ratio achieved by quantization.
+
+    Args:
+        result: QuantizationResult.
+
+    Returns:
+        Ratio of original float32 size to quantized size (higher = better).
+    """
     original_bytes = int(np.prod(result.original_shape)) * 4
     return original_bytes / max(result.codes.nbytes, 1)

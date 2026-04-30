@@ -1,3 +1,9 @@
+"""Binary quantised reranker using Hamming distance and bilinear scoring.
+
+Stage 1: Quick Hamming-distance filter over binary-quantised embeddings.
+Stage 2: Learned bilinear (query^T W doc) re-scoring for top candidates.
+"""
+
 from __future__ import annotations
 
 import logging
@@ -112,6 +118,16 @@ class BinaryQuantizedReranker:
         docs: list[str],
         labels: list[int],
     ) -> BinaryQuantizedReranker:
+        """Fit the reranker by encoding docs and learning bilinear weights.
+
+        Args:
+            queries: List of query strings.
+            docs: List of document strings.
+            labels: Relevance labels for each (query, doc) pair.
+
+        Returns:
+            Self, fitted.
+        """
         if not queries or not docs:
             self._doc_vectors = np.zeros((0, self.embedder.dimension), dtype=np.float32)
             self._doc_bits = np.zeros((0, self.embedder.dimension), dtype=np.uint8)
@@ -143,6 +159,18 @@ class BinaryQuantizedReranker:
         return self
 
     def score(self, query: str, docs: list[str]) -> np.ndarray:
+        """Score documents using Hamming distance + bilinear re-scoring.
+
+        Args:
+            query: Search query.
+            docs: Documents to score.
+
+        Returns:
+            Array of relevance scores.
+
+        Raises:
+            RuntimeError: If the reranker has not been fitted.
+        """
         if not self.is_fitted:
             raise RuntimeError("BinaryQuantizedReranker must be fitted before scoring.")
         if not docs:
@@ -171,6 +199,17 @@ class BinaryQuantizedReranker:
         return final_scores
 
     def rerank(self, query: str, docs: list[str]) -> list[RankedDoc]:
+        """Rerank documents by binary quantised scoring.
+
+        Auto-fits on the provided documents if not already fitted.
+
+        Args:
+            query: Search query.
+            docs: Documents to rerank.
+
+        Returns:
+            Ranked list of RankedDoc.
+        """
         if not docs:
             return []
 
@@ -191,6 +230,11 @@ class BinaryQuantizedReranker:
         ]
 
     def save(self, path: str | Path) -> None:
+        """Persist the binary reranker to disk.
+
+        Args:
+            path: Destination file path.
+        """
         save_safe(
             path,
             artifact_type="binary_reranker",
@@ -213,6 +257,15 @@ class BinaryQuantizedReranker:
         path: str | Path,
         embedder: Embedder | None = None,
     ) -> BinaryQuantizedReranker:
+        """Load a saved BinaryQuantizedReranker from disk.
+
+        Args:
+            path: Path to the saved artifact.
+            embedder: Optional embedder override.
+
+        Returns:
+            Loaded BinaryQuantizedReranker instance.
+        """
         payload = try_load_safe_or_warn(
             path,
             expected_type="binary_reranker",

@@ -7,8 +7,6 @@ edit_uri: edit/main/docs/
 exclude_docs: |
   2026*
   benchmarks/
-  guides/
-  methodology/
   plans/
   technical-roadmap.md
 
@@ -61,6 +59,20 @@ watch:
 
 nav:
   - Home: index.md
+  - Guides:
+    - API Reference: guides/api-reference.md
+    - Ensemble Distillation: guides/ensemble-distillation-guide.md
+  - Methodology:
+    - BM25 Engine: methodology/bm25_engine.md
+    - Binary Quantized Reranker: methodology/binary_quantized_reranker.md
+    - Cascade Reranker: methodology/cascade_reranker.md
+    - Consistency Engine: methodology/consistency_engine.md
+    - Distilled Pairwise Reranker: methodology/distilled_pairwise_reranker.md
+    - Hybrid Fusion Reranker: methodology/hybrid_fusion_reranker.md
+    - Multi Reranker: methodology/multi_reranker.md
+    - Pipeline Reranker: methodology/pipeline_reranker.md
+    - SPLADE Reranker: methodology/splade_reranker.md
+    - Static ColBERT Reranker: methodology/static_colbert_reranker.md
   - API Reference:
     - Config: api/config.md
     - Embedder: api/embedder.md

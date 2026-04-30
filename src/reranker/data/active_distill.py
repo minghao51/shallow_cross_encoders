@@ -1,3 +1,10 @@
+"""Active distillation with teacher mining strategies.
+
+This module provides active learning workflows for selecting informative
+query-document pairs to label via a teacher model, using strategies like
+contested mining, max entropy, and diversity sampling.
+"""
+
 from __future__ import annotations
 
 import logging
@@ -34,6 +41,15 @@ Document B: {doc_b}"""
 
 @dataclass(slots=True)
 class ActiveDistillationResult:
+    """Result of an active distillation run.
+
+    Attributes:
+        new_pairs: Newly labeled query-document pairs.
+        new_preferences: Newly generated preference pairs.
+        total_api_calls: Total teacher API calls made.
+        total_cost_estimate: Estimated total cost in USD.
+    """
+
     new_pairs: list[dict[str, Any]]
     new_preferences: list[dict[str, Any]]
     total_api_calls: int
@@ -41,6 +57,12 @@ class ActiveDistillationResult:
 
 
 class ActiveDistiller:
+    """Active learning distillation with configurable mining strategies.
+
+    Selects informative query-document pairs for teacher labeling using
+    contested ranking, max entropy, or diversity-based mining strategies.
+    """
+
     def __init__(
         self,
         embedder: Embedder | None = None,
@@ -60,6 +82,15 @@ class ActiveDistiller:
     def mine_contested(
         self, queries: list[str], docs_list: list[list[str]]
     ) -> list[tuple[str, str]]:
+        """Mine pairs where BM25 and semantic rankings disagree.
+
+        Args:
+            queries: List of query strings.
+            docs_list: List of document lists, one per query.
+
+        Returns:
+            List of (query, doc) tuples with contested rankings.
+        """
         candidates: list[tuple[str, str]] = []
         for query, docs in zip(queries, docs_list, strict=False):
             if len(docs) < 2:
@@ -91,6 +122,17 @@ class ActiveDistiller:
         docs_list: list[list[str]],
         model_predict_fn: Any = None,
     ) -> list[tuple[str, str]]:
+        """Mine pairs where the model is most uncertain.
+
+        Args:
+            queries: List of query strings.
+            docs_list: List of document lists, one per query.
+            model_predict_fn: Function (query, doc) -> probability. Falls back
+                              to mine_contested if None.
+
+        Returns:
+            List of (query, doc) tuples with uncertainty in [low, high] range.
+        """
         if model_predict_fn is None:
             return self.mine_contested(queries, docs_list)
 
@@ -110,6 +152,15 @@ class ActiveDistiller:
         queries: list[str],
         docs_list: list[list[str]],
     ) -> list[tuple[str, str]]:
+        """Mine pairs via k-means clustering for diverse sampling.
+
+        Args:
+            queries: List of query strings.
+            docs_list: List of document lists, one per query.
+
+        Returns:
+            List of (query, doc) tuples, one per cluster centroid.
+        """
         all_pairs: list[tuple[str, str]] = []
         for query, docs in zip(queries, docs_list, strict=False):
             for doc in docs:
@@ -139,6 +190,15 @@ class ActiveDistiller:
     def label_with_teacher(
         self, pairs: list[tuple[str, str]], cost_log_path: Path | None = None
     ) -> list[dict[str, Any]]:
+        """Label mined pairs using the teacher LLM.
+
+        Args:
+            pairs: List of (query, doc) tuples to label.
+            cost_log_path: Optional path to append cost records.
+
+        Returns:
+            List of labeled records with query, doc, score, rationale, metadata.
+        """
         if not self.client.enabled:
             logger.warning("LiteLLM client not enabled; returning empty labels")
             return []
@@ -174,6 +234,17 @@ class ActiveDistiller:
         model_predict_fn: Any = None,
         cost_log_path: Path | None = None,
     ) -> ActiveDistillationResult:
+        """Run active distillation for the configured number of iterations.
+
+        Args:
+            queries: List of query strings.
+            docs_list: List of document lists, one per query.
+            model_predict_fn: Optional model prediction function for max entropy.
+            cost_log_path: Optional path for cost logging.
+
+        Returns:
+            ActiveDistillationResult with labeled pairs and cost estimate.
+        """
         settings = get_settings().active_distillation
         all_pairs: list[dict[str, Any]] = []
         all_prefs: list[dict[str, Any]] = []

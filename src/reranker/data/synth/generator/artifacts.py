@@ -14,6 +14,15 @@ from reranker.utils import append_jsonl, ensure_parent, read_jsonl, write_json
 
 
 def distribution_report(dataset_name: str, records: list[JsonDict]) -> JsonDict:
+    """Compute label distribution statistics for a synthetic dataset.
+
+    Args:
+        dataset_name: One of "pairs", "preferences", or other.
+        records: List of record dicts to analyze.
+
+    Returns:
+        Dict with count, labels, proportions, imbalance_ratio, is_balanced_enough.
+    """
     if dataset_name == "pairs":
         labels = [str(record["score"]) for record in records]
     elif dataset_name == "preferences":
@@ -39,6 +48,12 @@ def distribution_report(dataset_name: str, records: list[JsonDict]) -> JsonDict:
 
 
 def write_distribution_chart(processed_root: Path, summary: JsonDict) -> None:
+    """Write a matplotlib bar chart of label distributions (no-op if matplotlib missing).
+
+    Args:
+        processed_root: Directory to write the chart image.
+        summary: Distribution summary dict from distribution_report.
+    """
     try:
         import matplotlib  # type: ignore
 
@@ -129,6 +144,15 @@ def write_manifest(
     preferences: list[JsonDict],
     contradictions: list[JsonDict],
 ) -> None:
+    """Write a DatasetManifest JSON file describing the generated dataset.
+
+    Args:
+        gen: Generator facade with seed and metadata.
+        raw_root: Root output directory.
+        pairs: Generated pair records.
+        preferences: Generated preference records.
+        contradictions: Generated contradiction records.
+    """
     all_records = [*pairs, *preferences, *contradictions]
     modes = {
         *(record["generation_mode"] for record in pairs),
@@ -195,6 +219,20 @@ def materialize_all(
     control_count: int | None = None,
     use_teacher: bool | None = None,
 ) -> ArtifactPaths:
+    """Generate all core datasets and write them as chunked JSONL files.
+
+    Args:
+        gen: Generator facade.
+        root: Root output directory. Defaults to config value.
+        pair_count: Number of pair records to generate.
+        preference_count: Number of preference records to generate.
+        contradiction_count: Number of contradiction records to generate.
+        control_count: Number of control records to generate.
+        use_teacher: Whether to use teacher model. Defaults to config.
+
+    Returns:
+        ArtifactPaths dict mapping dataset names to file paths.
+    """
     settings = get_settings()
     raw_root = Path(settings.paths.raw_data_dir if root is None else root)
     raw_root.mkdir(parents=True, exist_ok=True)
@@ -244,6 +282,15 @@ def materialize_all(
 
 
 def refresh_metadata(gen: GeneratorFacade, root: str | Path | None = None) -> dict[str, str]:
+    """Rebuild manifest and distribution summary from existing JSONL files.
+
+    Args:
+        gen: Generator facade.
+        root: Root directory with existing JSONL files. Defaults to config.
+
+    Returns:
+        Dict with paths to manifest and label distribution summary.
+    """
     settings = get_settings()
     raw_root = Path(settings.paths.raw_data_dir if root is None else root)
     raw_root.mkdir(parents=True, exist_ok=True)

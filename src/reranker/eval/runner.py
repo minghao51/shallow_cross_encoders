@@ -1,3 +1,5 @@
+"""Evaluation runner for all reranking strategies."""
+
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -29,12 +31,14 @@ from reranker.utils import read_jsonl
 
 
 def _ensure_sample_data(data_root: Path) -> None:
+    """Generate sample synthetic data if it doesn't exist at the given root."""
     if (data_root / "pairs.jsonl").exists():
         return
     SyntheticDataGenerator().materialize_all(data_root, use_teacher=False)
 
 
 def _split_ratios() -> tuple[float, float, float]:
+    """Return train/validation/test ratios from config."""
     settings = get_settings()
     return (
         settings.eval.train_ratio,
@@ -127,6 +131,23 @@ def evaluate_strategy(
     data_root: Path,
     model_root: Path,
 ) -> dict[str, float | str]:
+    """Evaluate a reranking strategy on synthetic data.
+
+    Loads or generates sample data, partitions it, trains or loads the
+    specified reranker, and returns evaluation metrics.
+
+    Args:
+        strategy: Strategy name ("hybrid", "distilled", "consistency", etc.).
+        split: Data split to evaluate on ("train", "validation", "test").
+        data_root: Root directory for data files.
+        model_root: Root directory for model pickles.
+
+    Returns:
+        Dict of metric names to values, including the strategy and split.
+
+    Raises:
+        ValueError: If strategy is not recognized.
+    """
     data_root.mkdir(parents=True, exist_ok=True)
     model_root.mkdir(parents=True, exist_ok=True)
     _ensure_sample_data(data_root)

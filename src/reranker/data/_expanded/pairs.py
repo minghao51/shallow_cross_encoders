@@ -16,6 +16,16 @@ def iter_expanded_pairs(
     *,
     seed_map: ExpandedSeedMap | None = None,
 ) -> Iterator[ExpandedPairRecord]:
+    """Yield expanded pair records without building the final list eagerly.
+
+    Args:
+        target_count: Number of pairs to generate.
+        seed: Random seed.
+        seed_map: Optional custom seed map. Defaults to DOMAIN_SEEDS.
+
+    Yields:
+        ExpandedPairRecord dicts with query, doc, score, domain.
+    """
     """Yield expanded pair records without building the final list eagerly."""
     active_seed_map = DOMAIN_SEEDS if seed_map is None else seed_map
     rng = random.Random(seed)
@@ -65,5 +75,14 @@ def generate_expanded_pairs(
     target_count: int = 10000,
     seed: int = 42,
 ) -> list[ExpandedPairRecord]:
+    """Generate an expanded pair dataset with balanced relevance labels.
+
+    Args:
+        target_count: Number of pairs to generate.
+        seed: Random seed.
+
+    Returns:
+        List of ExpandedPairRecord dicts.
+    """
     """Generate an expanded pair dataset with balanced relevance labels."""
     return list(iter_expanded_pairs(target_count=target_count, seed=seed))

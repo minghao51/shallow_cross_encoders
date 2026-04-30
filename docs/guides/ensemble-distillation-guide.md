@@ -330,10 +330,8 @@ EnsembleLabelCache
 - [FlashRank GitHub](https://github.com/PrithivirajDamodaran/FlashRank)
 - [BEIR Benchmark](https://github.com/beir-cellar/beir)
 - [MS-MARCO Dataset](https://microsoft.github.io/msmarco/)
-- [Hybrid Fusion Reranker](methodology/hybrid_fusion_reranker.md)
+- [Hybrid Fusion Reranker](../methodology/hybrid_fusion_reranker.md)
 
 ## Related Documentation
 
-- [Benchmark Analysis: ML Rerankers vs FlashRank](20260415-benchmark-analysis.md)
-- [Pipeline Reranker](methodology/pipeline_reranker.md)
-- [Technical Roadmap](technical-roadmap.md)
+- [Pipeline Reranker](../methodology/pipeline_reranker.md)

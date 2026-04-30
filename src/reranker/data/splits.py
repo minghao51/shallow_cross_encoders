@@ -1,3 +1,5 @@
+"""Dataset splitting with grouped key-based partitioning."""
+
 from __future__ import annotations
 
 import random
@@ -10,6 +12,17 @@ RowT = TypeVar("RowT")
 
 
 def _normalize_ratios(ratios: tuple[float, float, float]) -> tuple[float, float, float]:
+    """Normalize split ratios so they sum to 1.
+
+    Args:
+        ratios: Raw ratio tuple (e.g. 0.7, 0.15, 0.15).
+
+    Returns:
+        Normalized ratio tuple summing to 1.
+
+    Raises:
+        ValueError: If total sum is not positive.
+    """
     total = sum(ratios)
     if total <= 0:
         raise ValueError("Split ratios must sum to a positive value.")
@@ -23,6 +36,24 @@ def partition_rows(
     seed: int | None = None,
     ratios: tuple[float, float, float] | None = None,
 ) -> list[RowT]:
+    """Partition rows into train/validation/test splits grouped by key.
+
+    Groups rows by a key function, then splits the groups deterministically
+    using the specified ratios.
+
+    Args:
+        rows: List of items to partition.
+        key_fn: Function to extract a grouping key from each row.
+        split: Target split name ("train", "validation", or "test").
+        seed: Random seed for shuffling. Defaults to config value.
+        ratios: Train/validation/test ratios. Defaults to (0.7, 0.15, 0.15).
+
+    Returns:
+        List of rows belonging to the requested split.
+
+    Raises:
+        ValueError: If split name is not recognized.
+    """
     if split not in {"train", "validation", "test"}:
         raise ValueError(f"Unsupported split: {split}")
     if not rows:

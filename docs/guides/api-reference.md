@@ -8,13 +8,13 @@ Complete documentation of all strategies, methods, and features in the reranking
 
 | Strategy | Type | Latency | NDCG@10 | Best For |
 |----------|------|---------|---------|----------|
-| [BM25 Engine](methodology/bm25_engine.md) | Lexical | ~0.24ms | 0.665 | Fast baseline, large corpora |
-| [Binary Quantized](methodology/binary_quantized_reranker.md) | Semantic (2-stage) | ~0.59ms | 0.848 | Best accuracy/latency trade-off |
-| [Hybrid Fusion](methodology/hybrid_fusion_reranker.md) | GBDT + Heuristics | ~1.27ms | 0.801 | Production accuracy-critical |
-| [Static ColBERT](methodology/static_colbert_reranker.md) | Late Interaction | ~0.50ms | 0.801 | Token-level precision |
-| [Distilled Pairwise](methodology/distilled_pairwise_reranker.md) | Pairwise Tournament | ~0.17ms | — | Pairwise comparisons |
-| [Consistency Engine](methodology/consistency_engine.md) | Claim Extraction | ~0.07ms | — | Contradiction detection |
-| [Pipeline](methodology/pipeline_reranker.md) | Cascading | ~2.21ms | 0.528 | Multi-stage filtering |
+| [BM25 Engine](../methodology/bm25_engine.md) | Lexical | ~0.24ms | 0.665 | Fast baseline, large corpora |
+| [Binary Quantized](../methodology/binary_quantized_reranker.md) | Semantic (2-stage) | ~0.59ms | 0.848 | Best accuracy/latency trade-off |
+| [Hybrid Fusion](../methodology/hybrid_fusion_reranker.md) | GBDT + Heuristics | ~1.27ms | 0.801 | Production accuracy-critical |
+| [Static ColBERT](../methodology/static_colbert_reranker.md) | Late Interaction | ~0.50ms | 0.801 | Token-level precision |
+| [Distilled Pairwise](../methodology/distilled_pairwise_reranker.md) | Pairwise Tournament | ~0.17ms | — | Pairwise comparisons |
+| [Consistency Engine](../methodology/consistency_engine.md) | Claim Extraction | ~0.07ms | — | Contradiction detection |
+| [Pipeline](../methodology/pipeline_reranker.md) | Cascading | ~2.21ms | 0.528 | Multi-stage filtering |
 
 ---
 

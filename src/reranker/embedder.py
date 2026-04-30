@@ -1,3 +1,10 @@
+"""Static embedding with deterministic offline fallback.
+
+Wraps model2vec when available, falling back to feature-hashed embeddings
+that are deterministic and require no downloads. This guarantees that the
+reranker works offline without any external model dependencies.
+"""
+
 from __future__ import annotations
 
 import hashlib
@@ -20,6 +27,14 @@ logger = logging.getLogger("reranker.embedder")
 
 
 def _normalize_rows(matrix: np.ndarray) -> np.ndarray:
+    """L2-normalize each row of a 2D matrix.
+
+    Args:
+        matrix: Input matrix of shape (n_rows, n_dims).
+
+    Returns:
+        Row-wise L2-normalized matrix of the same shape.
+    """
     norms = np.linalg.norm(matrix, axis=1, keepdims=True)
     norms = np.where(norms == 0.0, 1.0, norms)
     return matrix / norms
@@ -27,7 +42,22 @@ def _normalize_rows(matrix: np.ndarray) -> np.ndarray:
 
 @dataclass(slots=True)
 class Embedder:
-    """Static embedding wrapper with a deterministic offline fallback."""
+    """Static embedding wrapper with a deterministic offline fallback.
+
+    Uses model2vec when available for real semantic embeddings. When the
+    model cannot be loaded (no internet, missing dependencies), falls back
+    to a feature-hashing approach that produces deterministic vectors
+    from token-level hash features.
+
+    The fallback guarantees that the reranker always works, even in
+    fully offline environments with no model downloads. While hashed
+    embeddings lack semantic quality vs. trained models, they preserve
+    token overlap patterns that are sufficient for many heuristic and
+    hybrid strategies.
+
+    Embeddings are cached via TTLCache to avoid redundant computation
+    for repeated texts.
+    """
 
     model_name: str = field(default_factory=lambda: get_settings().embedder.model_name)
     dimension: int = field(default_factory=lambda: get_settings().embedder.dimension)
@@ -98,6 +128,18 @@ class Embedder:
         return matrix
 
     def encode(self, texts: list[str]) -> np.ndarray:
+        """Encode texts into embedding vectors.
+
+        Uses the model2vec backend if available, otherwise falls back to
+        deterministic feature-hashed embeddings. Results are cached via
+        TTLCache for repeated texts.
+
+        Args:
+            texts: List of text strings to encode.
+
+        Returns:
+            Embedding matrix of shape (len(texts), dimension).
+        """
         if not texts:
             return np.zeros((0, self.dimension), dtype=np.float32)
         if self._backend is None:
@@ -178,9 +220,23 @@ class Embedder:
         return words
 
     def similarity(self, a: np.ndarray, b: np.ndarray) -> float:
+        """Compute cosine similarity between two vectors.
+
+        Args:
+            a: First embedding vector.
+            b: Second embedding vector.
+
+        Returns:
+            Cosine similarity clipped to [0.0, 1.0].
+        """
         return float(np.clip(np.dot(a, b), 0.0, 1.0))
 
     def describe(self) -> dict[str, Any]:
+        """Return metadata about the current embedder configuration.
+
+        Returns:
+            Dictionary with keys: backend, model_name, dimension.
+        """
         return {
             "backend": self.backend_name,
             "model_name": self.model_name,

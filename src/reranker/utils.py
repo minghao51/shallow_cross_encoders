@@ -18,27 +18,61 @@ except Exception:  # pragma: no cover - optional dependency
 
 
 def ensure_parent(path: str | Path) -> Path:
+    """Ensure the parent directory of a path exists, creating it if needed.
+
+    Args:
+        path: File path whose parent should exist.
+
+    Returns:
+        Resolved Path object.
+    """
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     return path
 
 
 def write_json(path: str | Path, payload: dict[str, Any]) -> None:
+    """Write a dictionary to a JSON file.
+
+    Args:
+        path: Output file path.
+        payload: Dictionary to serialize.
+    """
     target = ensure_parent(path)
     target.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
 
 
 def read_json(path: str | Path) -> dict[str, Any]:
+    """Read a JSON file and return the parsed dictionary.
+
+    Args:
+        path: Input file path.
+
+    Returns:
+        Parsed dictionary.
+    """
     return json.loads(Path(path).read_text(encoding="utf-8"))
 
 
 def append_jsonl(path: str | Path, record: dict[str, Any]) -> None:
+    """Append a single record as a JSON line.
+
+    Args:
+        path: Output file path.
+        record: Dictionary to append.
+    """
     target = ensure_parent(path)
     with target.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(record, ensure_ascii=True) + "\n")
 
 
 def write_jsonl(path: str | Path, records: Iterable[dict[str, Any]]) -> None:
+    """Write multiple records as JSONL (one JSON object per line).
+
+    Args:
+        path: Output file path.
+        records: Iterable of dictionaries.
+    """
     target = ensure_parent(path)
     with target.open("w", encoding="utf-8") as handle:
         for record in records:
@@ -46,6 +80,14 @@ def write_jsonl(path: str | Path, records: Iterable[dict[str, Any]]) -> None:
 
 
 def read_jsonl(path: str | Path) -> list[dict[str, Any]]:
+    """Read a JSONL file and return all records as a list.
+
+    Args:
+        path: Input file path.
+
+    Returns:
+        List of parsed dictionaries. Returns empty list if file missing.
+    """
     source = Path(path)
     if not source.exists():
         return []
@@ -54,6 +96,14 @@ def read_jsonl(path: str | Path) -> list[dict[str, Any]]:
 
 
 def dump_pickle(path: str | Path, obj: Any) -> None:
+    """Serialize an object to a pickle file.
+
+    Uses cloudpickle if available, otherwise standard pickle.
+
+    Args:
+        path: Output file path.
+        obj: Object to serialize.
+    """
     target = ensure_parent(path)
     with target.open("wb") as handle:
         if cloudpickle is not None:
@@ -81,6 +131,16 @@ def load_pickle(path: str | Path) -> Any:
 
 
 def to_serializable(value: Any) -> Any:
+    """Convert an arbitrary value to a JSON-serializable form.
+
+    Handles dataclasses, Pydantic models, dicts, and lists recursively.
+
+    Args:
+        value: Any Python value.
+
+    Returns:
+        JSON-serializable representation.
+    """
     if is_dataclass(value) and not isinstance(value, type):
         return asdict(value)
     if hasattr(value, "model_dump"):
@@ -99,6 +159,17 @@ def build_artifact_metadata(
     embedder_model_name: str | None = None,
     extra: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    """Build a standard artifact metadata dictionary.
+
+    Args:
+        artifact_type: Type identifier (e.g. "hybrid_reranker").
+        format_name: Serialization format (e.g. "safe-joblib").
+        embedder_model_name: Optional embedder model identifier.
+        extra: Additional metadata key-value pairs.
+
+    Returns:
+        Metadata dictionary with artifact version, type, and format.
+    """
     payload = {
         "artifact_version": ARTIFACT_VERSION,
         "artifact_type": artifact_type,
