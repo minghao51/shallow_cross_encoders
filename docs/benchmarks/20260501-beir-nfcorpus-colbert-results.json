@@ -1,0 +1,45 @@
+{
+  "dataset": "nfcorpus",
+  "embedder": "minishlab/potion-base-8M",
+  "colbert": {
+    "ndcg@10": 0.9194,
+    "mrr": 1.0,
+    "p@1": 1.0,
+    "latency_p50_ms": 0.8058,
+    "latency_p99_ms": 15.7475
+  },
+  "colbert_4bit": {
+    "ndcg@10": 0.9194,
+    "mrr": 1.0,
+    "p@1": 1.0,
+    "latency_p50_ms": 4.4411,
+    "latency_p99_ms": 111.5039
+  },
+  "colbert_ternary": {
+    "ndcg@10": 0.9234,
+    "mrr": 1.0,
+    "p@1": 1.0,
+    "latency_p50_ms": 1.1195,
+    "latency_p99_ms": 23.5579
+  },
+  "hybrid_reference": {
+    "ndcg@10": 0.9522,
+    "mrr": 1.0,
+    "p@1": 1.0,
+    "latency_p50_ms": 14.403,
+    "latency_p99_ms": 363.3013
+  },
+  "index_size_mb": {
+    "colbert_float32": 468.51,
+    "hybrid_model": 0.0
+  },
+  "latency_50_docs_ms": {
+    "mean": 1.99,
+    "p50": 2.0,
+    "p99": 2.12
+  },
+  "exit_criteria": {
+    "ndcg_gte_0.38": true,
+    "latency_50_docs_lt_10ms": true
+  }
+}

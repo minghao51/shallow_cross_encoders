@@ -3758,10 +3758,12 @@ name = "shallow-cross-encoders"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "beir" },
     { name = "cachetools" },
     { name = "cloudpickle" },
     { name = "httpx" },
     { name = "joblib" },
+    { name = "model2vec" },
     { name = "numpy" },
     { name = "pydantic" },
     { name = "pyyaml" },
@@ -3812,12 +3814,14 @@ dev = [
     { name = "marimo" },
     { name = "mypy" },
     { name = "pre-commit" },
+    { name = "pytest" },
     { name = "ruff" },
     { name = "types-pyyaml" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "beir", specifier = ">=2.2.0" },
     { name = "beir", marker = "extra == 'beir'", specifier = ">=1.0.1" },
     { name = "cachetools", specifier = ">=5.5.0" },
     { name = "cachetools", marker = "extra == 'runtime'", specifier = ">=5.5.0" },
@@ -3830,6 +3834,7 @@ requires-dist = [
     { name = "matplotlib", marker = "extra == 'docs'", specifier = ">=3.8.0" },
     { name = "mkdocs-material", marker = "extra == 'docs'", specifier = ">=9.5.0" },
     { name = "mkdocstrings", extras = ["python"], marker = "extra == 'docs'", specifier = ">=0.25.0" },
+    { name = "model2vec", specifier = ">=0.7.0" },
     { name = "model2vec", marker = "extra == 'runtime'", specifier = ">=0.3.0" },
     { name = "numpy", specifier = ">=1.26.0" },
     { name = "pydantic", specifier = ">=2.8.0" },
@@ -3856,6 +3861,7 @@ dev = [
     { name = "marimo", specifier = ">=0.23.4" },
     { name = "mypy", specifier = ">=1.20.0" },
     { name = "pre-commit", specifier = ">=4.6.0" },
+    { name = "pytest", specifier = ">=9.0.2" },
     { name = "ruff", specifier = ">=0.15.7" },
     { name = "types-pyyaml", specifier = ">=6.0.12.20260408" },
 ]
