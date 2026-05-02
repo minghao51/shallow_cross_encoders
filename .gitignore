@@ -42,7 +42,6 @@ docs/benchmarks/results/
 
 # Local tool directories
 .claude/
-.planning/
 
 # Generated project artifacts
 data/raw/*
@@ -60,3 +59,6 @@ data/cache/*
 !data/logs/.gitkeep
 !data/cache/.gitkeep
 !notebooks/.gitkeep
+
+#iipynb notebooks
+notebooks/*.ipynb

@@ -45,12 +45,13 @@ def _():
 
 
 @app.cell
-def _(Path, json):
-    pairs_path = Path("data/raw/pairs.jsonl")
-    pairs_data = []
-    if pairs_path.exists():
-        with open(pairs_path) as f:
-            pairs_data = [json.loads(line) for line in f if line.strip()]
+def _(Path, json, mo):
+    with mo.persistent_cache(name="data_loading"):
+        pairs_path = Path("data/raw/pairs.jsonl")
+        pairs_data = []
+        if pairs_path.exists():
+            with open(pairs_path) as f:
+                pairs_data = [json.loads(line) for line in f if line.strip()]
     pairs_data
     return (pairs_data,)
 
@@ -159,9 +160,10 @@ def _(X, active_docs, feature_names, mo, np, plt):
 @app.cell
 def _(active_docs, active_query, embedder, mo, np):
     if active_query and active_docs:
-        q_vec = embedder.encode([active_query])[0]
-        d_vecs = embedder.encode(active_docs)
-        sem_scores = [float(np.dot(q_vec, d)) for d in d_vecs]
+        with mo.persistent_cache(name="semantic_scores"):
+            q_vec = embedder.encode([active_query])[0]
+            d_vecs = embedder.encode(active_docs)
+            sem_scores = [float(np.dot(q_vec, d)) for d in d_vecs]
         max_score = max(sem_scores) if sem_scores else 1.0
         top_idx = sem_scores.index(max_score)
 
@@ -181,14 +183,15 @@ def _(active_docs, active_query, embedder, mo, np):
 
 
 @app.cell
-def _(active_docs, active_query, embedder, plt):
+def _(active_docs, active_query, embedder, mo, plt):
     if active_query and active_docs and len(active_docs) >= 2:
-        all_texts = [active_query] + active_docs
-        vecs = embedder.encode(all_texts)
+        with mo.persistent_cache(name="distance_matrix"):
+            all_texts = [active_query] + active_docs
+            vecs = embedder.encode(all_texts)
 
-        from scipy.spatial.distance import cdist
+            from scipy.spatial.distance import cdist
 
-        dist_matrix = cdist(vecs, vecs, metric="cosine")
+            dist_matrix = cdist(vecs, vecs, metric="cosine")
 
         fig2, ax2 = plt.subplots(figsize=(6, 6))
         labels = ["QUERY"] + [f"Doc {i + 1}" for i in range(len(active_docs))]

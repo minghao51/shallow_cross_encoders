@@ -21,15 +21,13 @@ CPU-native reranking and consistency-checking pipeline. See [`docs/technical-roa
 ## Quickstart
 
 ```bash
-# Base install (offline-safe, demo data only)
+# Base install (all lightweight deps included)
 uv sync
 uv run python scripts/materialize_demo_data.py
 uv run pytest
 
-# Full path with real models
-uv sync --extra dev --extra runtime
-uv run python scripts/train_hybrid.py
-uv run python -m reranker.eval --strategy hybrid --split test
+# With dev tools (linting, type-checking, notebooks)
+uv sync --extra dev
 ```
 
 ## Optional Features
@@ -39,8 +37,8 @@ uv run python -m reranker.eval --strategy hybrid --split test
 Generate soft labels from FlashRank cross-encoder teachers to train Hybrid Fusion Reranker:
 
 ```bash
-# Install FlashRank dependency
-uv sync --extra flashrank
+# FlashRank is included in the base install — no extra flag needed
+uv sync
 
 # Generate labels on BEIR dataset (pairwise or pointwise method)
 uv run python scripts/distill_ensemble_to_hybrid.py --dataset beir --method pairwise
@@ -81,8 +79,8 @@ Metadata written to `data/raw/manifest.json`, `data/processed/label_distribution
 Compare all reranking methods (FlashRank, SentenceTransformers, local models):
 
 ```bash
-# Install both extras (requires PyTorch for ST)
-uv sync --extra flashrank --extra sentence-transformers
+# SentenceTransformers (PyTorch) requires the extra
+uv sync --extra sentence-transformers
 
 # Run speed/quality comparison
 uv run scripts/benchmarks/run_flashrank.py

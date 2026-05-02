@@ -50,12 +50,13 @@ def _(ConsistencyEngine, Embedder):
 
 
 @app.cell
-def _(Path, json):
-    contradictions_path = Path("data/raw/contradictions.jsonl")
-    contradiction_data = []
-    if contradictions_path.exists():
-        with open(contradictions_path) as f:
-            contradiction_data = [json.loads(line) for line in f if line.strip()]
+def _(Path, json, mo):
+    with mo.persistent_cache(name="data_loading"):
+        contradictions_path = Path("data/raw/contradictions.jsonl")
+        contradiction_data = []
+        if contradictions_path.exists():
+            with open(contradictions_path) as f:
+                contradiction_data = [json.loads(line) for line in f if line.strip()]
     contradiction_data
     return (contradiction_data,)
 
@@ -174,9 +175,9 @@ def _(docs, extracted_claims, mo):
 
 @app.cell
 def _(detected_contradictions, mo):
-    mo.md(
-        f"## 3. Detected Contradictions\n\nFound **{len(detected_contradictions)}** contradictions."
-    )
+    mo.md(f"""
+    ## 3. Detected Contradictions\n\nFound **{len(detected_contradictions)}** contradictions.
+    """)
     return
 
 
@@ -217,22 +218,25 @@ def _(contradiction_data, engine, mo):
     if not contradiction_data:
         eval_result = mo.md("*No labeled contradiction data available for evaluation.*")
     else:
-        tp = 0
-        fp = 0
-        fn = 0
-        tn = 0
-        for item in contradiction_data:
-            expected = item.get("is_contradiction", True)
-            eval_claims = engine.extract_claims([item["doc_a"], item["doc_b"]], ["doc_a", "doc_b"])
-            detected = len(engine.check(eval_claims)) > 0
-            if expected and detected:
-                tp += 1
-            elif expected and not detected:
-                fn += 1
-            elif not expected and detected:
-                fp += 1
-            else:
-                tn += 1
+        with mo.persistent_cache(name="batch_evaluation"):
+            tp = 0
+            fp = 0
+            fn = 0
+            tn = 0
+            for item in contradiction_data:
+                expected = item.get("is_contradiction", True)
+                eval_claims = engine.extract_claims(
+                    [item["doc_a"], item["doc_b"]], ["doc_a", "doc_b"]
+                )
+                detected = len(engine.check(eval_claims)) > 0
+                if expected and detected:
+                    tp += 1
+                elif expected and not detected:
+                    fn += 1
+                elif not expected and detected:
+                    fp += 1
+                else:
+                    tn += 1
 
         total = tp + fp + fn + tn
         recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0

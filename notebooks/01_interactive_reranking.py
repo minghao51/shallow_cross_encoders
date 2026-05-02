@@ -53,21 +53,22 @@ def _():
 
 @app.cell
 def _(Path, json, mo):
-    pairs_path = Path("data/raw/pairs.jsonl")
-    preferences_path = Path("data/raw/preferences.jsonl")
+    with mo.persistent_cache(name="data_loading"):
+        pairs_path = Path("data/raw/pairs.jsonl")
+        preferences_path = Path("data/raw/preferences.jsonl")
 
-    pairs_data = []
-    if pairs_path.exists():
-        with open(pairs_path) as f:
-            pairs_data = [json.loads(line) for line in f if line.strip()]
+        pairs_data = []
+        if pairs_path.exists():
+            with open(pairs_path) as f:
+                pairs_data = [json.loads(line) for line in f if line.strip()]
 
-    preferences_data = []
-    if preferences_path.exists():
-        with open(preferences_path) as f:
-            preferences_data = [json.loads(line) for line in f if line.strip()]
+        preferences_data = []
+        if preferences_path.exists():
+            with open(preferences_path) as f:
+                preferences_data = [json.loads(line) for line in f if line.strip()]
 
-    unique_queries = list(dict.fromkeys(p["query"] for p in pairs_data)) if pairs_data else []
-    unique_docs = list(dict.fromkeys(p["doc"] for p in pairs_data)) if pairs_data else []
+        unique_queries = list(dict.fromkeys(p["query"] for p in pairs_data)) if pairs_data else []
+        unique_docs = list(dict.fromkeys(p["doc"] for p in pairs_data)) if pairs_data else []
 
     data_status = mo.md(
         f"**Loaded:** {len(pairs_data)} pairs, {len(preferences_data)} preferences, "

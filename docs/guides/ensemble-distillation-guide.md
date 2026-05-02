@@ -25,18 +25,15 @@ Ensemble distillation combines multiple FlashRank cross-encoder models to serve 
 ### Base Install
 
 ```bash
-# Install with FlashRank support
-uv sync --extra flashrank
+# All core dependencies (FlashRank, BEIR, LiteLLM, etc.) are included
+uv sync
 ```
 
-### Optional Dependencies
+### Optional: PyTorch/SentenceTransformers
 
 ```bash
-# For BEIR benchmark datasets
-uv sync --extra beir
-
-# For full runtime dependencies
-uv sync --extra runtime
+# Only needed for GPU-based models or ST benchmarks
+uv sync --extra sentence-transformers
 ```
 
 ### Verify Installation
@@ -199,13 +196,8 @@ The script outputs evaluation metrics including:
 ### Import Errors
 
 ```bash
-# FlashRank not installed
-ImportError: flashrank
-# Solution: uv sync --extra flashrank
-
-# BEIR not installed
-ImportError: beir
-# Solution: uv sync --extra beir
+# FlashRank or BEIR import errors — ensure base install is up to date
+uv sync
 ```
 
 ### Cache Issues
