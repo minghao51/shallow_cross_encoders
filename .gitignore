@@ -42,7 +42,6 @@ docs/benchmarks/results/
 
 # Local tool directories
 .claude/
-.planning/
 
 # Generated project artifacts
 data/raw/*
