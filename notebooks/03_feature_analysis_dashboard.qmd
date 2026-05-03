@@ -1,0 +1,191 @@
+---
+title: "Feature Analysis Dashboard"
+description: "Explore the feature vectors that drive the Hybrid Fusion Reranker — semantic scores, BM25, token overlap, and more."
+date: today
+format:
+  html:
+    self-contained: true
+    embed-resources: true
+    code-fold: true
+    code-tools: true
+---
+
+Explore the **feature vectors** that drive the Hybrid Fusion Reranker.
+Visualize semantic scores, BM25 scores, token overlap, and more.
+
+## Setup
+
+```{python}
+#| label: setup
+from reranker.embedder import Embedder
+from reranker.strategies.hybrid import HybridFusionReranker
+
+embedder = Embedder()
+```
+
+## Sample Data
+
+```{python}
+#| label: sample-data
+demo_queries = [
+    "python dataclass default factory",
+    "machine learning model deployment",
+]
+
+demo_docs = [
+    "In Python, a dataclass field can use default_factory to generate mutable default values like lists or dictionaries.",
+    "Dataclasses in Python 3.7+ provide a decorator that automatically generates __init__, __repr__, and __eq__ methods.",
+    "The default_factory parameter in field() is called when a default value is needed for a new instance.",
+    "Use dataclasses.field(default_factory=list) to create a new list for each instance rather than sharing one.",
+    "FastAPI relies heavily on Python dataclasses and Pydantic models for request validation.",
+    "ML model deployment can use FastAPI to serve predictions via REST endpoints with automatic OpenAPI docs.",
+    "XGBoost and LightGBM models can be serialized and served through ONNX Runtime for production inference.",
+    "Containerizing ML models with Docker ensures reproducible deployment across environments.",
+]
+
+query = demo_queries[0]
+docs_to_analyze = demo_docs[:6]
+print(f"Query: {query}")
+print(f"Documents: {len(docs_to_analyze)}")
+```
+
+## Train Hybrid Reranker
+
+```{python}
+#| label: train
+#| cache: true
+import numpy as np
+
+demo_pairs = [
+    (demo_queries[0], demo_docs[0], 1.0),
+    (demo_queries[0], demo_docs[1], 0.6),
+    (demo_queries[0], demo_docs[2], 0.9),
+    (demo_queries[0], demo_docs[3], 0.8),
+    (demo_queries[0], demo_docs[4], 0.3),
+    (demo_queries[1], demo_docs[5], 0.9),
+    (demo_queries[1], demo_docs[6], 0.7),
+    (demo_queries[1], demo_docs[7], 0.5),
+]
+
+reranker = HybridFusionReranker(embedder=embedder)
+q_list = [p[0] for p in demo_pairs]
+d_list = [p[1] for p in demo_pairs]
+s_list = [float(p[2]) for p in demo_pairs]
+reranker.fit_pointwise(q_list, d_list, s_list, use_regression=True)
+print(f"Hybrid fitted: {reranker.is_fitted}")
+print(f"Features: {reranker.feature_names_}")
+```
+
+## Feature Matrix
+
+```{python}
+#| label: feature-matrix
+X = reranker._build_features(query, docs_to_analyze) if query and docs_to_analyze else None
+feature_names = reranker.feature_names_
+
+if X is not None and len(X) > 0:
+    print("## Feature Matrix\n")
+    header = "| Feature | " + " | ".join(f"Doc {i + 1}" for i in range(X.shape[0])) + " |"
+    sep = "|" + "--------|" * (X.shape[0] + 1)
+    print(header)
+    print(sep)
+    for fname in feature_names:
+        idx = reranker._feature_registry.get(fname)
+        if idx is not None and idx < X.shape[1]:
+            vals = " | ".join(f"{X[r, idx]:.4f}" for r in range(X.shape[0]))
+            print(f"| {fname} | {vals} |")
+else:
+    print("*No features to display.*")
+```
+
+## Feature Value Bar Chart
+
+```{python}
+#| label: plot-feature-bars
+import matplotlib.pyplot as plt
+
+if X is not None and len(X) > 0 and X.shape[1] > 0:
+    fig, ax = plt.subplots(figsize=(max(8, X.shape[1] * 0.8), max(4, len(docs_to_analyze) * 0.6)))
+    n_docs = X.shape[0]
+    n_features = X.shape[1]
+    bar_width = 0.8 / n_docs
+    indices = np.arange(n_features)
+
+    for doc_idx in range(n_docs):
+        offset = (doc_idx - n_docs / 2 + 0.5) * bar_width
+        ax.barh(indices + offset, X[doc_idx], bar_width, label=f"Doc {doc_idx + 1}")
+
+    ax.set_yticks(indices)
+    ax.set_yticklabels(feature_names, fontsize=8)
+    ax.set_xlabel("Feature Value")
+    ax.set_title("Feature Values per Document")
+    ax.legend(fontsize=7)
+    fig.tight_layout()
+    plt.show()
+```
+
+## Semantic Similarity
+
+```{python}
+#| label: semantic-similarity
+#| cache: true
+if query and docs_to_analyze:
+    q_vec = embedder.encode([query])[0]
+    d_vecs = embedder.encode(docs_to_analyze)
+    sem_scores = [float(np.dot(q_vec, d)) for d in d_vecs]
+    max_score = max(sem_scores) if sem_scores else 1.0
+    top_idx = sem_scores.index(max_score)
+
+    print("## Semantic Similarity\n")
+    print(f"**Query:** `{query}`\n")
+    for i, s in enumerate(sem_scores):
+        best = "← best" if i == top_idx else ""
+        print(f"- Doc {i + 1}: **{s:.4f}** {best}")
+        print(f"  > {docs_to_analyze[i][:120]}")
+else:
+    print("*No data to analyze.*")
+```
+
+## Pairwise Cosine Distance Matrix
+
+```{python}
+#| label: plot-distance-matrix
+#| cache: true
+from scipy.spatial.distance import cdist
+
+if query and docs_to_analyze and len(docs_to_analyze) >= 2:
+    all_texts = [query] + docs_to_analyze
+    vecs = embedder.encode(all_texts)
+    dist_matrix = cdist(vecs, vecs, metric="cosine")
+
+    fig2, ax2 = plt.subplots(figsize=(6, 6))
+    labels = ["QUERY"] + [f"Doc {i + 1}" for i in range(len(docs_to_analyze))]
+    im = ax2.imshow(dist_matrix, cmap="YlOrRd", aspect="auto")
+    ax2.set_xticks(range(len(labels)))
+    ax2.set_yticks(range(len(labels)))
+    ax2.set_xticklabels(labels, fontsize=7, rotation=45, ha="right")
+    ax2.set_yticklabels(labels, fontsize=7)
+    ax2.set_title("Pairwise Cosine Distance Matrix")
+    for i in range(len(labels)):
+        for j in range(len(labels)):
+            ax2.text(j, i, f"{dist_matrix[i, j]:.2f}", ha="center", va="center", fontsize=6)
+    fig2.colorbar(im, ax=ax2, shrink=0.8)
+    fig2.tight_layout()
+    plt.show()
+```
+
+## Dataset Label Distribution
+
+```{python}
+#| label: label-distribution
+score_dist = {}
+for p in demo_pairs:
+    s = p[2]
+    score_dist[s] = score_dist.get(s, 0) + 1
+
+print("## Dataset Label Distribution\n")
+print("| Score | Count |")
+print("|-------|-------|")
+for score, count in sorted(score_dist.items()):
+    print(f"| {score} | {count} |")
+```

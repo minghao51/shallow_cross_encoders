@@ -27,7 +27,8 @@ htmlcov/
 
 # MkDocs build output
 site/
-docs/notebooks/
+docs/notebooks/exports/
+docs/notebooks/html/
 
 # Notebook checkpoints
 .ipynb_checkpoints/
@@ -59,6 +60,10 @@ data/cache/*
 !data/logs/.gitkeep
 !data/cache/.gitkeep
 !notebooks/.gitkeep
+
+# Quarto: _freeze/ committed (forces-add) so CI never re-executes
+# docs/notebooks/html/ committed via git add -f (generated, large)
+# docs/notebooks/*.md stubs committed normally
 
 #iipynb notebooks
 notebooks/*.ipynb

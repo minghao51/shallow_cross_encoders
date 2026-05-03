@@ -1,0 +1,173 @@
+---
+title: "Interactive Reranking Explorer"
+description: "Compare Hybrid Fusion, Distilled Pairwise, and Shallow ColBERT reranking strategies side-by-side on custom queries and documents."
+date: today
+format:
+  html:
+    self-contained: true
+    embed-resources: true
+    code-fold: true
+    code-tools: true
+---
+
+Compare **Hybrid Fusion**, **Distilled Pairwise**, and **Shallow ColBERT**
+reranking strategies side-by-side on custom queries and documents.
+
+All models run **CPU-only** — no GPU or API calls needed.
+
+## Setup
+
+```{python}
+#| label: setup
+from reranker.embedder import Embedder
+from reranker.strategies.distilled import DistilledPairwiseRanker
+from reranker.strategies.hybrid import HybridFusionReranker
+from reranker.strategies.late_interaction import StaticColBERTReranker
+
+embedder = Embedder()
+print(f"Embedder: {embedder.describe()['backend']} | Model: {embedder.describe()['model_name']} | Dim: {embedder.dimension}")
+```
+
+## Demo Data
+
+```{python}
+#| label: demo-data
+demo_queries = [
+    "python dataclass default factory",
+    "fastapi async request validation",
+    "xgboost model serialization onnx",
+]
+
+demo_docs = [
+    "In Python, a dataclass field can use default_factory to generate mutable default values like lists or dictionaries.",
+    "FastAPI relies on Python dataclasses and Pydantic models for automatic request validation and OpenAPI documentation.",
+    "The dataclasses.field(default_factory=list) creates a new list for each instance rather than sharing a single list across instances.",
+    "XGBoost models can be serialized to JSON and deployed through ONNX Runtime for cross-platform production inference.",
+    "FastAPI async endpoints use Python asyncio for non-blocking request handling and better concurrency under load.",
+    "Pydantic v2 models provide fast validation through Rust-backed core engine with JSON Schema generation.",
+    "ONNX Runtime optimizes ML model inference across hardware platforms including CPU, GPU, and specialized accelerators.",
+    "Python dataclasses support frozen instances, slots optimization, and field ordering since Python 3.10.",
+    "Machine learning model deployment pipeline can use FastAPI with Docker containers orchestrated by Kubernetes.",
+    "The dataclass __post_init__ hook allows custom validation and computed fields after initialization.",
+]
+
+active_query = demo_queries[0]
+active_docs = demo_docs[:8]
+print(f"Query: {active_query}")
+print(f"Documents: {len(active_docs)}")
+```
+
+## Train Models
+
+```{python}
+#| label: train-models
+#| cache: true
+import time
+import json
+from pathlib import Path
+
+pairs_path = Path("data/raw/pairs.jsonl")
+preferences_path = Path("data/raw/preferences.jsonl")
+
+pairs_data = []
+if pairs_path.exists():
+    with open(pairs_path) as f:
+        pairs_data = [json.loads(line) for line in f if line.strip()]
+
+preferences_data = []
+if preferences_path.exists():
+    with open(preferences_path) as f:
+        preferences_data = [json.loads(line) for line in f if line.strip()]
+
+if not pairs_data:
+    pairs_data = [
+        {"query": demo_queries[0], "doc": demo_docs[0], "score": 1.0},
+        {"query": demo_queries[0], "doc": demo_docs[1], "score": 0.6},
+        {"query": demo_queries[0], "doc": demo_docs[2], "score": 0.9},
+        {"query": demo_queries[0], "doc": demo_docs[3], "score": 0.3},
+        {"query": demo_queries[0], "doc": demo_docs[4], "score": 0.2},
+        {"query": demo_queries[1], "doc": demo_docs[1], "score": 1.0},
+        {"query": demo_queries[1], "doc": demo_docs[4], "score": 0.9},
+        {"query": demo_queries[1], "doc": demo_docs[5], "score": 0.8},
+        {"query": demo_queries[2], "doc": demo_docs[3], "score": 1.0},
+        {"query": demo_queries[2], "doc": demo_docs[6], "score": 0.9},
+    ]
+
+if not preferences_data:
+    preferences_data = [
+        {"query": demo_queries[0], "doc_a": demo_docs[0], "doc_b": demo_docs[1], "preferred": "A"},
+        {"query": demo_queries[0], "doc_a": demo_docs[2], "doc_b": demo_docs[3], "preferred": "A"},
+        {"query": demo_queries[0], "doc_a": demo_docs[1], "doc_b": demo_docs[4], "preferred": "A"},
+        {"query": demo_queries[1], "doc_a": demo_docs[1], "doc_b": demo_docs[5], "preferred": "A"},
+        {"query": demo_queries[1], "doc_a": demo_docs[4], "doc_b": demo_docs[6], "preferred": "A"},
+        {"query": demo_queries[2], "doc_a": demo_docs[3], "doc_b": demo_docs[7], "preferred": "A"},
+    ]
+
+print(f"Training data: {len(pairs_data)} pairs, {len(preferences_data)} preferences")
+```
+
+```{python}
+#| label: fit-models
+hybrid_reranker = HybridFusionReranker(embedder=embedder)
+q_list = [p["query"] for p in pairs_data]
+d_list = [p["doc"] for p in pairs_data]
+s_list = [float(p["score"]) for p in pairs_data]
+hybrid_reranker.fit_pointwise(q_list, d_list, s_list, use_regression=True)
+
+distilled_reranker = DistilledPairwiseRanker(embedder=embedder)
+pref_queries = [p["query"] for p in preferences_data]
+pref_a = [p["doc_a"] for p in preferences_data]
+pref_b = [p["doc_b"] for p in preferences_data]
+pref_labels = [1 if p["preferred"] == "A" else 0 for p in preferences_data]
+distilled_reranker.fit(pref_queries, pref_a, pref_b, pref_labels)
+
+colbert_reranker = StaticColBERTReranker(embedder=embedder)
+all_docs = list(set(p["doc"] for p in pairs_data))
+colbert_reranker.fit(all_docs)
+
+print(f"Hybrid fitted: {hybrid_reranker.is_fitted}")
+print(f"Distilled fitted: {distilled_reranker.is_fitted}")
+print(f"ColBERT fitted: {colbert_reranker.is_fitted}")
+```
+
+## Rerank Results
+
+```{python}
+#| label: run-rerank
+def run_rerank(reranker, query, docs, label):
+    start = time.perf_counter()
+    results = reranker.rerank(query, docs)
+    elapsed_ms = (time.perf_counter() - start) * 1000
+    return {"label": label, "latency_ms": elapsed_ms, "results": results}
+
+all_results = []
+if active_query and active_docs:
+    all_results.append(run_rerank(hybrid_reranker, active_query, active_docs, "Hybrid Fusion"))
+    all_results.append(run_rerank(distilled_reranker, active_query, active_docs, "Distilled Pairwise"))
+    all_results.append(run_rerank(colbert_reranker, active_query, active_docs, "Shallow ColBERT"))
+```
+
+```{python}
+#| label: display-results
+for res_item in all_results:
+    print(f"## {res_item['label']}")
+    print(f"**Latency:** {res_item['latency_ms']:.2f}ms\n")
+    print("| Rank | Score | Document |")
+    print("|------|-------|----------|")
+    for r in res_item["results"]:
+        doc_preview = r.doc[:100] + ("..." if len(r.doc) > 100 else "")
+        print(f"| {r.rank} | {r.score:.4f} | {doc_preview} |")
+    print()
+```
+
+## Latency Comparison
+
+```{python}
+#| label: latency-comparison
+if len(all_results) >= 2:
+    print("## Latency Comparison\n")
+    print("| Strategy | Latency |")
+    print("|----------|--------|")
+    for r in all_results:
+        print(f"| {r['label']} | {r['latency_ms']:.2f}ms |")
+```

@@ -82,7 +82,12 @@ nav:
     - Evaluation: api/eval.md
     - Data: api/data.md
     - Heuristics: api/heuristics.md
-  - Notebooks: notebooks/index.md
+  - Notebooks:
+    - Overview: notebooks/index.md
+    - Interactive Reranking Explorer: notebooks/01_interactive_reranking.md
+    - Consistency Engine Demo: notebooks/02_consistency_engine_demo.md
+    - Feature Analysis Dashboard: notebooks/03_feature_analysis_dashboard.md
+    - Reranking Methods Atlas: notebooks/04_methods_atlas.md
   - About: about.md
 
 markdown_extensions:

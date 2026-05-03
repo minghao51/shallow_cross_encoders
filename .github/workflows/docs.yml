@@ -37,23 +37,16 @@ jobs:
 
       - uses: astral-sh/setup-uv@v5
 
+      - uses: quarto-dev/quarto-action/setup@v2
+
       - name: Install docs dependencies
         run: uv sync --extra docs
 
-      - name: Cache notebook exports
-        id: notebook-cache
-        uses: actions/cache@v4
-        with:
-          path: docs/notebooks
-          key: notebook-exports-${{ hashFiles('notebooks/*.py', 'scripts/generate_notebook_pages.py') }}
+      - name: Render notebooks with Quarto
+        run: uv run quarto render notebooks/
 
-      - name: Generate notebook landing page + exports
-        if: steps.notebook-cache.outputs.cache-hit != 'true'
-        run: uv run scripts/generate_notebook_pages.py
-
-      - name: Generate notebook landing page (always)
-        if: steps.notebook-cache.outputs.cache-hit == 'true'
-        run: uv run scripts/generate_notebook_pages.py --landing-only
+      - name: Generate MkDocs stubs and landing page
+        run: uv run python scripts/generate_notebook_docs.py
 
       - name: Build docs
         run: uv run mkdocs build --strict
