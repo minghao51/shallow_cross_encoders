@@ -17,6 +17,7 @@ import numpy as np
 
 from reranker.config import get_settings
 from reranker.deps import check_model2vec
+from reranker.embedding_cache import EmbeddingCache, get_shared_cache
 
 try:
     from cachetools import TTLCache  # type: ignore[import-untyped]
@@ -65,6 +66,7 @@ class Embedder:
     _backend: Any = field(init=False, default=None, repr=False)
     backend_name: str = field(init=False, default="hashed")
     _encode_cache: Any = field(init=False, default=None, repr=False)
+    _cache: EmbeddingCache | None = field(init=False, default=None, repr=False)
 
     def _sync_backend_dimension(self) -> None:
         if self._backend is None:
@@ -91,6 +93,7 @@ class Embedder:
         self._backend = None
         self.backend_name = "hashed"
         self._init_cache()
+        self._cache = get_shared_cache()
         backend_cls, status = check_model2vec()
         if backend_cls is not None:
             try:
@@ -127,12 +130,8 @@ class Embedder:
             matrix = _normalize_rows(matrix)
         return matrix
 
-    def encode(self, texts: list[str]) -> np.ndarray:
-        """Encode texts into embedding vectors.
-
-        Uses the model2vec backend if available, otherwise falls back to
-        deterministic feature-hashed embeddings. Results are cached via
-        TTLCache for repeated texts.
+    def _encode_raw(self, texts: list[str]) -> np.ndarray:
+        """Raw encoding without any caching.
 
         Args:
             texts: List of text strings to encode.
@@ -144,6 +143,33 @@ class Embedder:
             return np.zeros((0, self.dimension), dtype=np.float32)
         if self._backend is None:
             return self._encode_hashed(texts)
+        vectors = self._backend.encode(texts, normalize=self.normalize)
+        vectors = np.asarray(vectors, dtype=np.float32)
+        if vectors.ndim == 2 and vectors.shape[1] > 0:
+            self.dimension = int(vectors.shape[1])
+        return vectors
+
+    def encode(self, texts: list[str]) -> np.ndarray:
+        """Encode texts into embedding vectors.
+
+        Uses the model2vec backend if available, otherwise falls back to
+        deterministic feature-hashed embeddings. Results are cached via
+        a shared EmbeddingCache (or per-instance TTLCache fallback).
+
+        Args:
+            texts: List of text strings to encode.
+
+        Returns:
+            Embedding matrix of shape (len(texts), dimension).
+        """
+        if not texts:
+            return np.zeros((0, self.dimension), dtype=np.float32)
+
+        # Shared cache path (preferred)
+        if self._cache is not None and self._cache.enabled:
+            return self._cache.get_or_encode(texts, self)
+
+        # Per-instance cache fallback
         if self._encode_cache is not None:
             result = []
             uncached = []
@@ -156,17 +182,13 @@ class Embedder:
                     uncached.append(i)
             if not uncached:
                 return np.stack(result)
-            vectors = self._backend.encode([texts[i] for i in uncached], normalize=self.normalize)
-            vectors = np.asarray(vectors, dtype=np.float32)
+            vectors = self._encode_raw([texts[i] for i in uncached])
             for idx, vec in zip(uncached, vectors, strict=True):
                 self._encode_cache[texts[idx]] = vec
                 result[idx] = vec
             return np.stack(result)
-        vectors = self._backend.encode(texts, normalize=self.normalize)
-        vectors = np.asarray(vectors, dtype=np.float32)
-        if vectors.ndim == 2 and vectors.shape[1] > 0:
-            self.dimension = int(vectors.shape[1])
-        return vectors
+
+        return self._encode_raw(texts)
 
     def tokenize(self, text: str) -> list[str]:
         """Tokenize text into words, handling CJK and other scripts.

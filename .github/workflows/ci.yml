@@ -38,6 +38,9 @@ jobs:
           enable-cache: true
       - run: uv sync --all-extras
       - run: uv run pytest -q --cov=src --cov-report=term-missing --cov-fail-under=85
+      - name: Quantization benchmark (non-blocking)
+        run: uv run python scripts/benchmark_quantization.py
+        continue-on-error: true
 
   security:
     runs-on: ubuntu-24.04

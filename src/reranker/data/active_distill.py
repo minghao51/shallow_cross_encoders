@@ -279,9 +279,75 @@ class ActiveDistiller:
 
         estimated_cost = total_calls * 0.0004
 
+        all_prefs = self._derive_preferences(all_pairs)
+
         return ActiveDistillationResult(
             new_pairs=all_pairs,
             new_preferences=all_prefs,
             total_api_calls=total_calls,
             total_cost_estimate=estimated_cost,
         )
+
+    @staticmethod
+    def _derive_preferences(
+        pairs: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        """Derive pairwise preference records from labeled query-doc pairs.
+
+        Groups pairs by query, sorts by score, and creates multiple
+        deterministic preference pairs per query:
+        - high vs low
+        - high vs mid
+        - mid vs low
+        """
+        if not pairs:
+            return []
+
+        by_query: dict[str, list[dict[str, Any]]] = {}
+        for pair in pairs:
+            by_query.setdefault(pair["query"], []).append(pair)
+
+        preferences: list[dict[str, Any]] = []
+        for query, examples in by_query.items():
+            if len(examples) < 2:
+                continue
+            ordered = sorted(examples, key=lambda row: int(row.get("score", 0)))
+            lo = ordered[0]
+            hi = ordered[-1]
+
+            # Canonical deterministic order: doc_a is the preferred document.
+            preferences.append(
+                {
+                    "query": query,
+                    "doc_a": hi["doc"],
+                    "doc_b": lo["doc"],
+                    "preferred": "A",
+                    "confidence": 0.95,
+                    "generation_mode": "active_distill",
+                }
+            )
+
+            if len(ordered) >= 3:
+                mid = ordered[len(ordered) // 2]
+                preferences.append(
+                    {
+                        "query": query,
+                        "doc_a": hi["doc"],
+                        "doc_b": mid["doc"],
+                        "preferred": "A",
+                        "confidence": 0.9,
+                        "generation_mode": "active_distill",
+                    }
+                )
+                preferences.append(
+                    {
+                        "query": query,
+                        "doc_a": mid["doc"],
+                        "doc_b": lo["doc"],
+                        "preferred": "A",
+                        "confidence": 0.9,
+                        "generation_mode": "active_distill",
+                    }
+                )
+
+        return preferences

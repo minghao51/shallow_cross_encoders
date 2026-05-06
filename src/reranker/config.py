@@ -222,6 +222,15 @@ class ConsistencySettings(BaseModel):
     value_tolerance: float = 0.01
 
 
+class EmbeddingCacheSettings(BaseModel):
+    """Shared embedding cache configuration."""
+
+    model_config = ConfigDict(frozen=True)
+
+    max_size: int = 50000
+    ttl_seconds: int = 3600
+
+
 class RoiSettings(BaseModel):
     """ROI estimation parameters for cost-benefit analysis."""
 
@@ -279,6 +288,7 @@ class Settings(BaseModel):
     pipeline: PipelineSettings
     cascade: CascadeSettings
     consistency: ConsistencySettings
+    embedding_cache: EmbeddingCacheSettings
     roi: RoiSettings
     benchmark: BenchmarkSettings
     eval: EvalSettings
@@ -375,6 +385,10 @@ def _cached_settings() -> Settings:
         consistency=ConsistencySettings(
             sim_threshold=_env("RERANKER_CONSISTENCY_SIM_THRESHOLD", 0.95, float),
             value_tolerance=_env("RERANKER_CONSISTENCY_VALUE_TOLERANCE", 0.01, float),
+        ),
+        embedding_cache=EmbeddingCacheSettings(
+            max_size=_env("RERANKER_EMBEDDING_CACHE_MAX_SIZE", 50000, int),
+            ttl_seconds=_env("RERANKER_EMBEDDING_CACHE_TTL_SECONDS", 3600, int),
         ),
         roi=RoiSettings(
             llm_cost_per_judgment_usd=_env("RERANKER_ROI_LLM_COST_PER_JUDGMENT_USD", 0.0004, float),

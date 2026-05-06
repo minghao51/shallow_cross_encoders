@@ -84,7 +84,6 @@ class DatasetManifest(BaseModel):
     """Metadata describing a generated synthetic dataset export."""
 
     model_config = ConfigDict(extra="forbid")
-    model_config = ConfigDict(extra="forbid")
 
     generated_at: str
     root: str

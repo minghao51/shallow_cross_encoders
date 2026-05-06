@@ -159,17 +159,15 @@ class PipelineReranker:
 
         final_ranking = [
             RankedDoc(
-                doc=doc,
-                score=ranked_doc.score if any(r.doc == doc for r in passed) else 0.0,
+                doc=passed_doc.doc,
+                score=passed_doc.score,
                 rank=idx,
                 metadata={
                     "strategy": "pipeline",
                     "stages": stage_results,
                 },
             )
-            for idx, (doc, ranked_doc) in enumerate(
-                zip(current_docs, passed, strict=False), start=1
-            )
+            for idx, passed_doc in enumerate(passed, start=1)
         ]
 
         return PipelineResult(

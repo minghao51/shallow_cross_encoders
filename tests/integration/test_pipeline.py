@@ -22,9 +22,11 @@ class TestPipelineReranker:
             "python dataclass field default factory",
             "javascript array spread operator",
         ]
+        colbert = StaticColBERTReranker()
+        colbert.fit(docs)
         stage = PipelineStage(
             name="colbert",
-            reranker=StaticColBERTReranker(),
+            reranker=colbert,
             top_k=2,
         )
         pipeline = PipelineReranker(stages=[stage])
@@ -43,9 +45,12 @@ class TestPipelineReranker:
         bm25 = BM25Engine()
         bm25.fit(docs)
 
+        colbert = StaticColBERTReranker()
+        colbert.fit(docs)
+
         stages = [
             PipelineStage(name="bm25", reranker=bm25, top_k=3),
-            PipelineStage(name="colbert", reranker=StaticColBERTReranker(), top_k=2),
+            PipelineStage(name="colbert", reranker=colbert, top_k=2),
         ]
         pipeline = PipelineReranker(stages=stages)
         result = pipeline.run_pipeline("python dataclass", docs)
@@ -67,9 +72,11 @@ class TestPipelineReranker:
 
     def test_stage_latency_tracking(self):
         docs = ["python dataclass field", "javascript array"]
+        colbert = StaticColBERTReranker()
+        colbert.fit(docs)
         stage = PipelineStage(
             name="colbert",
-            reranker=StaticColBERTReranker(),
+            reranker=colbert,
             top_k=2,
         )
         pipeline = PipelineReranker(stages=[stage])

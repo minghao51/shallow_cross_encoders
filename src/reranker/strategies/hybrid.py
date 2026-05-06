@@ -6,6 +6,7 @@ differences between documents, using both semantic and lexical signals.
 
 from __future__ import annotations
 
+from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
@@ -28,6 +29,14 @@ from reranker.utils import (
     validate_artifact_metadata,
     write_json,
 )
+
+
+class WeightingMode(StrEnum):
+    """Weighting modes for hybrid fusion scoring."""
+
+    STATIC = "static"
+    LEARNED = "learned"
+    META_ROUTER = "meta_router"
 
 
 def _make_classifier(random_state: int | None = None) -> Any:
@@ -127,15 +136,21 @@ class HybridFusionReranker:
                 self._get_feature_index(name)
 
     def _build_features(
-        self, query: str, docs: list[str], *, bm25: BM25Engine | None = None
+        self,
+        query: str,
+        docs: list[str],
+        *,
+        bm25: BM25Engine | None = None,
+        query_vec: np.ndarray | None = None,
+        d_vecs: np.ndarray | None = None,
     ) -> np.ndarray:
         if not docs:
             if not self._feature_registry:
                 self._init_feature_registry()
             return np.zeros((0, len(self._feature_registry)), dtype=np.float32)
 
-        q_vec = self.embedder.encode([query])[0]
-        d_vecs = self.embedder.encode(docs)
+        q_vec = query_vec if query_vec is not None else self.embedder.encode([query])[0]
+        d_vecs = d_vecs if d_vecs is not None else self.embedder.encode(docs)
         lexical = bm25
         if lexical is None:
             lexical = BM25Engine(tokenize_fn=self.embedder.tokenize)
@@ -280,7 +295,10 @@ class HybridFusionReranker:
         self.is_fitted = True
 
         settings = get_settings()
-        if settings.meta_router.enabled and settings.hybrid.weighting_mode == "meta_router":
+        if (
+            settings.meta_router.enabled
+            and WeightingMode(settings.hybrid.weighting_mode) == WeightingMode.META_ROUTER
+        ):
             self._router = MetaRouter(embedder=self.embedder)
             router_categories = self._auto_label_queries(queries, docs, scores)
             self._router.fit(queries, router_categories)
@@ -328,9 +346,13 @@ class HybridFusionReranker:
 
     def _resolve_weights(self, query: str) -> dict[str, float]:
         settings = get_settings().hybrid
-        weighting_mode = settings.weighting_mode
+        weighting_mode = WeightingMode(settings.weighting_mode)
 
-        if weighting_mode == "meta_router" and self._router is not None and self._router.is_fitted:
+        if (
+            weighting_mode == WeightingMode.META_ROUTER
+            and self._router is not None
+            and self._router.is_fitted
+        ):
             weights = self._router.get_weights(query)
             return {
                 "sem_score": weights.get("sem_score", 0.25),
@@ -342,7 +364,7 @@ class HybridFusionReranker:
                 "keyword_hit_rate": weights.get("keyword_hit_rate", 0.05),
             }
 
-        if weighting_mode == "learned":
+        if weighting_mode == WeightingMode.LEARNED:
             return {}
 
         return {
@@ -393,22 +415,31 @@ class HybridFusionReranker:
             return np.asarray(model.predict(X), dtype=np.float32)
         return np.zeros(X.shape[0], dtype=np.float32)
 
-    def score(self, query: str, docs: list[str], *, bm25: BM25Engine | None = None) -> np.ndarray:
+    def score(
+        self,
+        query: str,
+        docs: list[str],
+        *,
+        bm25: BM25Engine | None = None,
+        query_vec: np.ndarray | None = None,
+        d_vecs: np.ndarray | None = None,
+    ) -> np.ndarray:
         """Score documents against a query using the fitted model.
 
         Args:
             query: Search query.
             docs: Documents to score.
             bm25: Optional pre-built BM25 engine for lexical features.
+            query_vec: Optional pre-computed query embedding.
+            d_vecs: Optional pre-computed document embeddings.
 
         Returns:
             Array of relevance scores.
         """
         if not docs:
             return np.zeros(0, dtype=np.float32)
-        X = self._build_features(query, docs, bm25=bm25)
-        settings = get_settings().hybrid
-        weighting_mode = settings.weighting_mode
+        X = self._build_features(query, docs, bm25=bm25, query_vec=query_vec, d_vecs=d_vecs)
+        weighting_mode = WeightingMode(get_settings().hybrid.weighting_mode)
 
         weight_map = self._resolve_weights(query)
         if weight_map:
@@ -416,17 +447,23 @@ class HybridFusionReranker:
         else:
             blended = np.zeros(X.shape[0], dtype=np.float32)
 
-        if weighting_mode == "learned" and self.is_fitted:
-            return self._model_predict(self.model, X)
-
         if not self.is_fitted:
-            return blended
+            raise RuntimeError("HybridFusionReranker is not fitted. Call fit() or load() first.")
+
+        if weighting_mode == WeightingMode.LEARNED:
+            return self._model_predict(self.model, X)
 
         model_scores = self._model_predict(self.model, X)
         return np.asarray((model_scores + blended) / 2.0, dtype=np.float32)
 
     def rerank(
-        self, query: str, docs: list[str], *, bm25: BM25Engine | None = None
+        self,
+        query: str,
+        docs: list[str],
+        *,
+        bm25: BM25Engine | None = None,
+        query_vec: np.ndarray | None = None,
+        d_vecs: np.ndarray | None = None,
     ) -> list[RankedDoc]:
         """Rerank documents by hybrid fusion score.
 
@@ -434,6 +471,8 @@ class HybridFusionReranker:
             query: Search query.
             docs: Documents to rerank.
             bm25: Optional pre-built BM25 engine.
+            query_vec: Optional pre-computed query embedding.
+            d_vecs: Optional pre-computed document embeddings.
 
         Returns:
             Ranked list of RankedDoc.
@@ -442,7 +481,7 @@ class HybridFusionReranker:
         if lexical is None and docs:
             lexical = BM25Engine(tokenize_fn=self.embedder.tokenize)
             lexical.fit(docs)
-        scores = self.score(query, docs, bm25=lexical)
+        scores = self.score(query, docs, bm25=lexical, query_vec=query_vec, d_vecs=d_vecs)
         ranked = sorted(
             zip(docs, scores, strict=False),
             key=lambda item: float(item[1]),
@@ -452,6 +491,39 @@ class HybridFusionReranker:
             RankedDoc(doc=doc, score=float(score), rank=rank, metadata={"strategy": "hybrid"})
             for rank, (doc, score) in enumerate(ranked, start=1)
         ]
+
+    def rerank_batch(
+        self,
+        queries: list[str],
+        docs_list: list[list[str]],
+    ) -> list[list[RankedDoc]]:
+        if not queries:
+            return []
+        if len(queries) != len(docs_list):
+            raise ValueError("queries and docs_list must have the same length for rerank_batch.")
+
+        # Batch encode all queries
+        query_vectors = self.embedder.encode(queries)
+
+        # Batch encode all unique docs across all queries
+        all_docs = list({doc for docs in docs_list for doc in docs})
+        if all_docs:
+            all_doc_vectors = self.embedder.encode(all_docs)
+            doc_vec_map = {doc: vec for doc, vec in zip(all_docs, all_doc_vectors, strict=True)}
+        else:
+            doc_vec_map = {}
+
+        results: list[list[RankedDoc]] = []
+        for q_idx, (query, docs) in enumerate(zip(queries, docs_list, strict=True)):
+            if not docs:
+                results.append([])
+                continue
+            lexical = BM25Engine(tokenize_fn=self.embedder.tokenize)
+            lexical.fit(docs)
+            q_vec = query_vectors[q_idx]
+            d_vecs = np.stack([doc_vec_map[doc] for doc in docs])
+            results.append(self.rerank(query, docs, bm25=lexical, query_vec=q_vec, d_vecs=d_vecs))
+        return results
 
     def save(self, path: str | Path) -> None:
         """Persist the reranker to disk.

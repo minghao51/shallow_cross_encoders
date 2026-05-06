@@ -118,21 +118,19 @@ def test_hybrid_adapter_feature_names() -> None:
     assert "keyword_hit_rate" in reranker.feature_names_
 
 
-def test_hybrid_unfitted_rerank_returns_blended_scores() -> None:
-    """Test that unfitted reranker falls back to blended scores without crashing."""
+def test_hybrid_unfitted_rerank_raises_runtime_error() -> None:
+    """Test that unfitted reranker raises RuntimeError."""
+    import pytest
+
     reranker = HybridFusionReranker()
-    ranked = reranker.rerank(
-        "python test",
-        [
-            "python programming is great",
-            "java development is good",
-        ],
-    )
-    assert len(ranked) == 2
-    for doc in ranked:
-        assert doc.score >= 0.0
-    assert ranked[0].doc == "python programming is great"
-    assert ranked[0].score >= ranked[1].score
+    with pytest.raises(RuntimeError, match="not fitted"):
+        reranker.rerank(
+            "python test",
+            [
+                "python programming is great",
+                "java development is good",
+            ],
+        )
 
 
 def test_hybrid_registers_adapter_features_across_all_docs() -> None:
@@ -206,6 +204,10 @@ def test_hybrid_score_uses_router_weights_in_meta_router_mode() -> None:
                 "keyword_hit_rate": 0.0,
             }
 
+    class StubModel:
+        def predict(self, X: np.ndarray) -> np.ndarray:
+            return np.zeros(X.shape[0], dtype=np.float32)
+
     reset_settings_cache()
     clear_settings_override()
     apply_settings_override(
@@ -219,6 +221,8 @@ def test_hybrid_score_uses_router_weights_in_meta_router_mode() -> None:
 
     reranker = HybridFusionReranker()
     reranker._router = StubRouter()
+    reranker.model = StubModel()
+    reranker.is_fitted = True
 
     try:
         scores = reranker.score("exact phrase", ["exact phrase in doc", "unrelated text"])

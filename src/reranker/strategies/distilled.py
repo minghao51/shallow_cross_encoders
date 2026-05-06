@@ -7,6 +7,7 @@ approximate an expensive teacher reranker's pairwise preferences.
 from __future__ import annotations
 
 import logging
+from collections import deque
 from pathlib import Path
 from typing import Literal
 
@@ -274,10 +275,12 @@ class DistilledPairwiseRanker:
             return [(indexed_docs[0][0], 0.0)] if indexed_docs else []
 
         mid = len(indexed_docs) // 2
-        left = self._merge_rank(query, indexed_docs[:mid])
-        right = self._merge_rank(query, indexed_docs[mid:])
+        left_list = self._merge_rank(query, indexed_docs[:mid])
+        right_list = self._merge_rank(query, indexed_docs[mid:])
         left_lookup = dict(indexed_docs[:mid])
         right_lookup = dict(indexed_docs[mid:])
+        left = deque(left_list)
+        right = deque(right_list)
         merged: list[tuple[int, float]] = []
         while left and right:
             left_idx, left_score = left[0]
@@ -286,11 +289,11 @@ class DistilledPairwiseRanker:
             if prob_left >= 0.5:
                 merged.append((left_idx, left_score + prob_left))
                 right[0] = (right_idx, right_score + (1.0 - prob_left))
-                left.pop(0)
+                left.popleft()
             else:
                 merged.append((right_idx, right_score + (1.0 - prob_left)))
                 left[0] = (left_idx, left_score + prob_left)
-                right.pop(0)
+                right.popleft()
         merged.extend(left)
         merged.extend(right)
         return merged

@@ -6,6 +6,7 @@ Fallback: Use FlashRank when confidence is low
 
 from __future__ import annotations
 
+import statistics
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any
@@ -22,6 +23,14 @@ class ConfidenceMetric(StrEnum):
     NORMALIZED_MAX = "normalized_max"
 
 
+class FallbackStrategy(StrEnum):
+    """Valid fallback strategy values."""
+
+    FLASHRANK = "flashrank"
+    ALWAYS = "always"
+    NEVER = "never"
+
+
 @dataclass(slots=True)
 class CascadeConfig:
     """Configuration for cascading reranker.
@@ -34,7 +43,19 @@ class CascadeConfig:
 
     confidence_threshold: float = 0.6
     confidence_metric: ConfidenceMetric = ConfidenceMetric.TOP_MARGIN
-    fallback_strategy: str = "flashrank"
+    fallback_strategy: FallbackStrategy = FallbackStrategy.FLASHRANK
+
+    def __post_init__(self) -> None:
+        if isinstance(self.fallback_strategy, str) and not isinstance(
+            self.fallback_strategy, FallbackStrategy
+        ):
+            try:
+                self.fallback_strategy = FallbackStrategy(self.fallback_strategy)
+            except ValueError:
+                raise ValueError(
+                    f"Invalid fallback_strategy '{self.fallback_strategy}'. "
+                    f"Must be one of: {', '.join(s.value for s in FallbackStrategy)}"
+                ) from None
 
 
 class CascadeReranker:
@@ -74,12 +95,17 @@ class CascadeReranker:
         self.primary = primary
         self.fallback = fallback
         self.config = config or CascadeConfig()
-        self.is_fitted = False
 
-        # Metrics tracking
         self._total_queries: int = 0
         self._fallback_count: int = 0
         self._confidence_sum: float = 0.0
+
+    @property
+    def is_fitted(self) -> bool:
+        """Check if both primary and fallback rerankers are fitted."""
+        return bool(
+            getattr(self.primary, "is_fitted", True) and getattr(self.fallback, "is_fitted", True)
+        )
 
     def _compute_confidence(self, results: list[RankedDoc]) -> float:
         """Compute confidence score based on configured metric.
@@ -104,8 +130,6 @@ class CascadeReranker:
                     return sorted_scores[0] - sorted_scores[1]
                 return max(scores)
             case ConfidenceMetric.SCORE_VARIANCE:
-                import statistics
-
                 if len(scores) > 1:
                     return statistics.variance(scores)
                 return 0.0
@@ -143,8 +167,8 @@ class CascadeReranker:
         self._confidence_sum += confidence
 
         # Determine if fallback should be used
-        use_fallback = self.config.fallback_strategy == "always" or (
-            self.config.fallback_strategy == "flashrank"
+        use_fallback = self.config.fallback_strategy == FallbackStrategy.ALWAYS or (
+            self.config.fallback_strategy == FallbackStrategy.FLASHRANK
             and confidence < self.config.confidence_threshold
         )
 

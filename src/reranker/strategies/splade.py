@@ -113,15 +113,27 @@ class SPLADEReranker:
         score = 0.0
         for term, query_weight in query_terms.items():
             if term in doc_terms:
-                score += min(query_weight, doc_terms[term])
+                score += query_weight * doc_terms[term]
         return score
 
     def rerank(self, query: str, docs: list[str]) -> list[RankedDoc]:
+        """Rerank documents by SPLADE sparse scoring.
+
+        Args:
+            query: Search query.
+            docs: Documents to rerank.
+
+        Returns:
+            Ranked list of RankedDoc.
+
+        Raises:
+            RuntimeError: If the reranker has not been fitted.
+        """
         if not docs:
             return []
 
         if not self.is_fitted:
-            self.fit(docs)
+            raise RuntimeError("SPLADEReranker is not fitted. Call fit() or load() first.")
 
         scores = self.score(query, docs)
         ranked = sorted(

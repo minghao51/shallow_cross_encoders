@@ -1,7 +1,7 @@
 """Embedding quantization utilities.
 
-Supports 4-bit and ternary quantization modes for reducing memory
-footprint of embedding vectors at the cost of minor precision loss.
+Supports 4-bit, int8, float16, and ternary quantization modes for reducing
+memory footprint of embedding vectors at the cost of minor precision loss.
 """
 
 from __future__ import annotations
@@ -20,7 +20,7 @@ class QuantizationResult:
         codebook: Optional codebook for vector quantization.
         scale: Per-dimension scale factors for dequantization.
         min_val: Per-dimension minimum values for dequantization.
-        mode: Quantization mode ("4bit", "ternary", "none").
+    mode: str = "none"
         original_shape: Shape of the original float32 matrix.
     """
 
@@ -35,17 +35,6 @@ class QuantizationResult:
 def quantize_4bit(
     vectors: np.ndarray,
 ) -> QuantizationResult:
-    """Quantize float32 vectors to packed 4-bit representations.
-
-    Each dimension is independently scaled to a 4-bit range (0-15),
-    then two values are packed per byte.
-
-    Args:
-        vectors: Float32 matrix of shape (n, d).
-
-    Returns:
-        QuantizationResult with packed uint8 codes.
-    """
     n, d = vectors.shape
 
     min_val = vectors.min(axis=0)
@@ -54,13 +43,13 @@ def quantize_4bit(
     quantized = np.round((vectors - min_val) / scale).astype(np.uint8)
     quantized = np.clip(quantized, 0, 15)
 
-    packed = np.zeros((n, (d + 1) // 2), dtype=np.uint8)
-    for i in range(d):
-        col_idx = i // 2
-        if i % 2 == 0:
-            packed[:, col_idx] = (quantized[:, i] & 0x0F).astype(np.uint8)
-        else:
-            packed[:, col_idx] |= (quantized[:, i] << 4).astype(np.uint8)
+    packed_d = (d + 1) // 2
+    packed = np.zeros((n, packed_d), dtype=np.uint8)
+    even_cols = np.arange(0, d, 2)
+    odd_cols = np.arange(1, d, 2)
+    packed[:, even_cols // 2] = (quantized[:, even_cols] & 0x0F).astype(np.uint8)
+    if len(odd_cols) > 0:
+        packed[:, odd_cols // 2] |= (quantized[:, odd_cols] << 4).astype(np.uint8)
 
     return QuantizationResult(
         codes=packed,
@@ -73,25 +62,17 @@ def quantize_4bit(
 
 
 def dequantize_4bit(result: QuantizationResult) -> np.ndarray:
-    """Dequantize packed 4-bit codes back to float32.
-
-    Args:
-        result: QuantizationResult from quantize_4bit().
-
-    Returns:
-        Reconstructed float32 matrix.
-    """
     n, packed_d = result.codes.shape
     d = result.original_shape[1]
     if result.scale is None or result.min_val is None:
         raise ValueError("Invalid 4bit quantization result: missing scale or min_val")
     unpacked = np.zeros((n, d), dtype=np.uint8)
-    for i in range(d):
-        col_idx = i // 2
-        if i % 2 == 0:
-            unpacked[:, i] = result.codes[:, col_idx] & 0x0F
-        else:
-            unpacked[:, i] = (result.codes[:, col_idx] >> 4) & 0x0F
+    even_cols = np.arange(0, d, 2)
+    odd_cols = np.arange(1, d, 2)
+    unpacked[:, even_cols] = result.codes[:, even_cols // 2] & 0x0F
+    if len(odd_cols) > 0:
+        odd_packed = odd_cols // 2
+        unpacked[:, odd_cols] = (result.codes[:, odd_packed] >> 4) & 0x0F
 
     dequantized = unpacked.astype(np.float32) * result.scale + result.min_val
     return dequantized
@@ -141,6 +122,45 @@ def dequantize_ternary(result: QuantizationResult) -> np.ndarray:
     return result.codes.astype(np.float32) * scale * 0.7
 
 
+def quantize_int8(vectors: np.ndarray) -> QuantizationResult:
+    min_val = vectors.min(axis=0)
+    max_val = vectors.max(axis=0)
+    scale = (max_val - min_val) / 254.0
+    scale = np.where(scale == 0, 1.0, scale)
+    quantized = np.round((vectors - min_val) / scale).astype(np.int8) + np.int8(-128)
+    return QuantizationResult(
+        codes=quantized,
+        codebook=None,
+        scale=scale.astype(np.float32),
+        min_val=min_val.astype(np.float32),
+        mode="int8",
+        original_shape=vectors.shape,
+    )
+
+
+def dequantize_int8(result: QuantizationResult) -> np.ndarray:
+    if result.scale is None or result.min_val is None:
+        raise ValueError("Invalid int8 quantization result: missing scale or min_val")
+    shifted = result.codes.astype(np.float32) - np.float32(-128)
+    return shifted * result.scale + result.min_val
+
+
+def quantize_float16(vectors: np.ndarray) -> QuantizationResult:
+    codes = vectors.astype(np.float16)
+    return QuantizationResult(
+        codes=codes,
+        codebook=None,
+        scale=None,
+        min_val=None,
+        mode="float16",
+        original_shape=vectors.shape,
+    )
+
+
+def dequantize_float16(result: QuantizationResult) -> np.ndarray:
+    return result.codes.astype(np.float32)
+
+
 def quantize(
     vectors: np.ndarray,
     mode: str = "none",
@@ -158,6 +178,10 @@ def quantize(
         return quantize_4bit(vectors)
     if mode == "ternary":
         return quantize_ternary(vectors)
+    if mode == "int8":
+        return quantize_int8(vectors)
+    if mode == "float16":
+        return quantize_float16(vectors)
     return QuantizationResult(
         codes=vectors.astype(np.float32),
         codebook=None,
@@ -183,6 +207,10 @@ def dequantize(result: QuantizationResult) -> np.ndarray:
         return dequantize_4bit(result)
     if result.mode == "ternary":
         return dequantize_ternary(result)
+    if result.mode == "int8":
+        return dequantize_int8(result)
+    if result.mode == "float16":
+        return dequantize_float16(result)
     return result.codes.astype(np.float32)
 
 

@@ -65,12 +65,11 @@ class TestStaticColBERTReranker:
         with pytest.raises(RuntimeError, match="must be fitted"):
             reranker.score("query", ["doc"])
 
-    def test_rerank_auto_fit(self):
+    def test_rerank_unfitted_raises(self):
         docs = ["python dataclass field", "javascript array"]
         reranker = StaticColBERTReranker()
-        result = reranker.rerank("python", docs)
-        assert len(result) == 2
-        assert reranker.is_fitted
+        with pytest.raises(RuntimeError, match="not fitted"):
+            reranker.rerank("python", docs)
 
     def test_query_coverage_effect(self):
         relevant = "python dataclass field default factory mutable list"

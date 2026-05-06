@@ -2,21 +2,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Protocol, runtime_checkable
 
 import numpy as np
 
-from reranker.protocols import RankedDoc
+from reranker.protocols import BaseReranker, RankedDoc
 from reranker.utils import rrf_from_scores
-
-
-@runtime_checkable
-class Reranker(Protocol):
-    """Protocol for rerankers that can be used with MultiReranker."""
-
-    def rerank(self, query: str, docs: list[str]) -> list[RankedDoc]:
-        """Rerank documents for a query."""
-        ...
 
 
 @dataclass
@@ -47,7 +37,7 @@ class MultiReranker:
 
     def __init__(
         self,
-        rerankers: list[tuple[str, Reranker]],
+        rerankers: list[tuple[str, BaseReranker]],
         config: MultiRerankerConfig | None = None,
     ) -> None:
         self.rerankers = rerankers

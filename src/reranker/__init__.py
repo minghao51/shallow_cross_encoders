@@ -1,6 +1,7 @@
 """Public package surface for the reranking toolkit."""
 
 from reranker.config import load_yaml_config, settings_from_dict, settings_from_yaml
+from reranker.embedding_cache import EmbeddingCache, get_shared_cache
 from reranker.heuristics.keyword import KeywordMatchAdapter
 from reranker.protocols import BaseReranker, HeuristicAdapter, RankedDoc
 from reranker.strategies.consistency import (
@@ -21,6 +22,8 @@ __all__ = [
     "ConsistencyEngine",
     "Contradiction",
     "DistilledPairwiseRanker",
+    "EmbeddingCache",
+    "get_shared_cache",
     "HeuristicAdapter",
     "HybridFusionReranker",
     "KeywordMatchAdapter",

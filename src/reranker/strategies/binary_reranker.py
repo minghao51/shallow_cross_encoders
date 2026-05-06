@@ -7,6 +7,7 @@ Stage 2: Learned bilinear (query^T W doc) re-scoring for top candidates.
 from __future__ import annotations
 
 import logging
+from collections import OrderedDict
 from pathlib import Path
 
 import numpy as np
@@ -60,6 +61,8 @@ class BinaryQuantizedReranker:
         self._doc_bits: np.ndarray | None = None
         self._bilinear_weights: np.ndarray | None = None
         self._bilinear_model: LogisticRegression | DummyClassifier | None = None
+        self._doc_encoding_cache: OrderedDict[str, tuple[np.ndarray, np.ndarray]] = OrderedDict()
+        self._doc_encoding_cache_max_size = 10_000
         self.is_fitted = False
 
     @staticmethod
@@ -132,6 +135,7 @@ class BinaryQuantizedReranker:
             self._doc_vectors = np.zeros((0, self.embedder.dimension), dtype=np.float32)
             self._doc_bits = np.zeros((0, self.embedder.dimension), dtype=np.uint8)
             self._bilinear_weights = np.ones(self.embedder.dimension, dtype=np.float32)
+            self._doc_encoding_cache.clear()
             self.is_fitted = True
             return self
 
@@ -139,6 +143,9 @@ class BinaryQuantizedReranker:
         doc_vectors = self.embedder.encode(all_docs)
         self._doc_vectors = doc_vectors
         self._doc_bits = self._quantize(doc_vectors)
+        self._doc_encoding_cache.clear()
+        for doc_text, vec, bits in zip(all_docs, doc_vectors, self._doc_bits, strict=True):
+            self._doc_encoding_cache[doc_text] = (vec, bits)
 
         y = np.asarray(labels, dtype=np.int32)
         if len(set(y.tolist())) < 2:
@@ -182,8 +189,26 @@ class BinaryQuantizedReranker:
         query_vec = self.embedder.encode([query])[0]
         query_bits = self._quantize(query_vec[np.newaxis, :])[0]
 
-        doc_vectors = self.embedder.encode(docs)
-        doc_bits = self._quantize(doc_vectors)
+        uncached_docs = [
+            (i, doc) for i, doc in enumerate(docs) if doc not in self._doc_encoding_cache
+        ]
+        if uncached_docs:
+            uncached_texts = [doc for _, doc in uncached_docs]
+            new_vectors = self.embedder.encode(uncached_texts)
+            new_bits = self._quantize(new_vectors)
+            for (_, doc_text), vec, bits in zip(uncached_docs, new_vectors, new_bits, strict=True):
+                self._doc_encoding_cache[doc_text] = (vec, bits)
+                if len(self._doc_encoding_cache) > self._doc_encoding_cache_max_size:
+                    self._doc_encoding_cache.popitem(last=False)
+
+        doc_vectors = np.zeros((len(docs), self.embedder.dimension), dtype=np.float32)
+        doc_bits = np.zeros((len(docs), self.embedder.dimension), dtype=np.uint8)
+        for i, doc in enumerate(docs):
+            entry = self._doc_encoding_cache[doc]
+            self._doc_encoding_cache.move_to_end(doc)
+            vec, bits = entry
+            doc_vectors[i] = vec
+            doc_bits[i] = bits
 
         hamming_dists = self._hamming_distances(query_bits, doc_bits)
         max_dist = max(float(hamming_dists.max()), 1.0)
@@ -201,20 +226,21 @@ class BinaryQuantizedReranker:
     def rerank(self, query: str, docs: list[str]) -> list[RankedDoc]:
         """Rerank documents by binary quantised scoring.
 
-        Auto-fits on the provided documents if not already fitted.
-
         Args:
             query: Search query.
             docs: Documents to rerank.
 
         Returns:
             Ranked list of RankedDoc.
+
+        Raises:
+            RuntimeError: If the reranker has not been fitted.
         """
         if not docs:
             return []
 
         if not self.is_fitted:
-            self.fit([query], docs, [1] * len(docs))
+            raise RuntimeError("BinaryQuantizedReranker is not fitted. Call fit() or load() first.")
 
         scores = self.score(query, docs)
         ranked = sorted(

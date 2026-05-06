@@ -78,12 +78,9 @@ class StaticColBERTReranker:
     def _compute_salience(self, tokens: list[str], vectors: np.ndarray) -> np.ndarray:
         if vectors.shape[0] == 0:
             return np.zeros(0, dtype=np.float32)
-        tf = np.zeros(vectors.shape[0], dtype=np.float32)
-        unique, counts = np.unique(tokens, return_counts=True)
-        for tok, cnt in zip(unique, counts, strict=False):
-            indices = [i for i, t in enumerate(tokens) if t == tok]
-            for idx in indices:
-                tf[idx] = cnt
+        token_arr = np.array(tokens, dtype=object)
+        _, inverse, counts = np.unique(token_arr, return_inverse=True, return_counts=True)
+        tf = counts[inverse].astype(np.float32)
         idf = np.log(1 + len(tokens) / (tf + 1))
         return tf * idf
 
@@ -173,19 +170,13 @@ class StaticColBERTReranker:
         max_sims = np.max(sim_matrix, axis=1)
         return float(np.sum(max_sims))
 
-    def score(self, query: str, docs: list[str]) -> np.ndarray:
-        """Score documents using MaxSim late interaction.
-
-        Args:
-            query: Search query.
-            docs: Documents to score (must be a subset of fitted docs).
-
-        Returns:
-            Array of MaxSim scores.
-
-        Raises:
-            RuntimeError: If the reranker has not been fitted.
-        """
+    def score(
+        self,
+        query: str,
+        docs: list[str],
+        *,
+        prebuilt_indices: list[TokenIndex] | None = None,
+    ) -> np.ndarray:
         if not self.is_fitted:
             raise RuntimeError("StaticColBERTReranker must be fitted before scoring.")
         if not docs:
@@ -194,7 +185,10 @@ class StaticColBERTReranker:
         query_tokens = self._tokenize(query)
         query_vectors = self._encode_tokens(query_tokens)
 
-        doc_to_index = {entry.text: entry for entry in self._index}
+        if prebuilt_indices is not None:
+            doc_to_index = {entry.text: entry for entry in prebuilt_indices}
+        else:
+            doc_to_index = {entry.text: entry for entry in self._index}
         scores = np.zeros(len(docs), dtype=np.float32)
         for idx, doc_text in enumerate(docs):
             doc_index = doc_to_index.get(doc_text)
@@ -218,25 +212,20 @@ class StaticColBERTReranker:
 
         return scores
 
-    def rerank(self, query: str, docs: list[str]) -> list[RankedDoc]:
-        """Rerank documents by late-interaction MaxSim score.
-
-        Auto-fits on the provided documents if not already fitted.
-
-        Args:
-            query: Search query.
-            docs: Documents to rerank.
-
-        Returns:
-            Ranked list of RankedDoc.
-        """
+    def rerank(
+        self,
+        query: str,
+        docs: list[str],
+        *,
+        prebuilt_indices: list[TokenIndex] | None = None,
+    ) -> list[RankedDoc]:
         if not docs:
             return []
 
         if not self.is_fitted:
-            self.fit(docs)
+            raise RuntimeError("StaticColBERTReranker is not fitted. Call fit() or load() first.")
 
-        scores = self.score(query, docs)
+        scores = self.score(query, docs, prebuilt_indices=prebuilt_indices)
         ranked = sorted(
             zip(docs, scores, strict=False),
             key=lambda item: float(item[1]),
@@ -251,6 +240,66 @@ class StaticColBERTReranker:
             )
             for rank, (doc, score) in enumerate(ranked, start=1)
         ]
+
+    def rerank_batch(
+        self,
+        queries: list[str],
+        docs: list[str],
+    ) -> list[list[RankedDoc]]:
+        if not queries:
+            return []
+        if not self.is_fitted:
+            raise RuntimeError("StaticColBERTReranker is not fitted. Call fit() or load() first.")
+        all_query_tokens = [self._tokenize(q) for q in queries]
+        flat_tokens = [t for tokens in all_query_tokens for t in tokens]
+        if flat_tokens:
+            all_vectors = self._encode_tokens(flat_tokens)
+        else:
+            all_vectors = np.zeros((0, self.embedder.dimension), dtype=np.float32)
+        query_vectors_list: list[np.ndarray] = []
+        offset = 0
+        for tokens in all_query_tokens:
+            n = len(tokens)
+            if n == 0:
+                query_vectors_list.append(np.zeros((0, self.embedder.dimension), dtype=np.float32))
+            else:
+                query_vectors_list.append(all_vectors[offset : offset + n])
+                offset += n
+
+        doc_to_index = {entry.text: entry for entry in self._index}
+        results: list[list[RankedDoc]] = []
+        for q_idx, _query in enumerate(queries):
+            q_vecs = query_vectors_list[q_idx]
+            scores = np.zeros(len(docs), dtype=np.float32)
+            for d_idx, doc_text in enumerate(docs):
+                entry = doc_to_index.get(doc_text)
+                if entry is None:
+                    continue
+                doc_vectors = (
+                    dequantize(entry.quantized) if entry.quantized is not None else entry.vectors
+                )
+                if doc_vectors.shape[0] == 0:
+                    continue
+                if entry.salience is not None:
+                    doc_vectors = doc_vectors * entry.salience[:, np.newaxis]
+                scores[d_idx] = self._maxsim(q_vecs, doc_vectors)
+            ranked = sorted(
+                zip(docs, scores, strict=False),
+                key=lambda item: float(item[1]),
+                reverse=True,
+            )
+            results.append(
+                [
+                    RankedDoc(
+                        doc=doc,
+                        score=float(score),
+                        rank=rank,
+                        metadata={"strategy": "late_interaction"},
+                    )
+                    for rank, (doc, score) in enumerate(ranked, start=1)
+                ]
+            )
+        return results
 
     def save(self, path: str | Path) -> None:
         """Persist the late-interaction reranker to disk.

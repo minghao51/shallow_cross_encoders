@@ -8,9 +8,12 @@ training a student model.
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 import numpy as np
+
+from reranker.persistence import save_safe, try_load_safe_or_warn
 
 
 class FlashRankEnsemble:
@@ -130,3 +133,40 @@ class FlashRankEnsemble:
         scores = self.score_batch(query, docs)
         ranked = sorted(zip(docs, scores, strict=True), key=lambda x: x[1], reverse=True)
         return [RankedDoc(doc=d, score=s, rank=i + 1) for i, (d, s) in enumerate(ranked)]
+
+    def save(self, path: str | Path) -> None:
+        """Persist the ensemble configuration to disk.
+
+        Serialises the model name list so the ensemble can be reconstructed.
+        The actual FlashRank model weights are re-loaded lazily on next use.
+
+        Args:
+            path: Destination file path.
+        """
+        save_safe(
+            path,
+            artifact_type="flashrank_ensemble",
+            metadata={"models": self.models},
+            weights={},
+        )
+
+    @classmethod
+    def load(cls, path: str | Path) -> FlashRankEnsemble:
+        """Load a saved FlashRankEnsemble from disk.
+
+        Args:
+            path: Path to the saved artifact.
+
+        Returns:
+            Reconstructed FlashRankEnsemble instance.
+        """
+
+        def _no_legacy(p: Path) -> dict[str, Any]:
+            raise ValueError(f"No legacy loader for flashrank_ensemble: {p}")
+
+        payload = try_load_safe_or_warn(
+            path,
+            expected_type="flashrank_ensemble",
+            legacy_loader=_no_legacy,
+        )
+        return cls(models=payload.get("models", []))
