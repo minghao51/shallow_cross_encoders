@@ -1,0 +1,4502 @@
+[
+  {
+    "query": "simple interest calculation example",
+    "doc": "Compound interest applies to accumulated principal plus earned interest, while simple interest is calculated only on the original principal amount.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "simple interest calculation example",
+    "doc": "Stock market indices track the performance of a basket of selected equities.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "haploid diploid cell division comparison",
+    "doc": "Mitosis produces two genetically identical daughter cells, while meiosis produces four genetically diverse haploid cells for sexual reproduction.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "haploid diploid cell division comparison",
+    "doc": "DNA replication occurs during the S phase of the cell cycle.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "safe retry behavior HTTP methods",
+    "doc": "Idempotent HTTP methods like PUT and DELETE produce the same result regardless of how many times they are called, enabling safe retries.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "safe retry behavior HTTP methods",
+    "doc": "WebSockets provide full-duplex communication channels over a single TCP connection.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "stages of meiosis prophase metaphase",
+    "doc": "Mitosis produces two genetically identical daughter cells, while meiosis produces four genetically diverse haploid cells for sexual reproduction.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "stages of meiosis prophase metaphase",
+    "doc": "DNA replication occurs during the S phase of the cell cycle.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "intellectual property fair use doctrine",
+    "doc": "Fair use permits limited use of copyrighted material for purposes such as criticism, commentary, news reporting, and research without permission.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "intellectual property fair use doctrine",
+    "doc": "Patents protect inventions for twenty years from the filing date.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "difference between compound and simple interest",
+    "doc": "Compound interest applies to accumulated principal plus earned interest, while simple interest is calculated only on the original principal amount.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "difference between compound and simple interest",
+    "doc": "Stock market indices track the performance of a basket of selected equities.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "mitosis vs meiosis cell division",
+    "doc": "Mitosis produces two genetically identical daughter cells, while meiosis produces four genetically diverse haploid cells for sexual reproduction.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "mitosis vs meiosis cell division",
+    "doc": "DNA replication occurs during the S phase of the cell cycle.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "why transformers use multi-head attention",
+    "doc": "Self-attention computes weighted sums of value vectors where weights come from dot-product similarity between query and key projections.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "why transformers use multi-head attention",
+    "doc": "Convolutional neural networks apply sliding filters to detect spatial patterns.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "gradient descent learning rate tuning",
+    "doc": "A learning rate that is too large causes oscillation around minima, while one that is too small results in slow convergence.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "gradient descent learning rate tuning",
+    "doc": "Decision trees split on features that maximize information gain at each node.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "scaled dot-product attention formula",
+    "doc": "Self-attention computes weighted sums of value vectors where weights come from dot-product similarity between query and key projections.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "scaled dot-product attention formula",
+    "doc": "Convolutional neural networks apply sliding filters to detect spatial patterns.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "net present value investment decision",
+    "doc": "NPV discounts future cash flows to present value using a required rate of return; positive NPV indicates a value-creating investment.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "net present value investment decision",
+    "doc": "Technical analysis uses chart patterns to predict short-term price movements.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "spaced repetition learning retention",
+    "doc": "Spaced repetition schedules reviews at increasing intervals, exploiting the spacing effect to strengthen long-term memory retention.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "spaced repetition learning retention",
+    "doc": "Active learning engages students through discussion and problem-solving activities.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "python dataclass default factory",
+    "doc": "Use field(default_factory=list) to avoid shared mutable defaults in dataclasses.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "python dataclass default factory",
+    "doc": "JavaScript arrays can be cloned with the spread operator.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "cross-encoder bi-encoder architecture difference",
+    "doc": "Cross-encoders process query and document jointly through attention for accurate scoring, while bi-encoders embed them independently for faster retrieval.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "cross-encoder bi-encoder architecture difference",
+    "doc": "Word embeddings map tokens to dense vectors capturing semantic similarity.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "greenhouse effect vs global warming",
+    "doc": "The greenhouse effect is a natural process trapping heat in the atmosphere, while global warming refers to the human-amplified increase in average temperatures.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "greenhouse effect vs global warming",
+    "doc": "Plate tectonics explains the movement of Earth's lithospheric plates.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "Singapore property value near primary schools",
+    "doc": "Properties near sought-after primary schools often attract stronger demand in Singapore.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "Singapore property value near primary schools",
+    "doc": "Ocean currents influence monsoon weather patterns across the region.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "difference between mitosis and meiosis",
+    "doc": "Mitosis produces two genetically identical daughter cells, while meiosis produces four genetically diverse haploid cells for sexual reproduction.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "difference between mitosis and meiosis",
+    "doc": "DNA replication occurs during the S phase of the cell cycle.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "okapi BM25 vs vector space model",
+    "doc": "BM25 emphasizes exact term overlap and document length normalization for ranking.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "okapi BM25 vs vector space model",
+    "doc": "Dense embeddings are usually trained with contrastive objectives.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "higher order thinking skills Bloom framework",
+    "doc": "Bloom's Taxonomy orders cognitive skills from remembering and understanding through applying, analyzing, evaluating, and creating.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "higher order thinking skills Bloom framework",
+    "doc": "Standardized tests measure student performance against a common benchmark.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "singapore hdb school proximity value",
+    "doc": "Properties near sought-after primary schools often attract stronger demand in Singapore.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "singapore hdb school proximity value",
+    "doc": "Ocean currents influence monsoon weather patterns across the region.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "dimensional modeling best practices",
+    "doc": "A star schema centers a fact table surrounded by dimension tables, optimizing for analytical queries with simple joins.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "dimensional modeling best practices",
+    "doc": "ETL pipelines extract data from source systems, transform it, and load it into targets.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how many cells produced mitosis meiosis",
+    "doc": "Mitosis produces two genetically identical daughter cells, while meiosis produces four genetically diverse haploid cells for sexual reproduction.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how many cells produced mitosis meiosis",
+    "doc": "DNA replication occurs during the S phase of the cell cycle.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "contract claim filing deadline time limit",
+    "doc": "The statute of limitations sets a deadline for filing a breach of contract claim, typically ranging from three to six years depending on jurisdiction.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "contract claim filing deadline time limit",
+    "doc": "Mediation is a voluntary process where a neutral third party facilitates negotiation.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "authorization code vs implicit grant OAuth2",
+    "doc": "The authorization code flow redirects the user to the provider, returns a code to the client, which then exchanges it for an access token server-to-server.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "authorization code vs implicit grant OAuth2",
+    "doc": "Firewalls filter network traffic based on predefined security rules.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "Bayesian inference updating priors with evidence",
+    "doc": "Bayes' theorem relates P(A|B) to P(B|A) through the ratio of priors, enabling updating beliefs with new evidence.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "Bayesian inference updating priors with evidence",
+    "doc": "The central limit theorem states that sample means converge to a normal distribution.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "difference between semantic and keyword search",
+    "doc": "Semantic search understands query intent and contextual meaning using embeddings, while keyword search matches exact terms regardless of meaning.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "difference between semantic and keyword search",
+    "doc": "PageRank ranks web pages based on the quantity and quality of inbound links.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "python dataclass mutable default argument workaround",
+    "doc": "Use field(default_factory=list) to avoid shared mutable defaults in dataclasses.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "python dataclass mutable default argument workaround",
+    "doc": "JavaScript arrays can be cloned with the spread operator.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "k8s pod crash loop backoff behavior",
+    "doc": "The Always restart policy ensures that containers are restarted regardless of the exit code, maintaining service availability.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "k8s pod crash loop backoff behavior",
+    "doc": "Docker volumes persist data across container lifecycle events.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "conditional probability P(A|B) vs P(B|A)",
+    "doc": "Bayes' theorem relates P(A|B) to P(B|A) through the ratio of priors, enabling updating beliefs with new evidence.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "conditional probability P(A|B) vs P(B|A)",
+    "doc": "The central limit theorem states that sample means converge to a normal distribution.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "autoimmune diabetes vs insulin resistance",
+    "doc": "Type 1 diabetes is an autoimmune condition destroying insulin-producing cells, while type 2 involves insulin resistance and relative deficiency.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "autoimmune diabetes vs insulin resistance",
+    "doc": "Cardiovascular exercise strengthens the heart muscle and improves circulation.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "compound interest vs simple interest formula",
+    "doc": "Compound interest applies to accumulated principal plus earned interest, while simple interest is calculated only on the original principal amount.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "compound interest vs simple interest formula",
+    "doc": "Stock market indices track the performance of a basket of selected equities.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "discount rate in net present value analysis",
+    "doc": "NPV discounts future cash flows to present value using a required rate of return; positive NPV indicates a value-creating investment.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "discount rate in net present value analysis",
+    "doc": "Technical analysis uses chart patterns to predict short-term price movements.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "learning rate too high too low effects",
+    "doc": "A learning rate that is too large causes oscillation around minima, while one that is too small results in slow convergence.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "learning rate too high too low effects",
+    "doc": "Decision trees split on features that maximize information gain at each node.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "cache invalidation strategies explained",
+    "doc": "Cache invalidation strategies include time-to-live expiration, write-through updates, and explicit purge events to maintain data consistency.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "cache invalidation strategies explained",
+    "doc": "Load balancers distribute incoming requests across multiple backend servers.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how vector embeddings improve search relevance",
+    "doc": "Semantic search understands query intent and contextual meaning using embeddings, while keyword search matches exact terms regardless of meaning.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how vector embeddings improve search relevance",
+    "doc": "PageRank ranks web pages based on the quantity and quality of inbound links.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "apache spark lazy evaluation advantage",
+    "doc": "Spark's lazy evaluation builds a DAG of transformations and only executes when an action is called, enabling query optimization and fault tolerance.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "apache spark lazy evaluation advantage",
+    "doc": "Apache Kafka streams events between distributed systems in real time.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "why use star schema for analytics",
+    "doc": "A star schema centers a fact table surrounded by dimension tables, optimizing for analytical queries with simple joins.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "why use star schema for analytics",
+    "doc": "ETL pipelines extract data from source systems, transform it, and load it into targets.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how spaced repetition improves memory retention",
+    "doc": "Spaced repetition schedules reviews at increasing intervals, exploiting the spacing effect to strengthen long-term memory retention.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how spaced repetition improves memory retention",
+    "doc": "Active learning engages students through discussion and problem-solving activities.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "star schema vs snowflake schema difference",
+    "doc": "A star schema centers a fact table surrounded by dimension tables, optimizing for analytical queries with simple joins.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "star schema vs snowflake schema difference",
+    "doc": "ETL pipelines extract data from source systems, transform it, and load it into targets.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how to calculate NPV for investment projects",
+    "doc": "NPV discounts future cash flows to present value using a required rate of return; positive NPV indicates a value-creating investment.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how to calculate NPV for investment projects",
+    "doc": "Technical analysis uses chart patterns to predict short-term price movements.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "six levels of Bloom's Taxonomy explained",
+    "doc": "Bloom's Taxonomy orders cognitive skills from remembering and understanding through applying, analyzing, evaluating, and creating.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "six levels of Bloom's Taxonomy explained",
+    "doc": "Standardized tests measure student performance against a common benchmark.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "why does useEffect need cleanup function",
+    "doc": "The cleanup function returned from useEffect runs before the component unmounts or before the effect re-runs, preventing memory leaks from subscriptions or timers.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "why does useEffect need cleanup function",
+    "doc": "CSS Grid layout divides a page into rows and columns for two-dimensional positioning.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "difference between type 1 and type 2 diabetes",
+    "doc": "Type 1 diabetes is an autoimmune condition destroying insulin-producing cells, while type 2 involves insulin resistance and relative deficiency.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "difference between type 1 and type 2 diabetes",
+    "doc": "Cardiovascular exercise strengthens the heart muscle and improves circulation.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how does BM25 ranking algorithm work",
+    "doc": "BM25 emphasizes exact term overlap and document length normalization for ranking.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how does BM25 ranking algorithm work",
+    "doc": "Dense embeddings are usually trained with contrastive objectives.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "useEffect componentWillUnmount equivalent",
+    "doc": "The cleanup function returned from useEffect runs before the component unmounts or before the effect re-runs, preventing memory leaks from subscriptions or timers.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "useEffect componentWillUnmount equivalent",
+    "doc": "CSS Grid layout divides a page into rows and columns for two-dimensional positioning.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "optimal review intervals for long-term memory",
+    "doc": "Spaced repetition schedules reviews at increasing intervals, exploiting the spacing effect to strengthen long-term memory retention.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "optimal review intervals for long-term memory",
+    "doc": "Active learning engages students through discussion and problem-solving activities.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "dropout regularization explained",
+    "doc": "L2 regularization adds the squared magnitude of weights to the loss function, penalizing large parameters and reducing overfitting.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "dropout regularization explained",
+    "doc": "Ensemble methods combine multiple weak learners to improve predictive accuracy.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "caching strategies cache invalidation",
+    "doc": "Cache invalidation strategies include time-to-live expiration, write-through updates, and explicit purge events to maintain data consistency.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "caching strategies cache invalidation",
+    "doc": "Load balancers distribute incoming requests across multiple backend servers.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how greenhouse gases trap heat in atmosphere",
+    "doc": "The greenhouse effect is a natural process trapping heat in the atmosphere, while global warming refers to the human-amplified increase in average temperatures.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how greenhouse gases trap heat in atmosphere",
+    "doc": "Plate tectonics explains the movement of Earth's lithospheric plates.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "why compound interest earns more than simple",
+    "doc": "Compound interest applies to accumulated principal plus earned interest, while simple interest is calculated only on the original principal amount.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "why compound interest earns more than simple",
+    "doc": "Stock market indices track the performance of a basket of selected equities.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "OAuth2 flow redirect exchange access token",
+    "doc": "The authorization code flow redirects the user to the provider, returns a code to the client, which then exchanges it for an access token server-to-server.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "OAuth2 flow redirect exchange access token",
+    "doc": "Firewalls filter network traffic based on predefined security rules.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "difference between greenhouse effect and global warming",
+    "doc": "The greenhouse effect is a natural process trapping heat in the atmosphere, while global warming refers to the human-amplified increase in average temperatures.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "difference between greenhouse effect and global warming",
+    "doc": "Plate tectonics explains the movement of Earth's lithospheric plates.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "what qualifies as fair use copyright law",
+    "doc": "Fair use permits limited use of copyrighted material for purposes such as criticism, commentary, news reporting, and research without permission.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "what qualifies as fair use copyright law",
+    "doc": "Patents protect inventions for twenty years from the filing date.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how does self-attention work in transformers",
+    "doc": "Self-attention computes weighted sums of value vectors where weights come from dot-product similarity between query and key projections.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how does self-attention work in transformers",
+    "doc": "Convolutional neural networks apply sliding filters to detect spatial patterns.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "data warehouse star schema design",
+    "doc": "A star schema centers a fact table surrounded by dimension tables, optimizing for analytical queries with simple joins.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "data warehouse star schema design",
+    "doc": "ETL pipelines extract data from source systems, transform it, and load it into targets.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "default_factory list dict dataclass example",
+    "doc": "Use field(default_factory=list) to avoid shared mutable defaults in dataclasses.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "default_factory list dict dataclass example",
+    "doc": "JavaScript arrays can be cloned with the spread operator.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "BM25 term frequency document length normalization",
+    "doc": "BM25 emphasizes exact term overlap and document length normalization for ranking.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "BM25 term frequency document length normalization",
+    "doc": "Dense embeddings are usually trained with contrastive objectives.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "inverted index search engine structure",
+    "doc": "An inverted index maps each term to a postings list of document IDs, enabling fast lookup of documents containing query terms.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "inverted index search engine structure",
+    "doc": "Relational databases use B-tree indexes for range queries on numeric columns.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "NPV vs IRR capital budgeting comparison",
+    "doc": "NPV discounts future cash flows to present value using a required rate of return; positive NPV indicates a value-creating investment.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "NPV vs IRR capital budgeting comparison",
+    "doc": "Technical analysis uses chart patterns to predict short-term price movements.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "kubernetes restartPolicy options explained",
+    "doc": "The Always restart policy ensures that containers are restarted regardless of the exit code, maintaining service availability.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "kubernetes restartPolicy options explained",
+    "doc": "Docker volumes persist data across container lifecycle events.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "avoid shared mutable defaults dataclass field",
+    "doc": "Use field(default_factory=list) to avoid shared mutable defaults in dataclasses.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "avoid shared mutable defaults dataclass field",
+    "doc": "JavaScript arrays can be cloned with the spread operator.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "when to use Always restart policy k8s",
+    "doc": "The Always restart policy ensures that containers are restarted regardless of the exit code, maintaining service availability.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "when to use Always restart policy k8s",
+    "doc": "Docker volumes persist data across container lifecycle events.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "contextlib context manager decorator python",
+    "doc": "A context manager implements __enter__ and __exit__ to manage resource lifecycle such as file handles or database connections.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "contextlib context manager decorator python",
+    "doc": "Python decorators wrap functions to add behavior without modifying source code.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "dense retrieval vs sparse retrieval comparison",
+    "doc": "Semantic search understands query intent and contextual meaning using embeddings, while keyword search matches exact terms regardless of meaning.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "dense retrieval vs sparse retrieval comparison",
+    "doc": "PageRank ranks web pages based on the quantity and quality of inbound links.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how to choose learning rate for gradient descent",
+    "doc": "A learning rate that is too large causes oscillation around minima, while one that is too small results in slow convergence.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how to choose learning rate for gradient descent",
+    "doc": "Decision trees split on features that maximize information gain at each node.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "cache consistency distributed systems",
+    "doc": "Cache invalidation strategies include time-to-live expiration, write-through updates, and explicit purge events to maintain data consistency.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "cache consistency distributed systems",
+    "doc": "Load balancers distribute incoming requests across multiple backend servers.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "when does statute of limitations start for contracts",
+    "doc": "The statute of limitations sets a deadline for filing a breach of contract claim, typically ranging from three to six years depending on jurisdiction.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "when does statute of limitations start for contracts",
+    "doc": "Mediation is a voluntary process where a neutral third party facilitates negotiation.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "Bloom's Taxonomy from remembering to creating",
+    "doc": "Bloom's Taxonomy orders cognitive skills from remembering and understanding through applying, analyzing, evaluating, and creating.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "Bloom's Taxonomy from remembering to creating",
+    "doc": "Standardized tests measure student performance against a common benchmark.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "semantic search vs keyword search",
+    "doc": "Semantic search understands query intent and contextual meaning using embeddings, while keyword search matches exact terms regardless of meaning.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "semantic search vs keyword search",
+    "doc": "PageRank ranks web pages based on the quantity and quality of inbound links.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how much of copyrighted material can you use",
+    "doc": "Fair use permits limited use of copyrighted material for purposes such as criticism, commentary, news reporting, and research without permission.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how much of copyrighted material can you use",
+    "doc": "Patents protect inventions for twenty years from the filing date.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "does living near good schools increase HDB resale price",
+    "doc": "Properties near sought-after primary schools often attract stronger demand in Singapore.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "does living near good schools increase HDB resale price",
+    "doc": "Ocean currents influence monsoon weather patterns across the region.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "react useEffect return function memory leak",
+    "doc": "The cleanup function returned from useEffect runs before the component unmounts or before the effect re-runs, preventing memory leaks from subscriptions or timers.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "react useEffect return function memory leak",
+    "doc": "CSS Grid layout divides a page into rows and columns for two-dimensional positioning.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how tf-idf calculates term importance",
+    "doc": "TF-IDF multiplies term frequency by inverse document frequency to down-weight common words and highlight distinctive terms.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how tf-idf calculates term importance",
+    "doc": "Neural networks learn representations through gradient-based optimization.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "python concurrent I/O without threads asyncio",
+    "doc": "The asyncio event loop schedules and runs coroutines cooperatively, enabling concurrent I/O without threads.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "python concurrent I/O without threads asyncio",
+    "doc": "Python list comprehensions provide a concise way to create new lists.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "school distance effect on Singapore housing prices",
+    "doc": "Properties near sought-after primary schools often attract stronger demand in Singapore.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "school distance effect on Singapore housing prices",
+    "doc": "Ocean currents influence monsoon weather patterns across the region.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "bi-encoder retrieval speed vs cross-encoder accuracy",
+    "doc": "Cross-encoders process query and document jointly through attention for accurate scoring, while bi-encoders embed them independently for faster retrieval.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "bi-encoder retrieval speed vs cross-encoder accuracy",
+    "doc": "Word embeddings map tokens to dense vectors capturing semantic similarity.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "why does Spark use lazy evaluation",
+    "doc": "Spark's lazy evaluation builds a DAG of transformations and only executes when an action is called, enabling query optimization and fault tolerance.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "why does Spark use lazy evaluation",
+    "doc": "Apache Kafka streams events between distributed systems in real time.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how to prevent overfitting in machine learning models",
+    "doc": "L2 regularization adds the squared magnitude of weights to the loss function, penalizing large parameters and reducing overfitting.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how to prevent overfitting in machine learning models",
+    "doc": "Ensemble methods combine multiple weak learners to improve predictive accuracy.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "PKCE extension OAuth2 public clients",
+    "doc": "The authorization code flow redirects the user to the provider, returns a code to the client, which then exchanges it for an access token server-to-server.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "PKCE extension OAuth2 public clients",
+    "doc": "Firewalls filter network traffic based on predefined security rules.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "can type 2 diabetes become insulin dependent",
+    "doc": "Type 1 diabetes is an autoimmune condition destroying insulin-producing cells, while type 2 involves insulin resistance and relative deficiency.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "can type 2 diabetes become insulin dependent",
+    "doc": "Cardiovascular exercise strengthens the heart muscle and improves circulation.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "which HTTP methods are idempotent",
+    "doc": "Idempotent HTTP methods like PUT and DELETE produce the same result regardless of how many times they are called, enabling safe retries.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "which HTTP methods are idempotent",
+    "doc": "WebSockets provide full-duplex communication channels over a single TCP connection.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "oauth2 authorization code flow steps",
+    "doc": "The authorization code flow redirects the user to the provider, returns a code to the client, which then exchanges it for an access token server-to-server.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "oauth2 authorization code flow steps",
+    "doc": "Firewalls filter network traffic based on predefined security rules.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "react useEffect cleanup function purpose",
+    "doc": "The cleanup function returned from useEffect runs before the component unmounts or before the effect re-runs, preventing memory leaks from subscriptions or timers.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "react useEffect cleanup function purpose",
+    "doc": "CSS Grid layout divides a page into rows and columns for two-dimensional positioning.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "Spark DAG execution plan optimization",
+    "doc": "Spark's lazy evaluation builds a DAG of transformations and only executes when an action is called, enabling query optimization and fault tolerance.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "Spark DAG execution plan optimization",
+    "doc": "Apache Kafka streams events between distributed systems in real time.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "spacing effect learning science evidence",
+    "doc": "Spaced repetition schedules reviews at increasing intervals, exploiting the spacing effect to strengthen long-term memory retention.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "spacing effect learning science evidence",
+    "doc": "Active learning engages students through discussion and problem-solving activities.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "global warming causes and evidence",
+    "doc": "The greenhouse effect is a natural process trapping heat in the atmosphere, while global warming refers to the human-amplified increase in average temperatures.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "global warming causes and evidence",
+    "doc": "Plate tectonics explains the movement of Earth's lithospheric plates.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "fact table dimension table data warehouse",
+    "doc": "A star schema centers a fact table surrounded by dimension tables, optimizing for analytical queries with simple joins.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "fact table dimension table data warehouse",
+    "doc": "ETL pipelines extract data from source systems, transform it, and load it into targets.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "building a search index from scratch",
+    "doc": "An inverted index maps each term to a postings list of document IDs, enabling fast lookup of documents containing query terms.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "building a search index from scratch",
+    "doc": "Relational databases use B-tree indexes for range queries on numeric columns.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "applying Bloom's Taxonomy in lesson planning",
+    "doc": "Bloom's Taxonomy orders cognitive skills from remembering and understanding through applying, analyzing, evaluating, and creating.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "applying Bloom's Taxonomy in lesson planning",
+    "doc": "Standardized tests measure student performance against a common benchmark.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "rest api idempotent methods",
+    "doc": "Idempotent HTTP methods like PUT and DELETE produce the same result regardless of how many times they are called, enabling safe retries.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "rest api idempotent methods",
+    "doc": "WebSockets provide full-duplex communication channels over a single TCP connection.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "when to use cross-encoder for reranking",
+    "doc": "Cross-encoders process query and document jointly through attention for accurate scoring, while bi-encoders embed them independently for faster retrieval.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "when to use cross-encoder for reranking",
+    "doc": "Word embeddings map tokens to dense vectors capturing semantic similarity.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "type 1 vs type 2 diabetes difference",
+    "doc": "Type 1 diabetes is an autoimmune condition destroying insulin-producing cells, while type 2 involves insulin resistance and relative deficiency.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "type 1 vs type 2 diabetes difference",
+    "doc": "Cardiovascular exercise strengthens the heart muscle and improves circulation.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "tf-idf vs raw term frequency comparison",
+    "doc": "TF-IDF multiplies term frequency by inverse document frequency to down-weight common words and highlight distinctive terms.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "tf-idf vs raw term frequency comparison",
+    "doc": "Neural networks learn representations through gradient-based optimization.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "statute of limitations contract law by jurisdiction",
+    "doc": "The statute of limitations sets a deadline for filing a breach of contract claim, typically ranging from three to six years depending on jurisdiction.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "statute of limitations contract law by jurisdiction",
+    "doc": "Mediation is a voluntary process where a neutral third party facilitates negotiation.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "L1 vs L2 regularization difference",
+    "doc": "L2 regularization adds the squared magnitude of weights to the loss function, penalizing large parameters and reducing overfitting.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "L1 vs L2 regularization difference",
+    "doc": "Ensemble methods combine multiple weak learners to improve predictive accuracy.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "fair use vs public domain difference",
+    "doc": "Fair use permits limited use of copyrighted material for purposes such as criticism, commentary, news reporting, and research without permission.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "fair use vs public domain difference",
+    "doc": "Patents protect inventions for twenty years from the filing date.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "bloom taxonomy cognitive levels hierarchy",
+    "doc": "Bloom's Taxonomy orders cognitive skills from remembering and understanding through applying, analyzing, evaluating, and creating.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "bloom taxonomy cognitive levels hierarchy",
+    "doc": "Standardized tests measure student performance against a common benchmark.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "query key value attention mechanism NLP",
+    "doc": "Self-attention computes weighted sums of value vectors where weights come from dot-product similarity between query and key projections.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "query key value attention mechanism NLP",
+    "doc": "Convolutional neural networks apply sliding filters to detect spatial patterns.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "TTL write-through write-back cache policies",
+    "doc": "Cache invalidation strategies include time-to-live expiration, write-through updates, and explicit purge events to maintain data consistency.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "TTL write-through write-back cache policies",
+    "doc": "Load balancers distribute incoming requests across multiple backend servers.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "python context manager with statement",
+    "doc": "A context manager implements __enter__ and __exit__ to manage resource lifecycle such as file handles or database connections.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "python context manager with statement",
+    "doc": "Python decorators wrap functions to add behavior without modifying source code.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "transformation vs action in Apache Spark",
+    "doc": "Spark's lazy evaluation builds a DAG of transformations and only executes when an action is called, enabling query optimization and fault tolerance.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "transformation vs action in Apache Spark",
+    "doc": "Apache Kafka streams events between distributed systems in real time.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "bm25 exact term match retrieval",
+    "doc": "BM25 emphasizes exact term overlap and document length normalization for ranking.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "bm25 exact term match retrieval",
+    "doc": "Dense embeddings are usually trained with contrastive objectives.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "positive NPV means good investment",
+    "doc": "NPV discounts future cash flows to present value using a required rate of return; positive NPV indicates a value-creating investment.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "positive NPV means good investment",
+    "doc": "Technical analysis uses chart patterns to predict short-term price movements.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "CI CD build test deploy workflow",
+    "doc": "A typical CI/CD pipeline includes build, test, security scan, staging deployment, and production rollout stages with automated rollback.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "CI CD build test deploy workflow",
+    "doc": "Agile sprints organize development work into fixed-length iterations.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "type 1 diabetes causes symptoms treatment",
+    "doc": "Type 1 diabetes is an autoimmune condition destroying insulin-producing cells, while type 2 involves insulin resistance and relative deficiency.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "type 1 diabetes causes symptoms treatment",
+    "doc": "Cardiovascular exercise strengthens the heart muscle and improves circulation.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "python async await event loop",
+    "doc": "The asyncio event loop schedules and runs coroutines cooperatively, enabling concurrent I/O without threads.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "python async await event loop",
+    "doc": "Python list comprehensions provide a concise way to create new lists.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "bayes theorem conditional probability",
+    "doc": "Bayes' theorem relates P(A|B) to P(B|A) through the ratio of priors, enabling updating beliefs with new evidence.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "bayes theorem conditional probability",
+    "doc": "The central limit theorem states that sample means converge to a normal distribution.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "HDB flat proximity to schools impact on demand",
+    "doc": "Properties near sought-after primary schools often attract stronger demand in Singapore.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "HDB flat proximity to schools impact on demand",
+    "doc": "Ocean currents influence monsoon weather patterns across the region.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "fair use four factors explained",
+    "doc": "Fair use permits limited use of copyrighted material for purposes such as criticism, commentary, news reporting, and research without permission.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "fair use four factors explained",
+    "doc": "Patents protect inventions for twenty years from the filing date.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "adaptive learning rate optimizers Adam SGD",
+    "doc": "A learning rate that is too large causes oscillation around minima, while one that is too small results in slow convergence.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "adaptive learning rate optimizers Adam SGD",
+    "doc": "Decision trees split on features that maximize information gain at each node.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "cross-encoder vs bi-encoder reranking",
+    "doc": "Cross-encoders process query and document jointly through attention for accurate scoring, while bi-encoders embed them independently for faster retrieval.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "cross-encoder vs bi-encoder reranking",
+    "doc": "Word embeddings map tokens to dense vectors capturing semantic similarity.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "overfitting regularization techniques",
+    "doc": "L2 regularization adds the squared magnitude of weights to the loss function, penalizing large parameters and reducing overfitting.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "overfitting regularization techniques",
+    "doc": "Ensemble methods combine multiple weak learners to improve predictive accuracy.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how to create custom context manager python",
+    "doc": "A context manager implements __enter__ and __exit__ to manage resource lifecycle such as file handles or database connections.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how to create custom context manager python",
+    "doc": "Python decorators wrap functions to add behavior without modifying source code.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "weight decay penalty neural network training",
+    "doc": "L2 regularization adds the squared magnitude of weights to the loss function, penalizing large parameters and reducing overfitting.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "weight decay penalty neural network training",
+    "doc": "Ensemble methods combine multiple weak learners to improve predictive accuracy.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "python __enter__ __exit__ resource management",
+    "doc": "A context manager implements __enter__ and __exit__ to manage resource lifecycle such as file handles or database connections.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "python __enter__ __exit__ resource management",
+    "doc": "Python decorators wrap functions to add behavior without modifying source code.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "with statement resource lifecycle python",
+    "doc": "A context manager implements __enter__ and __exit__ to manage resource lifecycle such as file handles or database connections.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "with statement resource lifecycle python",
+    "doc": "Python decorators wrap functions to add behavior without modifying source code.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how OAuth2 authorization code grant works",
+    "doc": "The authorization code flow redirects the user to the provider, returns a code to the client, which then exchanges it for an access token server-to-server.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how OAuth2 authorization code grant works",
+    "doc": "Firewalls filter network traffic based on predefined security rules.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how to apply Bayes theorem with examples",
+    "doc": "Bayes' theorem relates P(A|B) to P(B|A) through the ratio of priors, enabling updating beliefs with new evidence.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how to apply Bayes theorem with examples",
+    "doc": "The central limit theorem states that sample means converge to a normal distribution.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "postings list document ID mapping search engines",
+    "doc": "An inverted index maps each term to a postings list of document IDs, enabling fast lookup of documents containing query terms.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "postings list document ID mapping search engines",
+    "doc": "Relational databases use B-tree indexes for range queries on numeric columns.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "BM25 scoring formula explained",
+    "doc": "BM25 emphasizes exact term overlap and document length normalization for ranking.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "BM25 scoring formula explained",
+    "doc": "Dense embeddings are usually trained with contrastive objectives.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "two-stage retrieval pipeline reranking",
+    "doc": "Cross-encoders process query and document jointly through attention for accurate scoring, while bi-encoders embed them independently for faster retrieval.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "two-stage retrieval pipeline reranking",
+    "doc": "Word embeddings map tokens to dense vectors capturing semantic similarity.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "learning rate scheduling strategies deep learning",
+    "doc": "A learning rate that is too large causes oscillation around minima, while one that is too small results in slow convergence.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "learning rate scheduling strategies deep learning",
+    "doc": "Decision trees split on features that maximize information gain at each node.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "container restart policy OnFailure vs Always",
+    "doc": "The Always restart policy ensures that containers are restarted regardless of the exit code, maintaining service availability.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "container restart policy OnFailure vs Always",
+    "doc": "Docker volumes persist data across container lifecycle events.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "Anki flashcard spaced repetition algorithm",
+    "doc": "Spaced repetition schedules reviews at increasing intervals, exploiting the spacing effect to strengthen long-term memory retention.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "Anki flashcard spaced repetition algorithm",
+    "doc": "Active learning engages students through discussion and problem-solving activities.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "tf-idf term weighting scheme",
+    "doc": "TF-IDF multiplies term frequency by inverse document frequency to down-weight common words and highlight distinctive terms.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "tf-idf term weighting scheme",
+    "doc": "Neural networks learn representations through gradient-based optimization.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how to clean up subscriptions in React hooks",
+    "doc": "The cleanup function returned from useEffect runs before the component unmounts or before the effect re-runs, preventing memory leaks from subscriptions or timers.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how to clean up subscriptions in React hooks",
+    "doc": "CSS Grid layout divides a page into rows and columns for two-dimensional positioning.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "is the greenhouse effect natural or human caused",
+    "doc": "The greenhouse effect is a natural process trapping heat in the atmosphere, while global warming refers to the human-amplified increase in average temperatures.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "is the greenhouse effect natural or human caused",
+    "doc": "Plate tectonics explains the movement of Earth's lithospheric plates.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how to set default factory in python dataclass",
+    "doc": "Use field(default_factory=list) to avoid shared mutable defaults in dataclasses.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how to set default factory in python dataclass",
+    "doc": "JavaScript arrays can be cloned with the spread operator.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how long do you have to sue for breach of contract",
+    "doc": "The statute of limitations sets a deadline for filing a breach of contract claim, typically ranging from three to six years depending on jurisdiction.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how long do you have to sue for breach of contract",
+    "doc": "Mediation is a voluntary process where a neutral third party facilitates negotiation.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "Spark lazy evaluation fault tolerance",
+    "doc": "Spark's lazy evaluation builds a DAG of transformations and only executes when an action is called, enabling query optimization and fault tolerance.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "Spark lazy evaluation fault tolerance",
+    "doc": "Apache Kafka streams events between distributed systems in real time.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "continuous integration delivery pipeline stages",
+    "doc": "A typical CI/CD pipeline includes build, test, security scan, staging deployment, and production rollout stages with automated rollback.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "continuous integration delivery pipeline stages",
+    "doc": "Agile sprints organize development work into fixed-length iterations.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "why PUT and DELETE are idempotent but POST is not",
+    "doc": "Idempotent HTTP methods like PUT and DELETE produce the same result regardless of how many times they are called, enabling safe retries.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "why PUT and DELETE are idempotent but POST is not",
+    "doc": "WebSockets provide full-duplex communication channels over a single TCP connection.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "kubernetes pod restart policy always",
+    "doc": "The Always restart policy ensures that containers are restarted regardless of the exit code, maintaining service availability.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "kubernetes pod restart policy always",
+    "doc": "Docker volumes persist data across container lifecycle events.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how to handle stale cache data",
+    "doc": "Cache invalidation strategies include time-to-live expiration, write-through updates, and explicit purge events to maintain data consistency.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how to handle stale cache data",
+    "doc": "Load balancers distribute incoming requests across multiple backend servers.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "Bayes theorem real world applications",
+    "doc": "Bayes' theorem relates P(A|B) to P(B|A) through the ratio of priors, enabling updating beliefs with new evidence.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "Bayes theorem real world applications",
+    "doc": "The central limit theorem states that sample means converge to a normal distribution.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "staging to production deployment strategies",
+    "doc": "A typical CI/CD pipeline includes build, test, security scan, staging deployment, and production rollout stages with automated rollback.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "staging to production deployment strategies",
+    "doc": "Agile sprints organize development work into fixed-length iterations.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "ci cd pipeline stages deployment",
+    "doc": "A typical CI/CD pipeline includes build, test, security scan, staging deployment, and production rollout stages with automated rollback.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "ci cd pipeline stages deployment",
+    "doc": "Agile sprints organize development work into fixed-length iterations.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "why rare terms score higher in tf-idf",
+    "doc": "TF-IDF multiplies term frequency by inverse document frequency to down-weight common words and highlight distinctive terms.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "why rare terms score higher in tf-idf",
+    "doc": "Neural networks learn representations through gradient-based optimization.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "python coroutine scheduling cooperative multitasking",
+    "doc": "The asyncio event loop schedules and runs coroutines cooperatively, enabling concurrent I/O without threads.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "python coroutine scheduling cooperative multitasking",
+    "doc": "Python list comprehensions provide a concise way to create new lists.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "understanding async await in python 3",
+    "doc": "The asyncio event loop schedules and runs coroutines cooperatively, enabling concurrent I/O without threads.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "understanding async await in python 3",
+    "doc": "Python list comprehensions provide a concise way to create new lists.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "idempotency in REST API design",
+    "doc": "Idempotent HTTP methods like PUT and DELETE produce the same result regardless of how many times they are called, enabling safe retries.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "idempotency in REST API design",
+    "doc": "WebSockets provide full-duplex communication channels over a single TCP connection.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "inverse document frequency formula explanation",
+    "doc": "TF-IDF multiplies term frequency by inverse document frequency to down-weight common words and highlight distinctive terms.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "inverse document frequency formula explanation",
+    "doc": "Neural networks learn representations through gradient-based optimization.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "understanding query intent in search engines",
+    "doc": "Semantic search understands query intent and contextual meaning using embeddings, while keyword search matches exact terms regardless of meaning.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "understanding query intent in search engines",
+    "doc": "PageRank ranks web pages based on the quantity and quality of inbound links.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how does an inverted index work in search",
+    "doc": "An inverted index maps each term to a postings list of document IDs, enabling fast lookup of documents containing query terms.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how does an inverted index work in search",
+    "doc": "Relational databases use B-tree indexes for range queries on numeric columns.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "transformer attention mechanism explained",
+    "doc": "Self-attention computes weighted sums of value vectors where weights come from dot-product similarity between query and key projections.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "transformer attention mechanism explained",
+    "doc": "Convolutional neural networks apply sliding filters to detect spatial patterns.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "automated deployment pipeline best practices",
+    "doc": "A typical CI/CD pipeline includes build, test, security scan, staging deployment, and production rollout stages with automated rollback.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "automated deployment pipeline best practices",
+    "doc": "Agile sprints organize development work into fixed-length iterations.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how compound interest grows over time formula",
+    "doc": "Compound interest applies to accumulated principal plus earned interest, while simple interest is calculated only on the original principal amount.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how compound interest grows over time formula",
+    "doc": "Stock market indices track the performance of a basket of selected equities.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "statute of limitations breach of contract",
+    "doc": "The statute of limitations sets a deadline for filing a breach of contract claim, typically ranging from three to six years depending on jurisdiction.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "statute of limitations breach of contract",
+    "doc": "Mediation is a voluntary process where a neutral third party facilitates negotiation.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how does python asyncio event loop work",
+    "doc": "The asyncio event loop schedules and runs coroutines cooperatively, enabling concurrent I/O without threads.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how does python asyncio event loop work",
+    "doc": "Python list comprehensions provide a concise way to create new lists.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "inverted index vs forward index difference",
+    "doc": "An inverted index maps each term to a postings list of document IDs, enabling fast lookup of documents containing query terms.",
+    "score": 3,
+    "rationale": "Directly addresses the query with the relevant concept.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "inverted index vs forward index difference",
+    "doc": "Relational databases use B-tree indexes for range queries on numeric columns.",
+    "score": 0,
+    "rationale": "Discusses a different topic from the query.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "Bloom's Taxonomy from remembering to creating",
+    "doc": "Standardized tests measure student performance against a common benchmark. This explanation stays high level.",
+    "score": 0,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "Spark lazy evaluation fault tolerance",
+    "doc": "Apache Kafka streams events between distributed systems in real time. This note adds practical detail.",
+    "score": 1,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "why does Spark use lazy evaluation",
+    "doc": "Spark's lazy evaluation builds a DAG of transformations and only executes when an action is called, enabling query optimization and fault tolerance. This explanation stays high level.",
+    "score": 2,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how to calculate NPV for investment projects",
+    "doc": "NPV discounts future cash flows to present value using a required rate of return; positive NPV indicates a value-creating investment. This example is intentionally compact.",
+    "score": 3,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "why does useEffect need cleanup function",
+    "doc": "CSS Grid layout divides a page into rows and columns for two-dimensional positioning. This note adds practical detail.",
+    "score": 0,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "react useEffect cleanup function purpose",
+    "doc": "CSS Grid layout divides a page into rows and columns for two-dimensional positioning. This statement includes a nearby concept.",
+    "score": 1,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "intellectual property fair use doctrine",
+    "doc": "Fair use permits limited use of copyrighted material for purposes such as criticism, commentary, news reporting, and research without permission. This note adds practical detail.",
+    "score": 2,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "tf-idf vs raw term frequency comparison",
+    "doc": "TF-IDF multiplies term frequency by inverse document frequency to down-weight common words and highlight distinctive terms. This example is intentionally compact.",
+    "score": 3,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "when to use Always restart policy k8s",
+    "doc": "Docker volumes persist data across container lifecycle events. This note adds practical detail.",
+    "score": 0,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "when to use Always restart policy k8s",
+    "doc": "Docker volumes persist data across container lifecycle events. This note adds practical detail.",
+    "score": 1,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how many cells produced mitosis meiosis",
+    "doc": "Mitosis produces two genetically identical daughter cells, while meiosis produces four genetically diverse haploid cells for sexual reproduction. This statement includes a nearby concept.",
+    "score": 2,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "okapi BM25 vs vector space model",
+    "doc": "BM25 emphasizes exact term overlap and document length normalization for ranking. This explanation stays high level.",
+    "score": 3,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "learning rate too high too low effects",
+    "doc": "Decision trees split on features that maximize information gain at each node. This statement includes a nearby concept.",
+    "score": 0,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "idempotency in REST API design",
+    "doc": "WebSockets provide full-duplex communication channels over a single TCP connection. This explanation stays high level.",
+    "score": 1,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "Bloom's Taxonomy from remembering to creating",
+    "doc": "Bloom's Taxonomy orders cognitive skills from remembering and understanding through applying, analyzing, evaluating, and creating. This statement includes a nearby concept.",
+    "score": 2,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "data warehouse star schema design",
+    "doc": "A star schema centers a fact table surrounded by dimension tables, optimizing for analytical queries with simple joins. This explanation stays high level.",
+    "score": 3,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "can type 2 diabetes become insulin dependent",
+    "doc": "Cardiovascular exercise strengthens the heart muscle and improves circulation. This statement includes a nearby concept.",
+    "score": 0,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "fair use vs public domain difference",
+    "doc": "Patents protect inventions for twenty years from the filing date. This statement includes a nearby concept.",
+    "score": 1,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "kubernetes pod restart policy always",
+    "doc": "The Always restart policy ensures that containers are restarted regardless of the exit code, maintaining service availability. This statement includes a nearby concept.",
+    "score": 2,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "compound interest vs simple interest formula",
+    "doc": "Compound interest applies to accumulated principal plus earned interest, while simple interest is calculated only on the original principal amount. This explanation stays high level.",
+    "score": 3,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "inverted index search engine structure",
+    "doc": "Relational databases use B-tree indexes for range queries on numeric columns. This note adds practical detail.",
+    "score": 0,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "fact table dimension table data warehouse",
+    "doc": "ETL pipelines extract data from source systems, transform it, and load it into targets. This note adds practical detail.",
+    "score": 1,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "inverse document frequency formula explanation",
+    "doc": "TF-IDF multiplies term frequency by inverse document frequency to down-weight common words and highlight distinctive terms. This explanation stays high level.",
+    "score": 2,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "BM25 term frequency document length normalization",
+    "doc": "BM25 emphasizes exact term overlap and document length normalization for ranking. This note adds practical detail.",
+    "score": 3,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "higher order thinking skills Bloom framework",
+    "doc": "Standardized tests measure student performance against a common benchmark. This note adds practical detail.",
+    "score": 0,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "NPV vs IRR capital budgeting comparison",
+    "doc": "Technical analysis uses chart patterns to predict short-term price movements. This note adds practical detail.",
+    "score": 1,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "gradient descent learning rate tuning",
+    "doc": "A learning rate that is too large causes oscillation around minima, while one that is too small results in slow convergence. This example is intentionally compact.",
+    "score": 2,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "higher order thinking skills Bloom framework",
+    "doc": "Bloom's Taxonomy orders cognitive skills from remembering and understanding through applying, analyzing, evaluating, and creating. This explanation stays high level.",
+    "score": 3,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "react useEffect return function memory leak",
+    "doc": "CSS Grid layout divides a page into rows and columns for two-dimensional positioning. This statement includes a nearby concept.",
+    "score": 0,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "data warehouse star schema design",
+    "doc": "ETL pipelines extract data from source systems, transform it, and load it into targets. This explanation stays high level.",
+    "score": 1,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how compound interest grows over time formula",
+    "doc": "Compound interest applies to accumulated principal plus earned interest, while simple interest is calculated only on the original principal amount. This statement includes a nearby concept.",
+    "score": 2,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "contextlib context manager decorator python",
+    "doc": "A context manager implements __enter__ and __exit__ to manage resource lifecycle such as file handles or database connections. This statement includes a nearby concept.",
+    "score": 3,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "type 1 diabetes causes symptoms treatment",
+    "doc": "Cardiovascular exercise strengthens the heart muscle and improves circulation. This explanation stays high level.",
+    "score": 0,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "Bayesian inference updating priors with evidence",
+    "doc": "The central limit theorem states that sample means converge to a normal distribution. This note adds practical detail.",
+    "score": 1,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "cross-encoder vs bi-encoder reranking",
+    "doc": "Cross-encoders process query and document jointly through attention for accurate scoring, while bi-encoders embed them independently for faster retrieval. This example is intentionally compact.",
+    "score": 2,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "fair use four factors explained",
+    "doc": "Fair use permits limited use of copyrighted material for purposes such as criticism, commentary, news reporting, and research without permission. This statement includes a nearby concept.",
+    "score": 3,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "BM25 scoring formula explained",
+    "doc": "Dense embeddings are usually trained with contrastive objectives. This note adds practical detail.",
+    "score": 0,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "difference between semantic and keyword search",
+    "doc": "PageRank ranks web pages based on the quantity and quality of inbound links. This note adds practical detail.",
+    "score": 1,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "CI CD build test deploy workflow",
+    "doc": "A typical CI/CD pipeline includes build, test, security scan, staging deployment, and production rollout stages with automated rollback. This example is intentionally compact.",
+    "score": 2,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "k8s pod crash loop backoff behavior",
+    "doc": "The Always restart policy ensures that containers are restarted regardless of the exit code, maintaining service availability. This explanation stays high level.",
+    "score": 3,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "why compound interest earns more than simple",
+    "doc": "Stock market indices track the performance of a basket of selected equities. This explanation stays high level.",
+    "score": 0,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "why rare terms score higher in tf-idf",
+    "doc": "Neural networks learn representations through gradient-based optimization. This statement includes a nearby concept.",
+    "score": 1,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "apache spark lazy evaluation advantage",
+    "doc": "Spark's lazy evaluation builds a DAG of transformations and only executes when an action is called, enabling query optimization and fault tolerance. This statement includes a nearby concept.",
+    "score": 2,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "dropout regularization explained",
+    "doc": "L2 regularization adds the squared magnitude of weights to the loss function, penalizing large parameters and reducing overfitting. This example is intentionally compact.",
+    "score": 3,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "postings list document ID mapping search engines",
+    "doc": "Relational databases use B-tree indexes for range queries on numeric columns. This explanation stays high level.",
+    "score": 0,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "singapore hdb school proximity value",
+    "doc": "Ocean currents influence monsoon weather patterns across the region. This statement includes a nearby concept.",
+    "score": 1,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "idempotency in REST API design",
+    "doc": "Idempotent HTTP methods like PUT and DELETE produce the same result regardless of how many times they are called, enabling safe retries. This note adds practical detail.",
+    "score": 2,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "python dataclass default factory",
+    "doc": "Use field(default_factory=list) to avoid shared mutable defaults in dataclasses. This note adds practical detail.",
+    "score": 3,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "authorization code vs implicit grant OAuth2",
+    "doc": "Firewalls filter network traffic based on predefined security rules. This explanation stays high level.",
+    "score": 0,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "difference between type 1 and type 2 diabetes",
+    "doc": "Cardiovascular exercise strengthens the heart muscle and improves circulation. This statement includes a nearby concept.",
+    "score": 1,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "tf-idf term weighting scheme",
+    "doc": "TF-IDF multiplies term frequency by inverse document frequency to down-weight common words and highlight distinctive terms. This statement includes a nearby concept.",
+    "score": 2,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "data warehouse star schema design",
+    "doc": "A star schema centers a fact table surrounded by dimension tables, optimizing for analytical queries with simple joins. This statement includes a nearby concept.",
+    "score": 3,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "Singapore property value near primary schools",
+    "doc": "Ocean currents influence monsoon weather patterns across the region. This explanation stays high level.",
+    "score": 0,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "query key value attention mechanism NLP",
+    "doc": "Convolutional neural networks apply sliding filters to detect spatial patterns. This note adds practical detail.",
+    "score": 1,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "python context manager with statement",
+    "doc": "A context manager implements __enter__ and __exit__ to manage resource lifecycle such as file handles or database connections. This example is intentionally compact.",
+    "score": 2,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how OAuth2 authorization code grant works",
+    "doc": "The authorization code flow redirects the user to the provider, returns a code to the client, which then exchanges it for an access token server-to-server. This example is intentionally compact.",
+    "score": 3,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "fair use four factors explained",
+    "doc": "Patents protect inventions for twenty years from the filing date. This statement includes a nearby concept.",
+    "score": 0,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how to calculate NPV for investment projects",
+    "doc": "Technical analysis uses chart patterns to predict short-term price movements. This explanation stays high level.",
+    "score": 1,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "bi-encoder retrieval speed vs cross-encoder accuracy",
+    "doc": "Cross-encoders process query and document jointly through attention for accurate scoring, while bi-encoders embed them independently for faster retrieval. This explanation stays high level.",
+    "score": 2,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "greenhouse effect vs global warming",
+    "doc": "The greenhouse effect is a natural process trapping heat in the atmosphere, while global warming refers to the human-amplified increase in average temperatures. This note adds practical detail.",
+    "score": 3,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "which HTTP methods are idempotent",
+    "doc": "WebSockets provide full-duplex communication channels over a single TCP connection. This note adds practical detail.",
+    "score": 0,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "python dataclass default factory",
+    "doc": "JavaScript arrays can be cloned with the spread operator. This statement includes a nearby concept.",
+    "score": 1,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how long do you have to sue for breach of contract",
+    "doc": "The statute of limitations sets a deadline for filing a breach of contract claim, typically ranging from three to six years depending on jurisdiction. This explanation stays high level.",
+    "score": 2,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "greenhouse effect vs global warming",
+    "doc": "The greenhouse effect is a natural process trapping heat in the atmosphere, while global warming refers to the human-amplified increase in average temperatures. This note adds practical detail.",
+    "score": 3,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "caching strategies cache invalidation",
+    "doc": "Load balancers distribute incoming requests across multiple backend servers. This note adds practical detail.",
+    "score": 0,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "okapi BM25 vs vector space model",
+    "doc": "Dense embeddings are usually trained with contrastive objectives. This explanation stays high level.",
+    "score": 1,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "CI CD build test deploy workflow",
+    "doc": "A typical CI/CD pipeline includes build, test, security scan, staging deployment, and production rollout stages with automated rollback. This note adds practical detail.",
+    "score": 2,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "automated deployment pipeline best practices",
+    "doc": "A typical CI/CD pipeline includes build, test, security scan, staging deployment, and production rollout stages with automated rollback. This explanation stays high level.",
+    "score": 3,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how does python asyncio event loop work",
+    "doc": "Python list comprehensions provide a concise way to create new lists. This note adds practical detail.",
+    "score": 0,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "dimensional modeling best practices",
+    "doc": "ETL pipelines extract data from source systems, transform it, and load it into targets. This statement includes a nearby concept.",
+    "score": 1,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "inverted index vs forward index difference",
+    "doc": "An inverted index maps each term to a postings list of document IDs, enabling fast lookup of documents containing query terms. This example is intentionally compact.",
+    "score": 2,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "when does statute of limitations start for contracts",
+    "doc": "The statute of limitations sets a deadline for filing a breach of contract claim, typically ranging from three to six years depending on jurisdiction. This explanation stays high level.",
+    "score": 3,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "which HTTP methods are idempotent",
+    "doc": "WebSockets provide full-duplex communication channels over a single TCP connection. This explanation stays high level.",
+    "score": 0,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "Bloom's Taxonomy from remembering to creating",
+    "doc": "Standardized tests measure student performance against a common benchmark. This statement includes a nearby concept.",
+    "score": 1,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "cache invalidation strategies explained",
+    "doc": "Cache invalidation strategies include time-to-live expiration, write-through updates, and explicit purge events to maintain data consistency. This example is intentionally compact.",
+    "score": 2,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how to apply Bayes theorem with examples",
+    "doc": "Bayes' theorem relates P(A|B) to P(B|A) through the ratio of priors, enabling updating beliefs with new evidence. This example is intentionally compact.",
+    "score": 3,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "higher order thinking skills Bloom framework",
+    "doc": "Standardized tests measure student performance against a common benchmark. This note adds practical detail.",
+    "score": 0,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how to apply Bayes theorem with examples",
+    "doc": "The central limit theorem states that sample means converge to a normal distribution. This note adds practical detail.",
+    "score": 1,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "higher order thinking skills Bloom framework",
+    "doc": "Bloom's Taxonomy orders cognitive skills from remembering and understanding through applying, analyzing, evaluating, and creating. This explanation stays high level.",
+    "score": 2,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "Spark lazy evaluation fault tolerance",
+    "doc": "Spark's lazy evaluation builds a DAG of transformations and only executes when an action is called, enabling query optimization and fault tolerance. This example is intentionally compact.",
+    "score": 3,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "cache invalidation strategies explained",
+    "doc": "Load balancers distribute incoming requests across multiple backend servers. This example is intentionally compact.",
+    "score": 0,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "okapi BM25 vs vector space model",
+    "doc": "Dense embeddings are usually trained with contrastive objectives. This explanation stays high level.",
+    "score": 1,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "L1 vs L2 regularization difference",
+    "doc": "L2 regularization adds the squared magnitude of weights to the loss function, penalizing large parameters and reducing overfitting. This example is intentionally compact.",
+    "score": 2,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "six levels of Bloom's Taxonomy explained",
+    "doc": "Bloom's Taxonomy orders cognitive skills from remembering and understanding through applying, analyzing, evaluating, and creating. This statement includes a nearby concept.",
+    "score": 3,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "understanding async await in python 3",
+    "doc": "Python list comprehensions provide a concise way to create new lists. This example is intentionally compact.",
+    "score": 0,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "staging to production deployment strategies",
+    "doc": "Agile sprints organize development work into fixed-length iterations. This note adds practical detail.",
+    "score": 1,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "inverse document frequency formula explanation",
+    "doc": "TF-IDF multiplies term frequency by inverse document frequency to down-weight common words and highlight distinctive terms. This example is intentionally compact.",
+    "score": 2,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "python dataclass mutable default argument workaround",
+    "doc": "Use field(default_factory=list) to avoid shared mutable defaults in dataclasses. This explanation stays high level.",
+    "score": 3,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "Bloom's Taxonomy from remembering to creating",
+    "doc": "Standardized tests measure student performance against a common benchmark. This note adds practical detail.",
+    "score": 0,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "k8s pod crash loop backoff behavior",
+    "doc": "Docker volumes persist data across container lifecycle events. This explanation stays high level.",
+    "score": 1,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how much of copyrighted material can you use",
+    "doc": "Fair use permits limited use of copyrighted material for purposes such as criticism, commentary, news reporting, and research without permission. This example is intentionally compact.",
+    "score": 2,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how does self-attention work in transformers",
+    "doc": "Self-attention computes weighted sums of value vectors where weights come from dot-product similarity between query and key projections. This example is intentionally compact.",
+    "score": 3,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "what qualifies as fair use copyright law",
+    "doc": "Patents protect inventions for twenty years from the filing date. This example is intentionally compact.",
+    "score": 0,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "Spark lazy evaluation fault tolerance",
+    "doc": "Apache Kafka streams events between distributed systems in real time. This statement includes a nearby concept.",
+    "score": 1,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how to choose learning rate for gradient descent",
+    "doc": "A learning rate that is too large causes oscillation around minima, while one that is too small results in slow convergence. This note adds practical detail.",
+    "score": 2,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "authorization code vs implicit grant OAuth2",
+    "doc": "The authorization code flow redirects the user to the provider, returns a code to the client, which then exchanges it for an access token server-to-server. This statement includes a nearby concept.",
+    "score": 3,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "does living near good schools increase HDB resale price",
+    "doc": "Ocean currents influence monsoon weather patterns across the region. This note adds practical detail.",
+    "score": 0,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "simple interest calculation example",
+    "doc": "Stock market indices track the performance of a basket of selected equities. This example is intentionally compact.",
+    "score": 1,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "cache invalidation strategies explained",
+    "doc": "Cache invalidation strategies include time-to-live expiration, write-through updates, and explicit purge events to maintain data consistency. This example is intentionally compact.",
+    "score": 2,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "why does useEffect need cleanup function",
+    "doc": "The cleanup function returned from useEffect runs before the component unmounts or before the effect re-runs, preventing memory leaks from subscriptions or timers. This statement includes a nearby concept.",
+    "score": 3,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "inverse document frequency formula explanation",
+    "doc": "Neural networks learn representations through gradient-based optimization. This statement includes a nearby concept.",
+    "score": 0,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how does an inverted index work in search",
+    "doc": "Relational databases use B-tree indexes for range queries on numeric columns. This note adds practical detail.",
+    "score": 1,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "conditional probability P(A|B) vs P(B|A)",
+    "doc": "Bayes' theorem relates P(A|B) to P(B|A) through the ratio of priors, enabling updating beliefs with new evidence. This note adds practical detail.",
+    "score": 2,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "star schema vs snowflake schema difference",
+    "doc": "A star schema centers a fact table surrounded by dimension tables, optimizing for analytical queries with simple joins. This note adds practical detail.",
+    "score": 3,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "L1 vs L2 regularization difference",
+    "doc": "Ensemble methods combine multiple weak learners to improve predictive accuracy. This explanation stays high level.",
+    "score": 0,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "cross-encoder vs bi-encoder reranking",
+    "doc": "Word embeddings map tokens to dense vectors capturing semantic similarity. This explanation stays high level.",
+    "score": 1,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "net present value investment decision",
+    "doc": "NPV discounts future cash flows to present value using a required rate of return; positive NPV indicates a value-creating investment. This example is intentionally compact.",
+    "score": 2,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "statute of limitations contract law by jurisdiction",
+    "doc": "The statute of limitations sets a deadline for filing a breach of contract claim, typically ranging from three to six years depending on jurisdiction. This note adds practical detail.",
+    "score": 3,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "type 1 vs type 2 diabetes difference",
+    "doc": "Cardiovascular exercise strengthens the heart muscle and improves circulation. This explanation stays high level.",
+    "score": 0,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "dense retrieval vs sparse retrieval comparison",
+    "doc": "PageRank ranks web pages based on the quantity and quality of inbound links. This note adds practical detail.",
+    "score": 1,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "when to use cross-encoder for reranking",
+    "doc": "Cross-encoders process query and document jointly through attention for accurate scoring, while bi-encoders embed them independently for faster retrieval. This statement includes a nearby concept.",
+    "score": 2,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how to calculate NPV for investment projects",
+    "doc": "NPV discounts future cash flows to present value using a required rate of return; positive NPV indicates a value-creating investment. This explanation stays high level.",
+    "score": 3,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "why does useEffect need cleanup function",
+    "doc": "CSS Grid layout divides a page into rows and columns for two-dimensional positioning. This explanation stays high level.",
+    "score": 0,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "python async await event loop",
+    "doc": "Python list comprehensions provide a concise way to create new lists. This note adds practical detail.",
+    "score": 1,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "optimal review intervals for long-term memory",
+    "doc": "Spaced repetition schedules reviews at increasing intervals, exploiting the spacing effect to strengthen long-term memory retention. This example is intentionally compact.",
+    "score": 2,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "python async await event loop",
+    "doc": "The asyncio event loop schedules and runs coroutines cooperatively, enabling concurrent I/O without threads. This explanation stays high level.",
+    "score": 3,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "semantic search vs keyword search",
+    "doc": "PageRank ranks web pages based on the quantity and quality of inbound links. This explanation stays high level.",
+    "score": 0,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "k8s pod crash loop backoff behavior",
+    "doc": "Docker volumes persist data across container lifecycle events. This statement includes a nearby concept.",
+    "score": 1,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "scaled dot-product attention formula",
+    "doc": "Self-attention computes weighted sums of value vectors where weights come from dot-product similarity between query and key projections. This statement includes a nearby concept.",
+    "score": 2,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "BM25 term frequency document length normalization",
+    "doc": "BM25 emphasizes exact term overlap and document length normalization for ranking. This explanation stays high level.",
+    "score": 3,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how to apply Bayes theorem with examples",
+    "doc": "The central limit theorem states that sample means converge to a normal distribution. This example is intentionally compact.",
+    "score": 0,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "PKCE extension OAuth2 public clients",
+    "doc": "Firewalls filter network traffic based on predefined security rules. This explanation stays high level.",
+    "score": 1,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "inverted index search engine structure",
+    "doc": "An inverted index maps each term to a postings list of document IDs, enabling fast lookup of documents containing query terms. This note adds practical detail.",
+    "score": 2,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "why compound interest earns more than simple",
+    "doc": "Compound interest applies to accumulated principal plus earned interest, while simple interest is calculated only on the original principal amount. This statement includes a nearby concept.",
+    "score": 3,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "spacing effect learning science evidence",
+    "doc": "Active learning engages students through discussion and problem-solving activities. This example is intentionally compact.",
+    "score": 0,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "okapi BM25 vs vector space model",
+    "doc": "Dense embeddings are usually trained with contrastive objectives. This example is intentionally compact.",
+    "score": 1,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "rest api idempotent methods",
+    "doc": "Idempotent HTTP methods like PUT and DELETE produce the same result regardless of how many times they are called, enabling safe retries. This statement includes a nearby concept.",
+    "score": 2,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "why rare terms score higher in tf-idf",
+    "doc": "TF-IDF multiplies term frequency by inverse document frequency to down-weight common words and highlight distinctive terms. This example is intentionally compact.",
+    "score": 3,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "why transformers use multi-head attention",
+    "doc": "Convolutional neural networks apply sliding filters to detect spatial patterns. This note adds practical detail.",
+    "score": 0,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "when does statute of limitations start for contracts",
+    "doc": "Mediation is a voluntary process where a neutral third party facilitates negotiation. This explanation stays high level.",
+    "score": 1,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how does python asyncio event loop work",
+    "doc": "The asyncio event loop schedules and runs coroutines cooperatively, enabling concurrent I/O without threads. This example is intentionally compact.",
+    "score": 2,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "scaled dot-product attention formula",
+    "doc": "Self-attention computes weighted sums of value vectors where weights come from dot-product similarity between query and key projections. This note adds practical detail.",
+    "score": 3,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "overfitting regularization techniques",
+    "doc": "Ensemble methods combine multiple weak learners to improve predictive accuracy. This example is intentionally compact.",
+    "score": 0,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "which HTTP methods are idempotent",
+    "doc": "WebSockets provide full-duplex communication channels over a single TCP connection. This statement includes a nearby concept.",
+    "score": 1,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "continuous integration delivery pipeline stages",
+    "doc": "A typical CI/CD pipeline includes build, test, security scan, staging deployment, and production rollout stages with automated rollback. This note adds practical detail.",
+    "score": 2,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "TTL write-through write-back cache policies",
+    "doc": "Cache invalidation strategies include time-to-live expiration, write-through updates, and explicit purge events to maintain data consistency. This explanation stays high level.",
+    "score": 3,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "cache consistency distributed systems",
+    "doc": "Load balancers distribute incoming requests across multiple backend servers. This note adds practical detail.",
+    "score": 0,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "overfitting regularization techniques",
+    "doc": "Ensemble methods combine multiple weak learners to improve predictive accuracy. This note adds practical detail.",
+    "score": 1,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how to handle stale cache data",
+    "doc": "Cache invalidation strategies include time-to-live expiration, write-through updates, and explicit purge events to maintain data consistency. This explanation stays high level.",
+    "score": 2,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "statute of limitations contract law by jurisdiction",
+    "doc": "The statute of limitations sets a deadline for filing a breach of contract claim, typically ranging from three to six years depending on jurisdiction. This statement includes a nearby concept.",
+    "score": 3,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "okapi BM25 vs vector space model",
+    "doc": "Dense embeddings are usually trained with contrastive objectives. This example is intentionally compact.",
+    "score": 0,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "which HTTP methods are idempotent",
+    "doc": "WebSockets provide full-duplex communication channels over a single TCP connection. This note adds practical detail.",
+    "score": 1,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "why does Spark use lazy evaluation",
+    "doc": "Spark's lazy evaluation builds a DAG of transformations and only executes when an action is called, enabling query optimization and fault tolerance. This example is intentionally compact.",
+    "score": 2,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "type 1 diabetes causes symptoms treatment",
+    "doc": "Type 1 diabetes is an autoimmune condition destroying insulin-producing cells, while type 2 involves insulin resistance and relative deficiency. This example is intentionally compact.",
+    "score": 3,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "CI CD build test deploy workflow",
+    "doc": "Agile sprints organize development work into fixed-length iterations. This example is intentionally compact.",
+    "score": 0,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "inverse document frequency formula explanation",
+    "doc": "Neural networks learn representations through gradient-based optimization. This explanation stays high level.",
+    "score": 1,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "why compound interest earns more than simple",
+    "doc": "Compound interest applies to accumulated principal plus earned interest, while simple interest is calculated only on the original principal amount. This statement includes a nearby concept.",
+    "score": 2,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "query key value attention mechanism NLP",
+    "doc": "Self-attention computes weighted sums of value vectors where weights come from dot-product similarity between query and key projections. This explanation stays high level.",
+    "score": 3,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "automated deployment pipeline best practices",
+    "doc": "Agile sprints organize development work into fixed-length iterations. This example is intentionally compact.",
+    "score": 0,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "CI CD build test deploy workflow",
+    "doc": "Agile sprints organize development work into fixed-length iterations. This note adds practical detail.",
+    "score": 1,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how to prevent overfitting in machine learning models",
+    "doc": "L2 regularization adds the squared magnitude of weights to the loss function, penalizing large parameters and reducing overfitting. This example is intentionally compact.",
+    "score": 2,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how does self-attention work in transformers",
+    "doc": "Self-attention computes weighted sums of value vectors where weights come from dot-product similarity between query and key projections. This statement includes a nearby concept.",
+    "score": 3,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how does python asyncio event loop work",
+    "doc": "Python list comprehensions provide a concise way to create new lists. This example is intentionally compact.",
+    "score": 0,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "BM25 scoring formula explained",
+    "doc": "Dense embeddings are usually trained with contrastive objectives. This statement includes a nearby concept.",
+    "score": 1,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "weight decay penalty neural network training",
+    "doc": "L2 regularization adds the squared magnitude of weights to the loss function, penalizing large parameters and reducing overfitting. This explanation stays high level.",
+    "score": 2,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "continuous integration delivery pipeline stages",
+    "doc": "A typical CI/CD pipeline includes build, test, security scan, staging deployment, and production rollout stages with automated rollback. This statement includes a nearby concept.",
+    "score": 3,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how does BM25 ranking algorithm work",
+    "doc": "Dense embeddings are usually trained with contrastive objectives. This note adds practical detail.",
+    "score": 0,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how tf-idf calculates term importance",
+    "doc": "Neural networks learn representations through gradient-based optimization. This example is intentionally compact.",
+    "score": 1,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "authorization code vs implicit grant OAuth2",
+    "doc": "The authorization code flow redirects the user to the provider, returns a code to the client, which then exchanges it for an access token server-to-server. This explanation stays high level.",
+    "score": 2,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "can type 2 diabetes become insulin dependent",
+    "doc": "Type 1 diabetes is an autoimmune condition destroying insulin-producing cells, while type 2 involves insulin resistance and relative deficiency. This explanation stays high level.",
+    "score": 3,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "OAuth2 flow redirect exchange access token",
+    "doc": "Firewalls filter network traffic based on predefined security rules. This explanation stays high level.",
+    "score": 0,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "mitosis vs meiosis cell division",
+    "doc": "DNA replication occurs during the S phase of the cell cycle. This note adds practical detail.",
+    "score": 1,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "contextlib context manager decorator python",
+    "doc": "A context manager implements __enter__ and __exit__ to manage resource lifecycle such as file handles or database connections. This statement includes a nearby concept.",
+    "score": 2,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "higher order thinking skills Bloom framework",
+    "doc": "Bloom's Taxonomy orders cognitive skills from remembering and understanding through applying, analyzing, evaluating, and creating. This statement includes a nearby concept.",
+    "score": 3,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "bayes theorem conditional probability",
+    "doc": "The central limit theorem states that sample means converge to a normal distribution. This explanation stays high level.",
+    "score": 0,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "TTL write-through write-back cache policies",
+    "doc": "Load balancers distribute incoming requests across multiple backend servers. This statement includes a nearby concept.",
+    "score": 1,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "positive NPV means good investment",
+    "doc": "NPV discounts future cash flows to present value using a required rate of return; positive NPV indicates a value-creating investment. This explanation stays high level.",
+    "score": 2,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how spaced repetition improves memory retention",
+    "doc": "Spaced repetition schedules reviews at increasing intervals, exploiting the spacing effect to strengthen long-term memory retention. This note adds practical detail.",
+    "score": 3,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "k8s pod crash loop backoff behavior",
+    "doc": "Docker volumes persist data across container lifecycle events. This statement includes a nearby concept.",
+    "score": 0,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "BM25 term frequency document length normalization",
+    "doc": "Dense embeddings are usually trained with contrastive objectives. This explanation stays high level.",
+    "score": 1,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "kubernetes pod restart policy always",
+    "doc": "The Always restart policy ensures that containers are restarted regardless of the exit code, maintaining service availability. This statement includes a nearby concept.",
+    "score": 2,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "python dataclass default factory",
+    "doc": "Use field(default_factory=list) to avoid shared mutable defaults in dataclasses. This explanation stays high level.",
+    "score": 3,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "discount rate in net present value analysis",
+    "doc": "Technical analysis uses chart patterns to predict short-term price movements. This statement includes a nearby concept.",
+    "score": 0,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how vector embeddings improve search relevance",
+    "doc": "PageRank ranks web pages based on the quantity and quality of inbound links. This statement includes a nearby concept.",
+    "score": 1,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "staging to production deployment strategies",
+    "doc": "A typical CI/CD pipeline includes build, test, security scan, staging deployment, and production rollout stages with automated rollback. This example is intentionally compact.",
+    "score": 2,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "weight decay penalty neural network training",
+    "doc": "L2 regularization adds the squared magnitude of weights to the loss function, penalizing large parameters and reducing overfitting. This statement includes a nearby concept.",
+    "score": 3,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "idempotency in REST API design",
+    "doc": "WebSockets provide full-duplex communication channels over a single TCP connection. This statement includes a nearby concept.",
+    "score": 0,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "six levels of Bloom's Taxonomy explained",
+    "doc": "Standardized tests measure student performance against a common benchmark. This statement includes a nearby concept.",
+    "score": 1,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "with statement resource lifecycle python",
+    "doc": "A context manager implements __enter__ and __exit__ to manage resource lifecycle such as file handles or database connections. This example is intentionally compact.",
+    "score": 2,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "dense retrieval vs sparse retrieval comparison",
+    "doc": "Semantic search understands query intent and contextual meaning using embeddings, while keyword search matches exact terms regardless of meaning. This example is intentionally compact.",
+    "score": 3,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how to handle stale cache data",
+    "doc": "Load balancers distribute incoming requests across multiple backend servers. This statement includes a nearby concept.",
+    "score": 0,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "when to use Always restart policy k8s",
+    "doc": "Docker volumes persist data across container lifecycle events. This example is intentionally compact.",
+    "score": 1,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how to create custom context manager python",
+    "doc": "A context manager implements __enter__ and __exit__ to manage resource lifecycle such as file handles or database connections. This note adds practical detail.",
+    "score": 2,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "python concurrent I/O without threads asyncio",
+    "doc": "The asyncio event loop schedules and runs coroutines cooperatively, enabling concurrent I/O without threads. This explanation stays high level.",
+    "score": 3,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how much of copyrighted material can you use",
+    "doc": "Patents protect inventions for twenty years from the filing date. This example is intentionally compact.",
+    "score": 0,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "oauth2 authorization code flow steps",
+    "doc": "Firewalls filter network traffic based on predefined security rules. This note adds practical detail.",
+    "score": 1,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "apache spark lazy evaluation advantage",
+    "doc": "Spark's lazy evaluation builds a DAG of transformations and only executes when an action is called, enabling query optimization and fault tolerance. This explanation stays high level.",
+    "score": 2,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "kubernetes restartPolicy options explained",
+    "doc": "The Always restart policy ensures that containers are restarted regardless of the exit code, maintaining service availability. This statement includes a nearby concept.",
+    "score": 3,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "how to calculate NPV for investment projects",
+    "doc": "Technical analysis uses chart patterns to predict short-term price movements. This explanation stays high level.",
+    "score": 0,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "difference between mitosis and meiosis",
+    "doc": "DNA replication occurs during the S phase of the cell cycle. This statement includes a nearby concept.",
+    "score": 1,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "type 1 diabetes causes symptoms treatment",
+    "doc": "Type 1 diabetes is an autoimmune condition destroying insulin-producing cells, while type 2 involves insulin resistance and relative deficiency. This example is intentionally compact.",
+    "score": 2,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "python coroutine scheduling cooperative multitasking",
+    "doc": "The asyncio event loop schedules and runs coroutines cooperatively, enabling concurrent I/O without threads. This statement includes a nearby concept.",
+    "score": 3,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "bayes theorem conditional probability",
+    "doc": "The central limit theorem states that sample means converge to a normal distribution. This note adds practical detail.",
+    "score": 0,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "what qualifies as fair use copyright law",
+    "doc": "Patents protect inventions for twenty years from the filing date. This statement includes a nearby concept.",
+    "score": 1,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "python context manager with statement",
+    "doc": "A context manager implements __enter__ and __exit__ to manage resource lifecycle such as file handles or database connections. This note adds practical detail.",
+    "score": 2,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "statute of limitations breach of contract",
+    "doc": "The statute of limitations sets a deadline for filing a breach of contract claim, typically ranging from three to six years depending on jurisdiction. This statement includes a nearby concept.",
+    "score": 3,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "container restart policy OnFailure vs Always",
+    "doc": "Docker volumes persist data across container lifecycle events. This note adds practical detail.",
+    "score": 0,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "when to use cross-encoder for reranking",
+    "doc": "Word embeddings map tokens to dense vectors capturing semantic similarity. This example is intentionally compact.",
+    "score": 1,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "python context manager with statement",
+    "doc": "A context manager implements __enter__ and __exit__ to manage resource lifecycle such as file handles or database connections. This statement includes a nearby concept.",
+    "score": 2,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  },
+  {
+    "query": "why rare terms score higher in tf-idf",
+    "doc": "TF-IDF multiplies term frequency by inverse document frequency to down-weight common words and highlight distinctive terms. This explanation stays high level.",
+    "score": 3,
+    "rationale": "Offline synthetic label generated from seeded examples.",
+    "generation_seed": 42,
+    "generation_mode": "offline",
+    "teacher_model": null
+  }
+]
