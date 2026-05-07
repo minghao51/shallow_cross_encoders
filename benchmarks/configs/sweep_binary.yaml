@@ -1,0 +1,50 @@
+# Binary Quantized Reranker — Stage × Quantization Sweep
+# Usage: uv run reranker benchmark sweep --config benchmarks/configs/sweep_binary.yaml
+
+name: binary_reranker_sweep
+description: >
+  Sweep binary reranker top-k settings and quantization modes.
+  Compares hamming-only vs hamming+bilinear at various pruning levels.
+
+variants:
+  hamming_only_4bit:
+    binary:
+      hamming_top_k: 999999
+      bilinear_top_k: 0
+      quantization: "4bit"
+      use_binary_scoring: true
+
+  hamming_bilinear_4bit:
+    binary:
+      hamming_top_k: 500
+      bilinear_top_k: 50
+      quantization: "4bit"
+      use_binary_scoring: true
+
+  hamming_bilinear_int8:
+    binary:
+      hamming_top_k: 500
+      bilinear_top_k: 50
+      quantization: "int8"
+      use_binary_scoring: true
+
+  hamming_bilinear_float16:
+    binary:
+      hamming_top_k: 500
+      bilinear_top_k: 50
+      quantization: "float16"
+      use_binary_scoring: true
+
+  aggressive_pruning:
+    binary:
+      hamming_top_k: 100
+      bilinear_top_k: 10
+      quantization: "4bit"
+      use_binary_scoring: true
+
+  conservative_pruning:
+    binary:
+      hamming_top_k: 1000
+      bilinear_top_k: 200
+      quantization: "4bit"
+      use_binary_scoring: true

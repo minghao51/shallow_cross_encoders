@@ -30,12 +30,12 @@ Only the top-k terms by weight are retained:
 E'(D) = top-k terms from E(D) by weight (descending)
 ```
 
-### MaxSim Scoring
+### Product Scoring
 
 For a query Q with sparse embedding E(Q) and document D with sparse embedding E'(D):
 
 ```
-score(Q, D) = Σ_{t ∈ Q ∩ D} min(w_Q(t), w_D(t))
+score(Q, D) = Σ_{t ∈ Q ∩ D} w_Q(t) × w_D(t)
 ```
 
 Where:
@@ -43,7 +43,7 @@ Where:
 - `w_D(t)` is the importance weight of term t in the document
 - The sum is over terms that appear in both query and document
 
-**Intuition**: For each shared term, take the minimum importance weight between query and document. This ensures both sides consider the term significant.
+**Intuition**: For each shared term, multiply the importance weights. This charges higher scores when both query and document strongly weight a term, matching SPLADE's original formula.
 
 ---
 
@@ -96,7 +96,7 @@ Where:
                    ▼
 ┌─────────────────────────────────────────────┐
 │         MaxSim (per query-doc pair)         │
-│  score = Σ min(w_Q(t), w_D(t))              │
+│  score = Σ w_Q(t) × w_D(t)                  │
 │  for t in Q ∩ D                             │
 └──────────────────┬──────────────────────────┘
                    │
@@ -122,7 +122,7 @@ Where:
 1. **Encode query** as sparse vector
 2. **For each document** in the index:
    - Find shared terms between query and document
-   - For each shared term: `score += min(w_Q(t), w_D(t))`
+   - For each shared term: `score += w_Q(t) × w_D(t)`
 3. **Rank**: Sort documents by score (descending)
 
 ### Design Decisions
@@ -131,9 +131,9 @@ Where:
 |----------|-----------|
 | **Pretrained SparseEncoder** | No training needed, leverages learned term importance |
 | **Top-k pruning** | Controls memory and compute, removes noise terms |
-| **Min-based scoring** | Both query and document must consider term important |
+| **Product-based scoring** | Matches SPLADE's original formula — charges higher when both sides strongly weight a term |
 | **String term keys** | Interpretable — you can see which terms contribute |
-| **Auto-fit on rerank** | Convenience: fits if not already done |
+| **Explicit fit contract** | `rerank()` raises `RuntimeError` if unfitted; call `fit(docs)` first |
 
 ### Hyperparameters
 

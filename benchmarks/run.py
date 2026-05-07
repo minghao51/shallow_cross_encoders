@@ -20,7 +20,11 @@ import time
 import warnings
 from pathlib import Path
 
+import structlog
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+logger = structlog.get_logger(__name__)
 
 BENCHMARKS_DIR = Path(__file__).parent
 PROJECT_ROOT = BENCHMARKS_DIR.parent
@@ -36,15 +40,15 @@ SWEEP_CONFIGS = [
 
 
 def _run(cmd: list[str], label: str) -> bool:
-    print(f"\n{'=' * 70}")
-    print(f"  {label}")
-    print(f"{'=' * 70}")
+    logger.info(f"\n{'=' * 70}")
+    logger.info(f"  {label}")
+    logger.info(f"{'=' * 70}")
     start = time.perf_counter()
     result = subprocess.run(cmd, cwd=PROJECT_ROOT)  # nosec B603
     elapsed = time.perf_counter() - start
     ok = result.returncode == 0
     status = "OK" if ok else "FAILED"
-    print(f"\n  [{status}] {label} ({elapsed:.1f}s)")
+    logger.info(f"\n  [{status}] {label} ({elapsed:.1f}s)")
     return ok
 
 
@@ -69,10 +73,10 @@ def cmd_synthetic(args: argparse.Namespace) -> None:
         quick=args.quick,
     )
 
-    print(f"Embedder model: {runner.embedder_model_name}")
-    print(f"Quick mode: {runner.quick}")
-    print(f"Phases: {args.phases}")
-    print()
+    logger.info(f"Embedder model: {runner.embedder_model_name}")
+    logger.info(f"Quick mode: {runner.quick}")
+    logger.info(f"Phases: {args.phases}")
+    logger.info("")
 
     if "baselines" in args.phases:
         runner.run_baselines()
@@ -88,9 +92,9 @@ def cmd_synthetic(args: argparse.Namespace) -> None:
 
     runner.save_results(output_dir)
 
-    print("\n" + "=" * 80)
-    print("BENCHMARK COMPLETE")
-    print("=" * 80)
+    logger.info("\n" + "=" * 80)
+    logger.info("BENCHMARK COMPLETE")
+    logger.info("=" * 80)
 
 
 def cmd_sweep(args: argparse.Namespace) -> None:
@@ -112,15 +116,15 @@ def cmd_full(args: argparse.Namespace) -> None:
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     results: dict[str, str] = {}
 
-    print(f"\n{'#' * 70}")
-    print("  FULL BENCHMARK SWEEP")
-    print(f"{'#' * 70}")
+    logger.info(f"\n{'#' * 70}")
+    logger.info("  FULL BENCHMARK SWEEP")
+    logger.info(f"{'#' * 70}")
 
-    print("\n\n===== PHASE 1: YAML SWEEPS =====\n")
+    logger.info("\n\n===== PHASE 1: YAML SWEEPS =====\n")
     for config_path in SWEEP_CONFIGS:
         full_path = PROJECT_ROOT / config_path
         if not full_path.exists():
-            print(f"  Skipping {config_path} (not found)")
+            logger.info(f"  Skipping {config_path} (not found)")
             continue
         name = Path(config_path).stem
         output = str(RESULTS_DIR / f"{name}.json")
@@ -130,7 +134,7 @@ def cmd_full(args: argparse.Namespace) -> None:
         )
         results[f"sweep/{name}"] = "ok" if ok else "failed"
 
-    print("\n\n===== PHASE 2: COMPREHENSIVE SYNTHETIC =====\n")
+    logger.info("\n\n===== PHASE 2: COMPREHENSIVE SYNTHETIC =====\n")
     synthetic_cmd = [
         "uv",
         "run",
@@ -144,23 +148,23 @@ def cmd_full(args: argparse.Namespace) -> None:
     ok = _run(synthetic_cmd, "Comprehensive synthetic benchmark")
     results["synthetic"] = "ok" if ok else "failed"
 
-    print("\n\n===== PHASE 3: ROI =====\n")
+    logger.info("\n\n===== PHASE 3: ROI =====\n")
     ok = _run(["uv", "run", "benchmarks/measure_roi.py"], "ROI measurement")
     results["roi"] = "ok" if ok else "failed"
 
-    print(f"\n\n{'#' * 70}")
-    print("  FULL SWEEP COMPLETE - SUMMARY")
-    print(f"{'#' * 70}\n")
+    logger.info(f"\n\n{'#' * 70}")
+    logger.info("  FULL SWEEP COMPLETE - SUMMARY")
+    logger.info(f"{'#' * 70}\n")
     for name, status in results.items():
         marker = "+" if status == "ok" else "x"
-        print(f"  [{marker}] {name}: {status}")
+        logger.info(f"  [{marker}] {name}: {status}")
 
     n_ok = sum(1 for s in results.values() if s == "ok")
-    print(f"\n  {n_ok}/{len(results)} passed")
+    logger.info(f"\n  {n_ok}/{len(results)} passed")
 
     summary_path = RESULTS_DIR / "run_all_summary.json"
     summary_path.write_text(json.dumps(results, indent=2))
-    print(f"\n  Summary saved to {summary_path}")
+    logger.info(f"\n  Summary saved to {summary_path}")
 
 
 def main() -> None:

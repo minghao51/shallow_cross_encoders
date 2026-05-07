@@ -11,7 +11,11 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any
 
+import structlog
+
 from reranker.protocols import BaseReranker, RankedDoc
+
+logger = structlog.get_logger(__name__)
 
 
 class ConfidenceMetric(StrEnum):
@@ -75,7 +79,7 @@ class CascadeReranker:
 
         results = cascade.rerank("python tutorial", docs)
         stats = cascade.get_stats()
-        print(f"Fallback rate: {stats['fallback_rate']:.1%}")
+        logger.info("Fallback rate", rate=f"{stats['fallback_rate']:.1%}")
         ```
     """
 

@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-import logging
 import warnings
 from dataclasses import dataclass
 from typing import Any
 
-logger = logging.getLogger("reranker.deps")
+import structlog
+
+logger = structlog.get_logger(__name__)
 
 
 @dataclass(slots=True, frozen=True)

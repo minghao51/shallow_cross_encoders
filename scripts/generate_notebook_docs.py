@@ -10,7 +10,10 @@ import sys
 from pathlib import Path
 from urllib.parse import urlparse
 
+import structlog
 import yaml
+
+logger = structlog.get_logger(__name__)
 
 NOTEBOOKS_DIR = Path("notebooks")
 DOCS_NOTEBOOKS_DIR = Path("docs/notebooks")
@@ -68,7 +71,7 @@ def generate_landing_page(notebooks):
 
     DOCS_NOTEBOOKS_DIR.mkdir(parents=True, exist_ok=True)
     (DOCS_NOTEBOOKS_DIR / "index.md").write_text(content)
-    print(f"  {DOCS_NOTEBOOKS_DIR / 'index.md'}")
+    logger.info(f"  {DOCS_NOTEBOOKS_DIR / 'index.md'}")
 
 
 def generate_stubs(notebooks, base_path):
@@ -100,7 +103,7 @@ def generate_stubs(notebooks, base_path):
 
         stub_path = DOCS_NOTEBOOKS_DIR / f"{slug}.md"
         stub_path.write_text(stub)
-        print(f"  {stub_path}")
+        logger.info(f"  {stub_path}")
 
 
 def main():
@@ -109,13 +112,13 @@ def main():
     notebooks = get_notebooks()
 
     if not landing_only:
-        print("Generating notebook stubs...")
+        logger.info("Generating notebook stubs...")
         generate_stubs(notebooks, base_path)
 
-    print("Generating landing page...")
+    logger.info("Generating landing page...")
     generate_landing_page(notebooks)
 
-    print("Done.")
+    logger.info("Done.")
 
 
 if __name__ == "__main__":

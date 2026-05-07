@@ -42,6 +42,7 @@ RankedDoc list
 | `reranker.eval.runner` | Training/evaluation orchestration for each strategy |
 | `reranker.eval.metrics` | NDCG, MAP, MRR, P@1, accuracy, latency tracking |
 | `reranker.data.synth` | Synthetic dataset generation via OpenRouter LLM calls |
+| `reranker.cli` | Typer-based CLI (`reranker train`, `eval`, `benchmark`, `generate`, `doctor`) |
 | `benchmarks/` | Consolidated benchmark suite (see Benchmarking below) |
 
 ## Strategy Registry
@@ -103,6 +104,36 @@ Active distillation (`ActiveDistiller`) mines contested/hard-negative examples a
 | Unit | `tests/unit/` | Pure functions, no I/O |
 | Integration | `tests/integration/` | Local models, mocked services |
 | E2E | `tests/e2e/` | Full pipeline, real LLM calls (gated by `llm` marker) |
+
+## CLI (Phase 8)
+
+A unified `typer`-based CLI replaces ad-hoc script invocation:
+
+```bash
+reranker train hybrid              # Train a strategy
+reranker eval run hybrid --split test
+reranker benchmark run --quick     # Quick synthetic benchmark
+reranker generate pairs --count 100
+reranker doctor check              # Dependency/config health check
+```
+
+Implementation lives in `reranker.cli` with per-subcommand modules:
+`train.py`, `eval.py`, `benchmark.py`, `generate.py`, `doctor.py`, `serve.py`.
+
+## Task Runner
+
+Common development tasks are defined in `justfile`:
+
+```bash
+just test              # pytest (all tests)
+just lint              # ruff check
+just typecheck         # mypy
+just check             # lint + typecheck
+just train-all         # Train all strategies sequentially
+just benchmark-quick   # Quick synthetic benchmark
+just generate-data     # Generate all synthetic datasets
+just doctor            # Run health check
+```
 
 ## Benchmarking
 

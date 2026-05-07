@@ -4,12 +4,16 @@ import os
 import sys
 from pathlib import Path
 
+import structlog
+
 from reranker.config import get_settings
 from reranker.data.splits import partition_rows
 from reranker.data.synth import SyntheticDataGenerator
 from reranker.eval.runner import evaluate_strategy
 from reranker.strategies.distilled import DistilledPairwiseRanker
 from reranker.utils import read_jsonl
+
+logger = structlog.get_logger(__name__)
 
 
 def _prompt_user(prompt: str) -> bool:
@@ -19,7 +23,7 @@ def _prompt_user(prompt: str) -> bool:
             return True
         if response in ("", "n", "no"):
             return False
-        print("Please answer 'y' or 'n'")
+        logger.info("Please answer 'y' or 'n'")
 
 
 def _should_generate_synthetic_data(prompt: str) -> bool:
@@ -54,16 +58,16 @@ def main() -> None:
         cost_per_record = settings.roi.llm_cost_per_judgment_usd
         estimated_cost = total_records * cost_per_record
 
-        print(f"WARNING: Synthetic data not found at {pref_path}")
-        print(f"  Estimated records to generate: {total_records}")
-        print(f"  - Pairs: {estimated_pairs}")
-        print(f"  - Preferences: {estimated_prefs}")
-        print(f"  - Contradictions/Controls: {estimated_contradictions}")
-        print(f"  - Estimated cost: ${estimated_cost:.4f} (at ${cost_per_record}/record)")
-        print()
+        logger.info(f"WARNING: Synthetic data not found at {pref_path}")
+        logger.info(f"  Estimated records to generate: {total_records}")
+        logger.info(f"  - Pairs: {estimated_pairs}")
+        logger.info(f"  - Preferences: {estimated_prefs}")
+        logger.info(f"  - Contradictions/Controls: {estimated_contradictions}")
+        logger.info(f"  - Estimated cost: ${estimated_cost:.4f} (at ${cost_per_record}/record)")
+        logger.info("")
 
         if not _should_generate_synthetic_data("Proceed with synthetic data generation?"):
-            print("Aborted. Run with existing data or generate manually.")
+            logger.info("Aborted. Run with existing data or generate manually.")
             return
 
         SyntheticDataGenerator().materialize_all(data_root)

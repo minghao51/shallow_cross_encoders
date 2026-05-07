@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+import structlog
 
 from reranker.config import get_settings
 from reranker.data.splits import partition_rows
@@ -34,6 +35,7 @@ from reranker.eval.metrics import (
     precision_at_k,
     reciprocal_rank,
 )
+from reranker.eval.statistics import bootstrap_ci
 from reranker.heuristics.keyword import KeywordMatchAdapter
 from reranker.lexical import BM25Engine
 from reranker.strategies.binary_reranker import BinaryQuantizedReranker
@@ -45,6 +47,8 @@ from reranker.strategies.late_interaction import StaticColBERTReranker
 from reranker.strategies.multi import MultiReranker, MultiRerankerConfig
 from reranker.strategies.pipeline import PipelineReranker
 from reranker.utils import read_jsonl
+
+logger = structlog.get_logger(__name__)
 
 POTION_MODELS = [
     "minishlab/potion-base-8M",
@@ -71,6 +75,7 @@ class ExperimentResult:
     strategy: str
     configuration: dict[str, Any]
     metrics: dict[str, float]
+    per_query_metrics: dict[str, list[float]] = field(default_factory=dict)
     latency_stats: dict[str, float] = field(default_factory=dict)
     ablation_info: dict[str, Any] = field(default_factory=dict)
     n_samples: int = 0
@@ -85,11 +90,13 @@ class BenchmarkRunner:
         seed: int = 42,
         embedder_model: str | None = None,
         quick: bool = False,
+        profiling_enabled: bool = False,
     ):
         self.data_root = data_root
         self.model_root = model_root
         self.seed = seed
         self.quick = quick
+        self.profiling_enabled = profiling_enabled
         self.embedder_model_name = embedder_model or get_settings().embedder.model_name
         self.results: list[ExperimentResult] = []
 
@@ -152,6 +159,17 @@ class BenchmarkRunner:
         all_docs = [str(row["doc"]) for row in test_data]
         self.bm25.fit(all_docs)
 
+        profiling_data: dict[str, float] = {}
+        if getattr(self, "profiling_enabled", False):
+            from reranker.eval.profiling import cpu_profile, memory_profile
+
+            mem_ctx = memory_profile(strategy_name)
+            cpu_ctx = cpu_profile(strategy_name)
+            mem_result = mem_ctx.__enter__()
+            cpu_result = cpu_ctx.__enter__()
+        else:
+            mem_result = cpu_result = None
+
         for query in unique_queries:
             query_docs = [str(row["doc"]) for row in test_data if str(row["query"]) == query]
             query_labels = [row["score"] for row in test_data if str(row["query"]) == query]
@@ -202,16 +220,42 @@ class BenchmarkRunner:
                     ]
                     bm25_ndcg_scores.append(ndcg_at_k(bm25_ranked_labels, k=10))
 
+        if (
+            mem_result is not None
+            and cpu_result is not None
+            and getattr(self, "profiling_enabled", False)
+        ):
+            mem_ctx.__exit__(None, None, None)
+            cpu_ctx.__exit__(None, None, None)
+            profiling_data.update(mem_result)
+            profiling_data.update(cpu_result)
+
         lat_arr = np.array(latencies) if latencies else np.zeros(1)
         bm25_ndcg = float(np.mean(bm25_ndcg_scores)) if bm25_ndcg_scores else 0.0
         strat_ndcg = float(np.mean(ndcg_scores)) if ndcg_scores else 0.0
 
-        return {
+        ndcg_ci_lower, ndcg_ci_upper = (
+            bootstrap_ci(ndcg_scores) if len(ndcg_scores) >= 2 else (strat_ndcg, strat_ndcg)
+        )
+        mrr_ci_lower, mrr_ci_upper = (
+            bootstrap_ci(mrr_scores)
+            if len(mrr_scores) >= 2
+            else (
+                float(np.mean(mrr_scores)) if mrr_scores else 0.0,
+                float(np.mean(mrr_scores)) if mrr_scores else 0.0,
+            )
+        )
+
+        result = {
             "ndcg@10": strat_ndcg,
             "ndcg@10_std": float(np.std(ndcg_scores)) if ndcg_scores else 0.0,
+            "ndcg@10_ci_lower": ndcg_ci_lower,
+            "ndcg@10_ci_upper": ndcg_ci_upper,
             "map@10": float(np.mean(map_scores)) if map_scores else 0.0,
             "mrr": float(np.mean(mrr_scores)) if mrr_scores else 0.0,
             "mrr_std": float(np.std(mrr_scores)) if mrr_scores else 0.0,
+            "mrr_ci_lower": mrr_ci_lower,
+            "mrr_ci_upper": mrr_ci_upper,
             "p@1": float(np.mean(p1_scores)) if p1_scores else 0.0,
             "p@1_std": float(np.std(p1_scores)) if p1_scores else 0.0,
             "bm25_ndcg@10": bm25_ndcg,
@@ -224,7 +268,13 @@ class BenchmarkRunner:
             if np.mean(lat_arr) > 0
             else 0.0,
             "n_queries_evaluated": len(ndcg_scores),
+            "per_query_ndcg@10": [float(x) for x in ndcg_scores],
+            "per_query_mrr": [float(x) for x in mrr_scores],
+            "per_query_map@10": [float(x) for x in map_scores],
+            "per_query_p@1": [float(x) for x in p1_scores],
         }
+        result.update(profiling_data)
+        return result
 
     def _evaluate_distilled(self, ranker: Any, test_data: list[dict[str, Any]]) -> dict[str, float]:
         n_eval = 50 if self.quick else 200
@@ -394,35 +444,37 @@ class BenchmarkRunner:
 
     def _print_metrics(self, metrics: dict[str, float], strategy: str) -> None:
         if "ndcg@10" in metrics:
-            print(f"  NDCG@10:    {metrics['ndcg@10']:.4f} +/- {metrics['ndcg@10_std']:.4f}")
-            print(f"  MAP@10:     {metrics.get('map@10', 0):.4f}")
-            print(f"  MRR:        {metrics['mrr']:.4f} +/- {metrics['mrr_std']:.4f}")
-            print(f"  P@1:        {metrics['p@1']:.4f} +/- {metrics['p@1_std']:.4f}")
-            print(f"  BM25 uplift: {metrics.get('ndcg_uplift_vs_bm25', 0):+.4f}")
-            print(
+            logger.info(f"  NDCG@10:    {metrics['ndcg@10']:.4f} +/- {metrics['ndcg@10_std']:.4f}")
+            logger.info(f"  MAP@10:     {metrics.get('map@10', 0):.4f}")
+            logger.info(f"  MRR:        {metrics['mrr']:.4f} +/- {metrics['mrr_std']:.4f}")
+            logger.info(f"  P@1:        {metrics['p@1']:.4f} +/- {metrics['p@1_std']:.4f}")
+            logger.info(f"  BM25 uplift: {metrics.get('ndcg_uplift_vs_bm25', 0):+.4f}")
+            logger.info(
                 f"  Latency:    {metrics['latency_mean_ms']:.2f}ms (p50={metrics.get('latency_p50_ms', 0):.2f}, p99={metrics.get('latency_p99_ms', 0):.2f})"
             )
             if metrics.get("throughput_qps", 0) > 0:
-                print(f"  Throughput: {metrics['throughput_qps']:.0f} QPS")
+                logger.info(f"  Throughput: {metrics['throughput_qps']:.0f} QPS")
         elif "accuracy" in metrics and "recall" not in metrics:
-            print(f"  Accuracy:   {metrics['accuracy']:.4f} +/- {metrics['accuracy_std']:.4f}")
-            print(f"  Latency:    {metrics['latency_mean_ms']:.2f}ms")
+            logger.info(
+                f"  Accuracy:   {metrics['accuracy']:.4f} +/- {metrics['accuracy_std']:.4f}"
+            )
+            logger.info(f"  Latency:    {metrics['latency_mean_ms']:.2f}ms")
         elif "recall" in metrics:
-            print(f"  Recall:     {metrics['recall']:.4f}")
-            print(f"  Precision:  {metrics.get('precision', 0):.4f}")
-            print(f"  F1:         {metrics.get('f1', 0):.4f}")
-            print(f"  FPR:        {metrics['false_positive_rate']:.4f}")
-            print(f"  Latency:    {metrics['latency_mean_ms']:.2f}ms")
+            logger.info(f"  Recall:     {metrics['recall']:.4f}")
+            logger.info(f"  Precision:  {metrics.get('precision', 0):.4f}")
+            logger.info(f"  F1:         {metrics.get('f1', 0):.4f}")
+            logger.info(f"  FPR:        {metrics['false_positive_rate']:.4f}")
+            logger.info(f"  Latency:    {metrics['latency_mean_ms']:.2f}ms")
 
     def run_baselines(self) -> None:
-        print("=" * 80)
-        print("PHASE 1: BASELINE EXPERIMENTS (all strategies)")
-        print("=" * 80)
+        logger.info("=" * 80)
+        logger.info("PHASE 1: BASELINE EXPERIMENTS (all strategies)")
+        logger.info("=" * 80)
 
         all_docs = [str(row["doc"]) for row in self.train_pairs]
         self.bm25.fit(all_docs)
 
-        print("\n--- BM25 Baseline ---")
+        logger.info("\n--- BM25 Baseline ---")
         bm25_metrics = self._evaluate_reranker(self.bm25, self.test_pairs, "bm25")
         cold = self._measure_cold_start("bm25")
         bm25_metrics["cold_start_ms"] = cold
@@ -438,7 +490,7 @@ class BenchmarkRunner:
         )
         self._print_metrics(bm25_metrics, "bm25")
 
-        print("\n--- Hybrid Fusion Reranker ---")
+        logger.info("\n--- Hybrid Fusion Reranker ---")
         hybrid = HybridFusionReranker(
             adapters=[KeywordMatchAdapter()],
             embedder=self.embedder,
@@ -468,7 +520,7 @@ class BenchmarkRunner:
         )
         self._print_metrics(hybrid_metrics, "hybrid")
 
-        print("\n--- Distilled Pairwise Ranker ---")
+        logger.info("\n--- Distilled Pairwise Ranker ---")
         distilled = DistilledPairwiseRanker(embedder=self.embedder)
         distilled.fit(
             queries=[str(row["query"]) for row in self.train_prefs],
@@ -490,7 +542,7 @@ class BenchmarkRunner:
         )
         self._print_metrics(distilled_metrics, "distilled")
 
-        print("\n--- Static ColBERT Reranker ---")
+        logger.info("\n--- Static ColBERT Reranker ---")
         colbert = StaticColBERTReranker(
             embedder=self.embedder,
             top_k_tokens=128,
@@ -511,7 +563,7 @@ class BenchmarkRunner:
         )
         self._print_metrics(colbert_metrics, "late_interaction")
 
-        print("\n--- Binary Quantized Reranker ---")
+        logger.info("\n--- Binary Quantized Reranker ---")
         binary = BinaryQuantizedReranker(
             embedder=self.embedder,
             hamming_top_k=500,
@@ -537,7 +589,7 @@ class BenchmarkRunner:
         )
         self._print_metrics(binary_metrics, "binary_reranker")
 
-        print("\n--- Consistency Engine ---")
+        logger.info("\n--- Consistency Engine ---")
         consistency = ConsistencyEngine(
             sim_threshold=0.95,
             value_tolerance=0.01,
@@ -556,7 +608,7 @@ class BenchmarkRunner:
         )
         self._print_metrics(consistency_metrics, "consistency")
 
-        print("\n--- Pipeline (BM25 -> Binary -> Hybrid -> ColBERT) ---")
+        logger.info("\n--- Pipeline (BM25 -> Binary -> Hybrid -> ColBERT) ---")
         pipeline = PipelineReranker()
         pipeline.add_stage("bm25", self.bm25, top_k=200)
         pipeline.add_stage("binary", binary, top_k=100)
@@ -579,7 +631,7 @@ class BenchmarkRunner:
         )
         self._print_metrics(pipeline_metrics, "pipeline")
 
-        print("\n--- MultiReranker (BM25 + Binary + ColBERT) ---")
+        logger.info("\n--- MultiReranker (BM25 + Binary + ColBERT) ---")
         multi_full = MultiReranker(
             rerankers=[("bm25", self.bm25), ("binary", binary), ("colbert", colbert)],
             config=MultiRerankerConfig(rrf_k=60),
@@ -597,7 +649,7 @@ class BenchmarkRunner:
         )
         self._print_metrics(multi_full_metrics, "multi")
 
-        print("\n--- MultiReranker (Hybrid + BM25) ---")
+        logger.info("\n--- MultiReranker (Hybrid + BM25) ---")
         hybrid_no_adapters = HybridFusionReranker(
             adapters=[],
             embedder=self.embedder,
@@ -625,7 +677,7 @@ class BenchmarkRunner:
         )
         self._print_metrics(multi_hb_metrics, "multi")
 
-        print("\n--- CascadeReranker (Hybrid -> FlashRank fallback) ---")
+        logger.info("\n--- CascadeReranker (Hybrid -> FlashRank fallback) ---")
         try:
             from reranker.strategies.flashrank_ensemble import FlashRankEnsemble
 
@@ -659,9 +711,9 @@ class BenchmarkRunner:
             )
             self._print_metrics(cascade_metrics, "cascade")
         except Exception as e:
-            print(f"  SKIPPED: {e}")
+            logger.info(f"  SKIPPED: {e}")
 
-        print("\n--- SPLADE Reranker ---")
+        logger.info("\n--- SPLADE Reranker ---")
         try:
             from reranker.strategies.splade import SPLADEReranker
 
@@ -685,7 +737,7 @@ class BenchmarkRunner:
             )
             self._print_metrics(splade_metrics, "splade")
         except Exception as e:
-            print(f"  SKIPPED: {e}")
+            logger.info(f"  SKIPPED: {e}")
             self.results.append(
                 ExperimentResult(
                     experiment_name="splade_skipped",
@@ -697,7 +749,7 @@ class BenchmarkRunner:
                 )
             )
 
-        print("\n--- FlashRankEnsemble (TinyBERT + MiniLM) ---")
+        logger.info("\n--- FlashRankEnsemble (TinyBERT + MiniLM) ---")
         try:
             from reranker.strategies.flashrank_ensemble import FlashRankEnsemble
 
@@ -720,9 +772,9 @@ class BenchmarkRunner:
             )
             self._print_metrics(ensemble_metrics, "flashrank_ensemble")
         except Exception as e:
-            print(f"  SKIPPED: {e}")
+            logger.info(f"  SKIPPED: {e}")
 
-        print("\n--- MetaRouter (query-type routing) ---")
+        logger.info("\n--- MetaRouter (query-type routing) ---")
         try:
             from reranker.strategies.meta_router import MetaRouter
 
@@ -748,13 +800,13 @@ class BenchmarkRunner:
                     embedder_model=self.embedder_model_name,
                 )
             )
-            print(f"  Fitted: {meta.is_fitted}")
-            print(f"  Profiles: {n_cats}")
-            print(f"  Sample query -> profile {profile_name}: {profile}")
+            logger.info(f"  Fitted: {meta.is_fitted}")
+            logger.info(f"  Profiles: {n_cats}")
+            logger.info(f"  Sample query -> profile {profile_name}: {profile}")
         except Exception as e:
-            print(f"  SKIPPED: {e}")
+            logger.info(f"  SKIPPED: {e}")
 
-        print("\n--- External Baselines: FlashRank Tiny ---")
+        logger.info("\n--- External Baselines: FlashRank Tiny ---")
         try:
             from reranker.adapters.flashrank_wrapper import FlashRankWrapper
 
@@ -773,9 +825,9 @@ class BenchmarkRunner:
             )
             self._print_metrics(fr_tiny_metrics, "flashrank_tiny")
         except Exception as e:
-            print(f"  SKIPPED: {e}")
+            logger.info(f"  SKIPPED: {e}")
 
-        print("\n--- External Baselines: FlashRank Mini ---")
+        logger.info("\n--- External Baselines: FlashRank Mini ---")
         try:
             from reranker.adapters.flashrank_wrapper import FlashRankWrapper
 
@@ -794,9 +846,9 @@ class BenchmarkRunner:
             )
             self._print_metrics(fr_mini_metrics, "flashrank_mini")
         except Exception as e:
-            print(f"  SKIPPED: {e}")
+            logger.info(f"  SKIPPED: {e}")
 
-        print("\n--- External Baselines: ST TinyBERT Cross-Encoder ---")
+        logger.info("\n--- External Baselines: ST TinyBERT Cross-Encoder ---")
         try:
             from reranker.adapters.sentence_transformer_wrapper import SentenceTransformerWrapper
 
@@ -815,9 +867,9 @@ class BenchmarkRunner:
             )
             self._print_metrics(st_tiny_metrics, "st_tiny")
         except Exception as e:
-            print(f"  SKIPPED: {e}")
+            logger.info(f"  SKIPPED: {e}")
 
-        print("\n--- External Baselines: ST MiniLM Cross-Encoder ---")
+        logger.info("\n--- External Baselines: ST MiniLM Cross-Encoder ---")
         try:
             from reranker.adapters.sentence_transformer_wrapper import SentenceTransformerWrapper
 
@@ -836,14 +888,14 @@ class BenchmarkRunner:
             )
             self._print_metrics(st_mini_metrics, "st_mini")
         except Exception as e:
-            print(f"  SKIPPED: {e}")
+            logger.info(f"  SKIPPED: {e}")
 
     def run_ablations(self) -> None:
-        print("\n" + "=" * 80)
-        print("PHASE 2: ABLATION STUDIES")
-        print("=" * 80)
+        logger.info("\n" + "=" * 80)
+        logger.info("PHASE 2: ABLATION STUDIES")
+        logger.info("=" * 80)
 
-        print("\n--- Hybrid: No Adapters ---")
+        logger.info("\n--- Hybrid: No Adapters ---")
         hybrid_no_adapters = HybridFusionReranker(
             adapters=[],
             embedder=self.embedder,
@@ -868,7 +920,7 @@ class BenchmarkRunner:
         )
         self._print_metrics(metrics, "hybrid")
 
-        print("\n--- ColBERT: No Salience ---")
+        logger.info("\n--- ColBERT: No Salience ---")
         colbert_no_salience = StaticColBERTReranker(
             embedder=self.embedder,
             top_k_tokens=128,
@@ -889,7 +941,7 @@ class BenchmarkRunner:
         )
         self._print_metrics(metrics, "late_interaction")
 
-        print("\n--- ColBERT: 64 Tokens ---")
+        logger.info("\n--- ColBERT: 64 Tokens ---")
         colbert_64 = StaticColBERTReranker(
             embedder=self.embedder,
             top_k_tokens=64,
@@ -910,7 +962,7 @@ class BenchmarkRunner:
         )
         self._print_metrics(metrics, "late_interaction")
 
-        print("\n--- Binary: Hamming Only ---")
+        logger.info("\n--- Binary: Hamming Only ---")
         binary_hamming = BinaryQuantizedReranker(
             embedder=self.embedder,
             hamming_top_k=999999,
@@ -936,7 +988,7 @@ class BenchmarkRunner:
         )
         self._print_metrics(metrics, "binary_reranker")
 
-        print("\n--- Binary: Aggressive Pruning ---")
+        logger.info("\n--- Binary: Aggressive Pruning ---")
         binary_aggressive = BinaryQuantizedReranker(
             embedder=self.embedder,
             hamming_top_k=100,
@@ -962,7 +1014,7 @@ class BenchmarkRunner:
         )
         self._print_metrics(metrics, "binary_reranker")
 
-        print("\n--- Consistency: Relaxed Threshold (0.90) ---")
+        logger.info("\n--- Consistency: Relaxed Threshold (0.90) ---")
         consistency_relaxed = ConsistencyEngine(
             sim_threshold=0.90,
             value_tolerance=0.01,
@@ -982,7 +1034,7 @@ class BenchmarkRunner:
         )
         self._print_metrics(metrics, "consistency")
 
-        print("\n--- Consistency: Strict Threshold (0.99) ---")
+        logger.info("\n--- Consistency: Strict Threshold (0.99) ---")
         consistency_strict = ConsistencyEngine(
             sim_threshold=0.99,
             value_tolerance=0.01,
@@ -1002,7 +1054,7 @@ class BenchmarkRunner:
         )
         self._print_metrics(metrics, "consistency")
 
-        print("\n--- Cascade: High Threshold (0.9) ---")
+        logger.info("\n--- Cascade: High Threshold (0.9) ---")
         try:
             from reranker.strategies.flashrank_ensemble import FlashRankEnsemble
 
@@ -1043,12 +1095,12 @@ class BenchmarkRunner:
             )
             self._print_metrics(metrics, "cascade")
         except Exception as e:
-            print(f"  SKIPPED: {e}")
+            logger.info(f"  SKIPPED: {e}")
 
     def run_scaling(self) -> None:
-        print("\n" + "=" * 80)
-        print("PHASE 3: SCALING EXPERIMENTS")
-        print("=" * 80)
+        logger.info("\n" + "=" * 80)
+        logger.info("PHASE 3: SCALING EXPERIMENTS")
+        logger.info("=" * 80)
 
         hybrid = HybridFusionReranker(
             adapters=[KeywordMatchAdapter()],
@@ -1096,7 +1148,7 @@ class BenchmarkRunner:
 
         for n_docs in corpus_sizes:
             docs = query_docs[:n_docs]
-            print(f"\n--- Corpus Size: {n_docs} docs ---")
+            logger.info(f"\n--- Corpus Size: {n_docs} docs ---")
 
             bm25_s = BM25Engine()
             bm25_s.fit(docs)
@@ -1104,13 +1156,13 @@ class BenchmarkRunner:
             bm25_s.rerank(query, docs)
             lat = (time.perf_counter() - start) * 1000
             scaling_results["bm25"][n_docs] = lat
-            print(f"  bm25:     {lat:.2f}ms")
+            logger.info(f"  bm25:     {lat:.2f}ms")
 
             start = time.perf_counter()
             hybrid.rerank(query, docs)
             lat = (time.perf_counter() - start) * 1000
             scaling_results["hybrid"][n_docs] = lat
-            print(f"  hybrid:   {lat:.2f}ms")
+            logger.info(f"  hybrid:   {lat:.2f}ms")
 
             colbert_s = StaticColBERTReranker(
                 embedder=self.embedder,
@@ -1122,7 +1174,7 @@ class BenchmarkRunner:
             colbert_s.rerank(query, docs)
             lat = (time.perf_counter() - start) * 1000
             scaling_results["colbert"][n_docs] = lat
-            print(f"  colbert:  {lat:.2f}ms")
+            logger.info(f"  colbert:  {lat:.2f}ms")
 
             binary_s = BinaryQuantizedReranker(
                 embedder=self.embedder,
@@ -1135,7 +1187,7 @@ class BenchmarkRunner:
             binary_s.rerank(query, docs)
             lat = (time.perf_counter() - start) * 1000
             scaling_results["binary"][n_docs] = lat
-            print(f"  binary:   {lat:.2f}ms")
+            logger.info(f"  binary:   {lat:.2f}ms")
 
         self.results.append(
             ExperimentResult(
@@ -1153,9 +1205,9 @@ class BenchmarkRunner:
         )
 
     def run_embedder_comparison(self) -> None:
-        print("\n" + "=" * 80)
-        print("PHASE 4: EMBEDDER MODEL COMPARISON")
-        print("=" * 80)
+        logger.info("\n" + "=" * 80)
+        logger.info("PHASE 4: EMBEDDER MODEL COMPARISON")
+        logger.info("=" * 80)
 
         eval_rows = self.test_pairs
         if self.quick:
@@ -1171,18 +1223,18 @@ class BenchmarkRunner:
             train_rows = train_rows[:100]
 
         for model_name in POTION_MODELS:
-            print(f"\n--- Embedder: {model_name} ---")
+            logger.info(f"\n--- Embedder: {model_name} ---")
             try:
                 embedder = Embedder(model_name=model_name)
             except Exception:
-                print(f"  SKIPPED: Could not load {model_name}")
+                logger.info(f"  SKIPPED: Could not load {model_name}")
                 continue
 
             if embedder.backend_name == "hashed":
-                print(f"  SKIPPED: model2vec not available for {model_name}")
+                logger.info(f"  SKIPPED: model2vec not available for {model_name}")
                 continue
 
-            print(f"  Backend: {embedder.backend_name}")
+            logger.info(f"  Backend: {embedder.backend_name}")
 
             for dimension in DIMENSIONS:
                 embedder_dim = Embedder(model_name=model_name, dimension=dimension)
@@ -1190,7 +1242,7 @@ class BenchmarkRunner:
                     continue
 
                 for strategy_name in ["hybrid", "binary_reranker", "late_interaction"]:
-                    print(f"  dim={dimension}, strategy={strategy_name}...", end=" ")
+                    logger.info(f"  dim={dimension}, strategy={strategy_name}...")
 
                     reranker = self._build_reranker_for_embedder_test(
                         strategy_name,
@@ -1198,7 +1250,7 @@ class BenchmarkRunner:
                         train_rows,
                     )
                     if reranker is None:
-                        print("SKIPPED")
+                        logger.info("SKIPPED")
                         continue
 
                     ndcgs: list[float] = []
@@ -1231,7 +1283,7 @@ class BenchmarkRunner:
                         p1s.append(precision_at_k(binary_labels, 1))
 
                     if not ndcgs:
-                        print("SKIPPED")
+                        logger.info("SKIPPED")
                         continue
 
                     ndcg_mean = sum(ndcgs) / len(ndcgs)
@@ -1265,7 +1317,7 @@ class BenchmarkRunner:
                             embedder_model=model_name,
                         )
                     )
-                    print(f"NDCG@10={ndcg_mean:.4f}")
+                    logger.info(f"NDCG@10={ndcg_mean:.4f}")
 
     def _build_reranker_for_embedder_test(
         self,
@@ -1310,6 +1362,7 @@ class BenchmarkRunner:
             "seed": self.seed,
             "embedder_model": self.embedder_model_name,
             "quick": self.quick,
+            "profiling_enabled": self.profiling_enabled,
             "data_counts": {
                 "train_pairs": len(self.train_pairs),
                 "test_pairs": len(self.test_pairs),
@@ -1322,12 +1375,20 @@ class BenchmarkRunner:
 
         results_dict = []
         for r in self.results:
+            per_query_metrics = r.per_query_metrics
+            metrics = dict(r.metrics)
+            for key in ("per_query_ndcg@10", "per_query_mrr", "per_query_map@10", "per_query_p@1"):
+                values = metrics.get(key)
+                if isinstance(values, list):
+                    per_query_metrics[key] = [float(v) for v in values]
+                    del metrics[key]
             results_dict.append(
                 {
                     "experiment_name": r.experiment_name,
                     "strategy": r.strategy,
                     "configuration": r.configuration,
-                    "metrics": r.metrics,
+                    "metrics": metrics,
+                    "per_query_metrics": per_query_metrics,
                     "latency_stats": r.latency_stats,
                     "ablation_info": r.ablation_info,
                     "n_samples": r.n_samples,
@@ -1344,9 +1405,23 @@ class BenchmarkRunner:
         with open(output_dir / "benchmark_summary.md", "w") as f:
             f.write(summary)
 
-        print(f"\nResults saved to {output_dir}")
-        print("  - benchmark_results.json")
-        print("  - benchmark_summary.md")
+        # Generate visualizations
+        try:
+            from reranker.eval.viz import (
+                generate_comparison_table,
+                plot_pareto_frontier,
+                plot_radar,
+            )
+
+            plot_pareto_frontier(results_dict, output_dir / "pareto_frontier.png")
+            plot_radar(results_dict, output_dir / "radar_chart.png")
+            generate_comparison_table(results_dict, output_dir / "comparison_table.md")
+        except Exception:
+            pass
+
+        logger.info(f"\nResults saved to {output_dir}")
+        logger.info("  - benchmark_results.json")
+        logger.info("  - benchmark_summary.md")
 
     def _generate_summary(self, metadata: dict[str, Any]) -> str:
         lines = []
@@ -1369,14 +1444,20 @@ class BenchmarkRunner:
             lines.append("## Baseline Results (Ranking)")
             lines.append("")
             lines.append(
-                "| Strategy | NDCG@10 | MAP@10 | MRR | P@1 | Latency (ms) | p50 | p99 | QPS | Cold-start (ms) | BM25 Uplift |"
+                "| Strategy | NDCG@10 | NDCG@10 95% CI | MAP@10 | MRR | P@1 | Latency (ms) | p50 | p99 | QPS | Cold-start (ms) | BM25 Uplift |"
             )
             lines.append(
-                "|----------|---------|--------|-----|-----|--------------|-----|-----|-----|-----------------|-------------|"
+                "|----------|---------|----------------|--------|-----|-----|--------------|-----|-----|-----|-----------------|-------------|"
             )
             for r in ranking_results:
                 m = r.metrics
                 ndcg = f"{m.get('ndcg@10', 0):.4f}"
+                ndcg_ci_lower = m.get("ndcg@10_ci_lower")
+                ndcg_ci_upper = m.get("ndcg@10_ci_upper")
+                if ndcg_ci_lower is not None and ndcg_ci_upper is not None:
+                    ndcg_ci = f"[{ndcg_ci_lower:.4f}, {ndcg_ci_upper:.4f}]"
+                else:
+                    ndcg_ci = "—"
                 map_val = f"{m.get('map@10', 0):.4f}"
                 mrr_val = f"{m.get('mrr', 0):.4f}"
                 p1 = f"{m.get('p@1', 0):.4f}"
@@ -1387,7 +1468,7 @@ class BenchmarkRunner:
                 cold = f"{m.get('cold_start_ms', 0):.1f}"
                 uplift = f"{m.get('ndcg_uplift_vs_bm25', 0):+.4f}"
                 lines.append(
-                    f"| {r.strategy} | {ndcg} | {map_val} | {mrr_val} | {p1} | {lat} | {p50} | {p99} | {qps} | {cold} | {uplift} |"
+                    f"| {r.strategy} | {ndcg} | {ndcg_ci} | {map_val} | {mrr_val} | {p1} | {lat} | {p50} | {p99} | {qps} | {cold} | {uplift} |"
                 )
 
         for r in self.results:

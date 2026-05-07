@@ -22,6 +22,7 @@ from collections import defaultdict
 from pathlib import Path
 
 import numpy as np
+import structlog
 
 # Optional tqdm import for progress bars
 try:
@@ -34,6 +35,8 @@ from reranker.data.ensemble_cache import EnsembleLabelCache
 from reranker.eval.metrics import ndcg_at_k
 from reranker.strategies.flashrank_ensemble import FlashRankEnsemble
 from reranker.strategies.hybrid import HybridFusionReranker
+
+logger = structlog.get_logger(__name__)
 
 
 def parse_args() -> argparse.Namespace:
@@ -160,12 +163,12 @@ def generate_ensemble_labels(
     force_regenerate: bool = False,
 ) -> dict:
     def generator_fn():
-        print(f"Generating labels for {len(queries)} queries...")
+        logger.info(f"Generating labels for {len(queries)} queries...")
         labels = {}
         query_iterator = tqdm(queries) if tqdm else queries
         for q_idx, query in enumerate(query_iterator):
             if q_idx % 100 == 0 and tqdm is None:
-                print(f"  Processing query {q_idx}/{len(queries)}")
+                logger.info(f"  Processing query {q_idx}/{len(queries)}")
             scores = ensemble.score_batch(query, corpus_docs)
             for d_idx, score in enumerate(scores):
                 labels[(q_idx, d_idx)] = float(score)
@@ -192,7 +195,7 @@ def train_hybrid_pointwise(
         labels: Dict mapping (query_idx, doc_idx) -> ensemble_score.
         output_path: Path to save trained model.
     """
-    print("\nTraining HybridFusionReranker with pointwise method...")
+    logger.info("\nTraining HybridFusionReranker with pointwise method...")
 
     # Flatten labels dict to lists
     train_queries = []
@@ -207,8 +210,8 @@ def train_hybrid_pointwise(
 
     if not train_queries:
         raise ValueError("No valid training samples generated from labels")
-    print(f"Training samples: {len(train_queries)}")
-    print(f"Score range: [{min(train_scores):.4f}, {max(train_scores):.4f}]")
+    logger.info(f"Training samples: {len(train_queries)}")
+    logger.info(f"Score range: [{min(train_scores):.4f}, {max(train_scores):.4f}]")
 
     # Create and train model
     hybrid = HybridFusionReranker()
@@ -220,7 +223,7 @@ def train_hybrid_pointwise(
     # Save model
     output_path.parent.mkdir(parents=True, exist_ok=True)
     hybrid.save(output_path)
-    print(f"Model saved to {output_path}")
+    logger.info(f"Model saved to {output_path}")
 
 
 def train_hybrid_pairwise(
@@ -237,7 +240,7 @@ def train_hybrid_pairwise(
         labels: Dict mapping (query_idx, doc_idx) -> ensemble_score.
         output_path: Path to save trained model.
     """
-    print("\nTraining HybridFusionReranker with pairwise method...")
+    logger.info("\nTraining HybridFusionReranker with pairwise method...")
 
     # Group labels by query: query_labels[q_idx] = {d_idx: score}
     query_labels: defaultdict[int, dict[int, float]] = defaultdict(dict)
@@ -285,7 +288,7 @@ def train_hybrid_pairwise(
                 pairs_generated += 1
 
         if pairs_generated >= max_pairs_per_query:
-            print(
+            logger.info(
                 f"  Query {q_idx}: limited to {max_pairs_per_query} pairs "
                 f"(out of {len(doc_indices) * (len(doc_indices) - 1) // 2} possible)"
             )
@@ -295,19 +298,19 @@ def train_hybrid_pairwise(
             "No valid pairwise training samples generated. Check if labels have score variations."
         )
 
-    print(f"Generated {total_pairs} pairwise comparisons")
+    logger.info(f"Generated {total_pairs} pairwise comparisons")
     if skipped_equal > 0:
-        print(f"Skipped {skipped_equal} pairs with equal scores")
+        logger.info(f"Skipped {skipped_equal} pairs with equal scores")
 
     label_1_count = sum(1 for label in train_labels if label == 1)
     label_0_count = len(train_labels) - label_1_count
-    print(
+    logger.info(
         f"Label distribution: {label_1_count} pairs prefer doc_a, "
         f"{label_0_count} pairs prefer doc_b"
     )
 
     hybrid = HybridFusionReranker()
-    print(f"Training with {len(train_queries)} pairwise comparisons")
+    logger.info(f"Training with {len(train_queries)} pairwise comparisons")
     hybrid.fit(train_queries, train_doc_as, train_doc_bs, train_labels)
 
     if not hybrid.is_fitted:
@@ -316,7 +319,7 @@ def train_hybrid_pairwise(
     # Save model
     output_path.parent.mkdir(parents=True, exist_ok=True)
     hybrid.save(output_path)
-    print(f"Model saved to {output_path}")
+    logger.info(f"Model saved to {output_path}")
 
 
 def evaluate_hybrid(
@@ -326,9 +329,9 @@ def evaluate_hybrid(
     qrels: dict,
     top_k: int = 10,
 ) -> dict:
-    print("\n" + "=" * 60)
-    print("EVALUATION METRICS")
-    print("=" * 60)
+    logger.info("\n" + "=" * 60)
+    logger.info("EVALUATION METRICS")
+    logger.info("=" * 60)
 
     queries_with_qrels = [qid for qid in queries.keys() if qid in qrels and qrels[qid]]
 
@@ -338,7 +341,7 @@ def evaluate_hybrid(
     ndcg_scores: list[float] = []
     latencies: list[float] = []
 
-    print(f"\n[Evaluation] Testing on {num_eval_queries} queries...")
+    logger.info(f"\n[Evaluation] Testing on {num_eval_queries} queries...")
 
     for qid in query_ids_eval:
         query = queries[qid]
@@ -373,9 +376,9 @@ def evaluate_hybrid(
     avg_ndcg = float(np.mean(ndcg_scores)) if ndcg_scores else 0.0
     avg_latency_ms = float(np.mean(latencies)) if latencies else 0.0
 
-    print(f"  NDCG@{top_k}: {avg_ndcg:.4f}")
-    print(f"  Avg Latency: {avg_latency_ms:.2f} ms")
-    print(f"  Queries evaluated: {len(ndcg_scores)}")
+    logger.info(f"  NDCG@{top_k}: {avg_ndcg:.4f}")
+    logger.info(f"  Avg Latency: {avg_latency_ms:.2f} ms")
+    logger.info(f"  Queries evaluated: {len(ndcg_scores)}")
 
     return {
         "ndcg_at_10": avg_ndcg,
@@ -389,21 +392,21 @@ def main() -> None:
     try:
         args = parse_args()
         # Print configuration
-        print(f"Teachers: {', '.join(args.teachers)}")
-        print(f"Dataset: {args.dataset}")
+        logger.info(f"Teachers: {', '.join(args.teachers)}")
+        logger.info(f"Dataset: {args.dataset}")
         if args.custom_path:
-            print(f"Custom path: {args.custom_path}")
-        print(f"Method: {args.method}")
-        print(f"Force regenerate: {args.force_regenerate}")
-        print(f"Output: {args.output}")
-        print(f"Cache dir: {args.cache_dir}")
+            logger.info(f"Custom path: {args.custom_path}")
+        logger.info(f"Method: {args.method}")
+        logger.info(f"Force regenerate: {args.force_regenerate}")
+        logger.info(f"Output: {args.output}")
+        logger.info(f"Cache dir: {args.cache_dir}")
 
         # Initialize ensemble and cache
         ensemble = FlashRankEnsemble(args.teachers)
         cache = EnsembleLabelCache(args.cache_dir)
 
         # Load dataset using dispatcher
-        print(f"\nLoading {args.dataset} dataset...")
+        logger.info(f"\nLoading {args.dataset} dataset...")
         queries_dict, corpus_dict, qrels = load_training_data(args.dataset, args.custom_path)
 
         # Convert to lists for indexing and filter for testing
@@ -423,10 +426,10 @@ def main() -> None:
                     did: score for did, score in qrels[qid].items() if did in doc_ids
                 }
 
-        print(f"Loaded {len(queries)} queries, {len(corpus_docs)} documents")
+        logger.info(f"Loaded {len(queries)} queries, {len(corpus_docs)} documents")
 
         # Generate ensemble labels
-        print("\nGenerating ensemble teacher labels...")
+        logger.info("\nGenerating ensemble teacher labels...")
         labels = generate_ensemble_labels(
             ensemble=ensemble,
             queries=queries,
@@ -436,7 +439,7 @@ def main() -> None:
             force_regenerate=args.force_regenerate,
         )
 
-        print(f"Generated {len(labels)} query-document pair scores")
+        logger.info(f"Generated {len(labels)} query-document pair scores")
 
         # Train Hybrid based on method
         if args.method == "pointwise":
@@ -454,15 +457,15 @@ def main() -> None:
                 output_path=args.output,
             )
         else:
-            print(f"\nMethod '{args.method}' not yet implemented.")
+            logger.info(f"\nMethod '{args.method}' not yet implemented.")
             return
 
         # Load trained model and evaluate
-        print("\n" + "=" * 60)
-        print("LOADING TRAINED MODEL FOR EVALUATION")
-        print("=" * 60)
+        logger.info("\n" + "=" * 60)
+        logger.info("LOADING TRAINED MODEL FOR EVALUATION")
+        logger.info("=" * 60)
         hybrid = HybridFusionReranker.load(args.output)
-        print(f"Model loaded from {args.output}")
+        logger.info(f"Model loaded from {args.output}")
 
         # Run evaluation
         eval_results = evaluate_hybrid(
@@ -474,26 +477,26 @@ def main() -> None:
         )
 
         # Print summary
-        print("\n" + "=" * 60)
-        print("EVALUATION SUMMARY")
-        print("=" * 60)
-        print(f"NDCG@10:              {eval_results['ndcg_at_10']:.4f}")
-        print(f"Avg Latency:          {eval_results['avg_latency_ms']:.2f} ms")
-        print(f"Queries Evaluated:    {eval_results['num_queries']}")
-        print("=" * 60)
+        logger.info("\n" + "=" * 60)
+        logger.info("EVALUATION SUMMARY")
+        logger.info("=" * 60)
+        logger.info(f"NDCG@10:              {eval_results['ndcg_at_10']:.4f}")
+        logger.info(f"Avg Latency:          {eval_results['avg_latency_ms']:.2f} ms")
+        logger.info(f"Queries Evaluated:    {eval_results['num_queries']}")
+        logger.info("=" * 60)
 
     except ImportError as e:
-        print(f"ImportError: {e}")
+        logger.info(f"ImportError: {e}")
         error_msg = str(e).lower()
         if "flashrank" in error_msg:
-            print("Install: uv pip install flashrank")
+            logger.info("Install: uv pip install flashrank")
         elif "beir" in error_msg:
-            print("Install: uv pip install beir --no-deps && uv pip install rank-bm25 pyyaml")
+            logger.info("Install: uv pip install beir --no-deps && uv pip install rank-bm25 pyyaml")
         else:
-            print("Install dependencies: uv sync --extra flashrank")
+            logger.info("Install dependencies: uv sync --extra flashrank")
         sys.exit(1)
     except Exception as e:
-        print(f"Error: {e}")
+        logger.info(f"Error: {e}")
         traceback.print_exc()
         sys.exit(1)
 

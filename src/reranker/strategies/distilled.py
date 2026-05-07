@@ -6,12 +6,12 @@ approximate an expensive teacher reranker's pairwise preferences.
 
 from __future__ import annotations
 
-import logging
 from collections import deque
 from pathlib import Path
 from typing import Literal
 
 import numpy as np
+import structlog
 from sklearn.dummy import DummyClassifier
 from sklearn.linear_model import LogisticRegression
 
@@ -23,7 +23,7 @@ from reranker.utils import (
     load_pickle,
 )
 
-logger = logging.getLogger("reranker.strategies.distilled")
+logger = structlog.get_logger(__name__)
 
 
 class DistilledPairwiseRanker:

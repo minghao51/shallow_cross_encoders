@@ -11,6 +11,10 @@ import subprocess
 import sys
 from pathlib import Path
 
+import structlog
+
+logger = structlog.get_logger(__name__)
+
 
 def extract_title(notebook_path: Path) -> str:
     tree = ast.parse(notebook_path.read_text())
@@ -45,7 +49,7 @@ def generate_landing_page(notebooks):
     landing_dir = Path("docs/notebooks")
     landing_dir.mkdir(parents=True, exist_ok=True)
     (landing_dir / "index.md").write_text(content)
-    print(f"  {landing_dir / 'index.md'}")
+    logger.info(f"  {landing_dir / 'index.md'}")
 
 
 def export_html(notebooks):
@@ -54,7 +58,7 @@ def export_html(notebooks):
         slug = nb.stem
         export_dir = export_base / slug
         export_dir.mkdir(parents=True, exist_ok=True)
-        print(f"  Exporting {slug}...")
+        logger.info(f"  Exporting {slug}...")
         result = subprocess.run(
             [
                 sys.executable,
@@ -71,24 +75,24 @@ def export_html(notebooks):
             cwd=Path.cwd(),
         )
         if result.returncode != 0:
-            print(f"  WARNING: export exited with code {result.returncode}")
+            logger.info(f"  WARNING: export exited with code {result.returncode}")
         for line in result.stderr.splitlines():
             if "Error" in line or "Warning" in line or "traceback" in line.lower():
-                print(f"    {line}")
+                logger.info(f"    {line}")
 
 
 def main():
     landing_only = "--landing-only" in sys.argv
 
     notebooks = get_notebooks()
-    print("Generating landing page...")
+    logger.info("Generating landing page...")
     generate_landing_page(notebooks)
 
     if not landing_only:
-        print("Exporting to static HTML...")
+        logger.info("Exporting to static HTML...")
         export_html(notebooks)
 
-    print("Done.")
+    logger.info("Done.")
 
 
 if __name__ == "__main__":

@@ -5,12 +5,15 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+import structlog
+
 from reranker.config import get_settings
 from reranker.eval.runner import evaluate_strategy
 
+logger = structlog.get_logger(__name__)
+
 
 def main() -> None:
-    """CLI entrypoint: parse args and run evaluation for a given strategy."""
     settings = get_settings()
     parser = argparse.ArgumentParser(description="Evaluate a reranking strategy.")
     parser.add_argument(
@@ -38,7 +41,7 @@ def main() -> None:
         model_root=Path(args.model_root),
     )
     for key, value in report.items():
-        print(f"{key}: {value}")
+        logger.info("eval_result", key=key, value=value)
 
 
 if __name__ == "__main__":

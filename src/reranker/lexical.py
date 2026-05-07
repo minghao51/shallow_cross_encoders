@@ -105,6 +105,69 @@ class BM25Engine:
             scores = scores / float(scores.max())
         return scores
 
+    def _rebuild_bm25(self) -> None:
+        """Rebuild the rank_bm25 backend from current tokenized corpus."""
+        bm25_cls, _ = check_rank_bm25()
+        if bm25_cls is not None and self._tokenized:
+            self._bm25 = bm25_cls(self._tokenized)
+            self.backend_name = "rank_bm25"
+        else:
+            self._bm25 = None
+            self.backend_name = "pure_python"
+
+    def update(self, docs: list[str]) -> None:
+        """Incrementally add documents without full rebuild.
+
+        Appends new documents to the existing index, updating document
+        frequencies and average document length incrementally. Faster than
+        calling ``fit()`` again when only adding a few documents.
+
+        Args:
+            docs: Document strings to add to the index.
+        """
+        if not docs:
+            return
+        new_tokenized = [self._tokenize_fn(doc) for doc in docs]
+        new_total_len = sum(len(tokens) for tokens in new_tokenized)
+        old_total_len = int(self._avgdl * len(self._tokenized)) if self._tokenized else 0
+        self._corpus.extend(docs)
+        self._tokenized.extend(new_tokenized)
+        n = len(self._tokenized)
+        self._avgdl = (old_total_len + new_total_len) / max(n, 1)
+        for tokens in new_tokenized:
+            self._doc_freqs.update(set(tokens))
+        self._rebuild_bm25()
+
+    def remove(self, doc_ids: list[int]) -> None:
+        """Remove documents by index from the index.
+
+        Removes documents at the specified indices, updating all internal
+        statistics. Indices refer to the *current* corpus ordering.
+
+        Args:
+            doc_ids: 0-based indices of documents to remove.
+
+        Raises:
+            IndexError: If any index is out of range.
+        """
+        if not doc_ids:
+            return
+        n = len(self._corpus)
+        for idx in doc_ids:
+            if idx < 0 or idx >= n:
+                raise IndexError(f"doc_id {idx} out of range [0, {n})")
+        remove_set = set(doc_ids)
+        surviving_corpus = [d for i, d in enumerate(self._corpus) if i not in remove_set]
+        surviving_tokenized = [t for i, t in enumerate(self._tokenized) if i not in remove_set]
+        self._corpus = surviving_corpus
+        self._tokenized = surviving_tokenized
+        self._doc_freqs = Counter()
+        for tokens in self._tokenized:
+            self._doc_freqs.update(set(tokens))
+        n = len(self._tokenized)
+        self._avgdl = float(sum(len(t) for t in self._tokenized)) / max(n, 1)
+        self._rebuild_bm25()
+
     def rerank(self, query: str, docs: list[str]) -> list:
         """Score and rank documents by BM25 relevance.
 

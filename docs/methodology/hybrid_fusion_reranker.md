@@ -181,6 +181,44 @@ S_final(q, d) = (S_model(q, d) + S_blend(q, d)) / 2
 4. **Average**: Final score = (model + blend) / 2
 5. **Rank**: Sort documents by final scores (descending)
 
+### WeightingMode
+
+The `WeightingMode` enum controls how heuristic and learned scores are combined:
+
+| Mode | Behavior |
+|------|----------|
+| `WeightingMode.STATIC` | Fixed weights from config (default) |
+| `WeightingMode.LEARNED` | Only the GBDT model output (no heuristic blend) |
+| `WeightingMode.META_ROUTER` | Per-query adaptive weights trained via MetaRouter |
+
+In `STATIC` and `META_ROUTER` modes, the final score is `(model + blend) / 2`. In `LEARNED` mode, only the model prediction is used.
+
+### Batch Reranking
+
+`rerank_batch(queries, docs_list)` efficiently reranks multiple query-document groups simultaneously by batching all embeddings into a single call:
+
+```python
+hybrid.rerank_batch(
+    queries=["python tutorial", "javascript guide"],
+    docs_list=[["doc1", "doc2"], ["doc3", "doc4"]],
+)
+```
+
+Each query-document group is processed independently but embedding computation is amortized across all queries.
+
+### Precomputed Embeddings
+
+`score()` and `rerank()` accept optional `query_vec` and `d_vecs` parameters to reuse precomputed embeddings, avoiding redundant encoding in pipeline settings:
+
+```python
+hybrid.score(query, docs, query_vec=q_vec, d_vecs=d_vecs)
+hybrid.rerank(query, docs, query_vec=q_vec, d_vecs=d_vecs)
+```
+
+### No Auto-Fit
+
+`score()` raises `RuntimeError` if the reranker has not been fitted — it no longer silently returns zero scores.
+
 ### HeuristicAdapter Protocol
 
 Custom adapters can inject additional features:
@@ -201,6 +239,7 @@ class HeuristicAdapter(Protocol):
 | **9 base features** | Covers semantic, lexical, and structural signals |
 | **Adapter extensibility** | Domain-specific features without modifying core logic |
 | **Auto BM25 fit** | Fits BM25 on candidate docs if not provided |
+| **Explicit fit contract** | `score()` raises `RuntimeError` if unfitted |
 
 ### Performance
 

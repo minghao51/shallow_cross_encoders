@@ -2,12 +2,16 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import structlog
+
 from reranker.config import get_settings
 from reranker.data.splits import partition_rows
 from reranker.data.synth import SyntheticDataGenerator
 from reranker.eval.runner import evaluate_strategy
 from reranker.strategies.late_interaction import StaticColBERTReranker
 from reranker.utils import read_jsonl
+
+logger = structlog.get_logger(__name__)
 
 
 def main() -> None:

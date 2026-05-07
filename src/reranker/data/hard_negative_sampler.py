@@ -13,6 +13,9 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+import structlog
+
+logger = structlog.get_logger(__name__)
 
 
 class BM25IndexCache:
@@ -67,17 +70,16 @@ class BM25IndexCache:
         cache_path = self.cache_dir / f"bm25_{cache_key}.json"
 
         if cache_path.exists():
-            print(f"Loading BM25 index from cache: {cache_path}")
+            logger.info("loading_bm25_cache", path=str(cache_path))
             with open(cache_path) as f:
                 return json.load(f)
 
-        print("Building BM25 index...")
+        logger.info("building_bm25_index")
         tokenized_corpus = build_fn()
 
-        # Save to cache
         with open(cache_path, "w") as f:
             json.dump(tokenized_corpus, f)
-        print(f"BM25 index cached to: {cache_path}")
+        logger.info("bm25_index_cached", path=str(cache_path))
 
         return tokenized_corpus
 
@@ -130,9 +132,8 @@ def prepare_benchmark_data_with_hard_negatives(
     queries = dataset["queries"]
     qrels = dataset["qrels"]
 
-    # Limit queries
     query_ids = list(queries.keys())[:num_queries]
-    print(f"Using {len(query_ids)} queries for benchmark")
+    logger.info("using_queries_for_benchmark", n=len(query_ids))
 
     # Setup BM25 cache
     if cache_dir is None:
@@ -210,8 +211,11 @@ def prepare_benchmark_data_with_hard_negatives(
                 }
             )
 
-    print(f"Created {len(rows)} query-doc pairs")
-    print(f"Relevant pairs: {sum(1 for r in rows if r['score'] > 0)}")
-    print(f"Non-relevant pairs: {sum(1 for r in rows if r['score'] == 0)}")
+    logger.info(
+        "created_benchmark_pairs",
+        n=len(rows),
+        relevant=sum(1 for r in rows if r["score"] > 0),
+        non_relevant=sum(1 for r in rows if r["score"] == 0),
+    )
 
     return rows

@@ -2,9 +2,13 @@ from __future__ import annotations
 
 import argparse
 
+import structlog
+
 from reranker.config import get_settings
 from reranker.data.synth import SyntheticDataGenerator
 from reranker.utils import read_jsonl, write_jsonl
+
+logger = structlog.get_logger(__name__)
 
 
 def _parse_args() -> argparse.Namespace:
@@ -44,8 +48,8 @@ def main() -> None:
     )
     write_jsonl(output_path, preferences)
     metadata_paths = generator.refresh_metadata(settings.paths.raw_data_dir)
-    print(f"Wrote {len(preferences)} rows to {output_path}")
-    print(f"Updated manifest at {metadata_paths['manifest']}")
+    logger.info(f"Wrote {len(preferences)} rows to {output_path}")
+    logger.info(f"Updated manifest at {metadata_paths['manifest']}")
 
 
 if __name__ == "__main__":

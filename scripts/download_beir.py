@@ -12,6 +12,9 @@ import zipfile
 from pathlib import Path
 
 import httpx
+import structlog
+
+logger = structlog.get_logger(__name__)
 
 BEIR_BASE_URL = "https://public.ukp.informatik.tu-darmstadt.de/thakur/BEIR/datasets"
 
@@ -51,10 +54,10 @@ def download_dataset(
     extract_path = save_path / name
 
     if extract_path.exists():
-        print(f"{name} already downloaded at {extract_path}")
+        logger.info(f"{name} already downloaded at {extract_path}")
         return extract_path
 
-    print(f"Downloading {name} from {url}...")
+    logger.info(f"Downloading {name} from {url}...")
 
     # Download with progress
     with httpx.stream("GET", url, follow_redirects=True, timeout=120) as response:
@@ -70,7 +73,7 @@ def download_dataset(
                     if downloaded % (1024 * 1024) == 0 or downloaded == total_size:
                         mb = downloaded / (1024 * 1024)
                         total_mb = total_size / (1024 * 1024)
-                        print(f"  Progress: {mb:.1f}/{total_mb:.1f} MB")
+                        logger.info(f"  Progress: {mb:.1f}/{total_mb:.1f} MB")
             else:
                 for chunk in response.iter_bytes(chunk_size=8192):
                     f.write(chunk)
@@ -83,14 +86,14 @@ def download_dataset(
                 f"SHA256 mismatch for {name}: expected {expected_sha256}, got {actual_sha256}"
             )
 
-    print(f"Extracting {name}...")
+    logger.info(f"Extracting {name}...")
     with zipfile.ZipFile(zip_path, "r") as zf:
         _safe_extract_zip(zf, save_path)
 
     # Clean up zip
     zip_path.unlink()
 
-    print(f"Downloaded {name} to {extract_path}")
+    logger.info(f"Downloaded {name} to {extract_path}")
     return extract_path
 
 
@@ -145,7 +148,9 @@ def load_trec_covid(data_path: Path) -> dict:
                     if rel > 0:
                         qrels[q_id][doc_id] = rel
 
-    print(f"Loaded TREC-COVID: {len(corpus)} docs, {len(queries)} queries, {len(qrels)} qrels")
+    logger.info(
+        f"Loaded TREC-COVID: {len(corpus)} docs, {len(queries)} queries, {len(qrels)} qrels"
+    )  # noqa: E501
 
     return {
         "corpus": corpus,
@@ -198,7 +203,7 @@ def load_nfcorpus(data_path: Path) -> dict:
                         qrels_dict[q_id][doc_id] = rel
         qrels = dict(qrels_dict)
 
-    print(f"Loaded NFCorpus: {len(corpus)} docs, {len(queries)} queries, {len(qrels)} qrels")
+    logger.info(f"Loaded NFCorpus: {len(corpus)} docs, {len(queries)} queries, {len(qrels)} qrels")
 
     return {
         "corpus": corpus,
@@ -211,10 +216,14 @@ if __name__ == "__main__":
     import sys
 
     # Download datasets
-    datasets = sys.argv[1:] if len(sys.argv) > 1 else ["trec-covid", "nfcorpus"]
+    datasets = (
+        sys.argv[1:]
+        if len(sys.argv) > 1
+        else ["trec-covid", "nfcorpus", "scidocs", "fiqa-qa", "arguana"]
+    )
 
     for name in datasets:
-        print(f"\n=== Processing {name} ===")
+        logger.info(f"\n=== Processing {name} ===")
         try:
             path = download_dataset(name)
 
@@ -240,10 +249,10 @@ if __name__ == "__main__":
             with open(summary_path, "w") as f:
                 json.dump(summary, f, indent=2)
 
-            print(f"Summary saved to {summary_path}")
+            logger.info(f"Summary saved to {summary_path}")
 
         except Exception as e:
-            print(f"Error processing {name}: {e}")
+            logger.info(f"Error processing {name}: {e}")
             import traceback
 
             traceback.print_exc()

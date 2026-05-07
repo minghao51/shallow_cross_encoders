@@ -5,6 +5,7 @@ from __future__ import annotations
 import time
 
 import numpy as np
+import structlog
 
 from reranker.quantization import (
     compression_ratio,
@@ -12,6 +13,8 @@ from reranker.quantization import (
     memory_bytes,
     quantize,
 )
+
+logger = structlog.get_logger(__name__)
 
 
 def estimate_cache_hits(texts: list[str]) -> dict[str, int]:
@@ -74,25 +77,25 @@ def main() -> None:
         + [f"unique document {i}" for i in range(30)]
     )
     cache_stats = estimate_cache_hits(sample_texts)
-    print("Cache Reuse Estimate:")
-    print(
+    logger.info("Cache Reuse Estimate:")
+    logger.info(
         f"  total={cache_stats['total_texts']} unique={cache_stats['unique_texts']} "
         f"estimated_hits={cache_stats['estimated_cache_hits']}"
     )
 
     for n, d in shapes:
         vectors = np.random.randn(n, d).astype(np.float32)
-        print(f"\n{'=' * 70}")
-        print(f"Shape: ({n}, {d}) — {vectors.nbytes / 1024:.1f} KB original")
-        print(f"{'=' * 70}")
+        logger.info(f"\n{'=' * 70}")
+        logger.info(f"Shape: ({n}, {d}) — {vectors.nbytes / 1024:.1f} KB original")
+        logger.info(f"{'=' * 70}")
         header = (
             f"{'Mode':<10} {'Ratio':>8} {'RMSE':>12} {'CosSim':>10} {'Enc(ms)':>10} {'Dec(ms)':>10}"
         )
-        print(header)
-        print("-" * 70)
+        logger.info(header)
+        logger.info("-" * 70)
         for mode in modes:
             stats = benchmark_mode(vectors, mode)
-            print(
+            logger.info(
                 f"{stats['mode']:<10} "
                 f"{stats['compression_ratio']:>8.2f} "
                 f"{stats['rmse']:>12.6f} "

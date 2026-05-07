@@ -1,0 +1,64 @@
+# Distilled Pairwise Ranker — Loss Type × Tournament Size Sweep
+# Usage: uv run reranker benchmark sweep --config benchmarks/configs/sweep_distilled.yaml
+
+name: distilled_pairwise_sweep
+description: >
+  Sweep distilled pairwise ranker hyperparameters: loss function
+  variants and tournament sizes for preference data training.
+
+variants:
+  default_logistic_t2:
+    distilled:
+      loss_type: "logistic"
+      tournament_size: 2
+      C: 1.0
+      max_iter: 500
+
+  default_logistic_t4:
+    distilled:
+      loss_type: "logistic"
+      tournament_size: 4
+      C: 1.0
+      max_iter: 500
+
+  default_logistic_t8:
+    distilled:
+      loss_type: "logistic"
+      tournament_size: 8
+      C: 1.0
+      max_iter: 500
+
+  hinge_t2:
+    distilled:
+      loss_type: "hinge"
+      tournament_size: 2
+      C: 1.0
+      max_iter: 500
+
+  hinge_t4:
+    distilled:
+      loss_type: "hinge"
+      tournament_size: 4
+      C: 1.0
+      max_iter: 500
+
+  squared_hinge_t2:
+    distilled:
+      loss_type: "squared_hinge"
+      tournament_size: 2
+      C: 1.0
+      max_iter: 500
+
+  strong_regularization:
+    distilled:
+      loss_type: "logistic"
+      tournament_size: 2
+      C: 0.1
+      max_iter: 1000
+
+  weak_regularization:
+    distilled:
+      loss_type: "logistic"
+      tournament_size: 2
+      C: 10.0
+      max_iter: 500

@@ -11,6 +11,10 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
+import structlog
+
+logger = structlog.get_logger(__name__)
+
 
 def load_beir_simple(dataset_name: str = "nfcorpus") -> tuple[dict, dict, dict]:
     """Load BEIR dataset in simple format for distillation.
@@ -47,7 +51,7 @@ def load_beir_simple(dataset_name: str = "nfcorpus") -> tuple[dict, dict, dict]:
         url = (
             f"https://public.ukp.informatik.tu-darmstadt.de/thakur/BEIR/datasets/{dataset_name}.zip"
         )
-        print(f"Downloading {dataset_name} from {url}")
+        logger.info("downloading_dataset", dataset=dataset_name, url=url)
         util.download_and_unzip(url, str(beir_dir.parent))
 
     # Parse corpus.jsonl
@@ -117,7 +121,7 @@ def load_beir_comprehensive(dataset_path: Path) -> dict[str, Any]:
         >>> data = load_beir_comprehensive(Path("data/beir/nfcorpus"))
         >>> print(f"Loaded {len(data['queries'])} queries")
     """
-    print(f"Loading dataset from {dataset_path}...")
+    logger.info("loading_dataset", path=str(dataset_path))
 
     corpus: dict[str, Any] = {}
     queries: dict[str, str] = {}
@@ -154,7 +158,7 @@ def load_beir_comprehensive(dataset_path: Path) -> dict[str, Any]:
                     "title": title,
                     "text": f"{title} {text}" if title else text,
                 }
-        print(f"Loaded {len(corpus)} documents from {corpus_file}")
+        logger.info("loaded_corpus", n_docs=len(corpus), path=str(corpus_file))
 
     elif corpus_file.suffix == ".tsv":
         with open(corpus_file) as f:
@@ -169,7 +173,7 @@ def load_beir_comprehensive(dataset_path: Path) -> dict[str, Any]:
                         "title": title,
                         "text": f"{title} {text}" if title else text,
                     }
-        print(f"Loaded {len(corpus)} documents from {corpus_file}")
+        logger.info("loaded_corpus", n_docs=len(corpus), path=str(corpus_file))
 
     # Load queries
     queries_file = None
@@ -194,7 +198,7 @@ def load_beir_comprehensive(dataset_path: Path) -> dict[str, Any]:
                 q_id = item.get("_id", item.get("query_id", ""))
                 query_text = item.get("text", item.get("query", ""))
                 queries[str(q_id)] = query_text
-        print(f"Loaded {len(queries)} queries from {queries_file}")
+        logger.info("loaded_queries", n_queries=len(queries), path=str(queries_file))
 
     elif queries_file.suffix == ".tsv":
         with open(queries_file) as f:
@@ -203,7 +207,7 @@ def load_beir_comprehensive(dataset_path: Path) -> dict[str, Any]:
                 if len(parts) >= 2:
                     q_id, query_text = parts[0], parts[1]
                     queries[str(q_id)] = query_text
-        print(f"Loaded {len(queries)} queries from {queries_file}")
+        logger.info("loaded_queries", n_queries=len(queries), path=str(queries_file))
 
     # Load qrels
     qrels_dir = dataset_path / "qrels"
@@ -227,7 +231,7 @@ def load_beir_comprehensive(dataset_path: Path) -> dict[str, Any]:
                             )
                         if rel > 0:
                             qrels[str(q_id)][str(doc_id)] = rel
-        print(f"Loaded qrels for {len(qrels)} queries")
+        logger.info("loaded_qrels", n_queries=len(qrels))
 
     return {
         "corpus": corpus,

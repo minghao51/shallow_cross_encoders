@@ -7,12 +7,12 @@ contested mining, max entropy, and diversity sampling.
 
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 import numpy as np
+import structlog
 from sklearn.cluster import MiniBatchKMeans
 
 from reranker.config import get_settings
@@ -21,7 +21,7 @@ from reranker.embedder import Embedder
 from reranker.lexical import BM25Engine
 from reranker.utils import append_jsonl
 
-logger = logging.getLogger("reranker.data.active_distill")
+logger = structlog.get_logger(__name__)
 
 PROMPT_RELEVANCE = """You are a relevance judge. Given a query and a document, rate relevance 0-3.
 0 = Irrelevant | 1 = Tangential | 2 = Relevant | 3 = Highly Relevant

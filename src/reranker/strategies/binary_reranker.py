@@ -6,11 +6,11 @@ Stage 2: Learned bilinear (query^T W doc) re-scoring for top candidates.
 
 from __future__ import annotations
 
-import logging
 from collections import OrderedDict
 from pathlib import Path
 
 import numpy as np
+import structlog
 from sklearn.dummy import DummyClassifier
 from sklearn.linear_model import LogisticRegression
 
@@ -22,7 +22,7 @@ from reranker.utils import (
     load_pickle,
 )
 
-logger = logging.getLogger("reranker.strategies.binary_reranker")
+logger = structlog.get_logger(__name__)
 
 
 class BinaryQuantizedReranker:

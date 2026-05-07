@@ -1,5 +1,9 @@
+import structlog
+
 from reranker.config import get_settings
 from reranker.data.synth import SyntheticDataGenerator
+
+logger = structlog.get_logger(__name__)
 
 
 def main() -> None:

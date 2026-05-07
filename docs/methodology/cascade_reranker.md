@@ -29,19 +29,19 @@ Results       Results
 ### CascadeConfig
 
 ```python
-from reranker.strategies import CascadeConfig, ConfidenceMetric
+from reranker.strategies import CascadeConfig, ConfidenceMetric, FallbackStrategy
 
 config = CascadeConfig(
-    confidence_threshold=0.6,        # Threshold for triggering fallback
-    confidence_metric=ConfidenceMetric.MAX_SCORE,  # How to compute confidence
-    fallback_strategy="flashrank"    # When to use fallback
+    confidence_threshold=0.6,
+    confidence_metric=ConfidenceMetric.MAX_SCORE,
+    fallback_strategy=FallbackStrategy.FLASHRANK,
 )
 ```
 
 **Parameters:**
 - `confidence_threshold`: Value below which fallback triggers (0-1, default 0.6)
 - `confidence_metric`: How to compute confidence (see below)
-- `fallback_strategy`: "flashrank" (conditional), "always" (benchmark), "never" (fast-only)
+- `fallback_strategy`: One of `FallbackStrategy.FLASHRANK` (conditional, default), `FallbackStrategy.ALWAYS` (benchmark all), `FallbackStrategy.NEVER` (fast-only, no fallback). Passing a raw string is supported but deprecated — use the enum. `CascadeConfig.__post_init__` validates and converts strings automatically.
 
 ### Confidence Metrics
 
@@ -183,6 +183,21 @@ elif quality_metric < target_quality:
 | **MultiReranker** | Ensemble fusion | Robustness via multiple models |
 
 ## Implementation Details
+
+### is_fitted Property
+
+`is_fitted` is a **computed property** — it delegates to both sub-rerankers via `getattr(primary, "is_fitted", True)` and `getattr(fallback, "is_fitted", True)`. There is no stored `self.is_fitted` flag on CascadeReranker itself. This means fitting the primary alone is sufficient (the fallback is typically a pre-trained FlashRank ensemble that is always ready).
+
+### FallbackStrategy Enum
+
+```python
+class FallbackStrategy(StrEnum):
+    FLASHRANK = "flashrank"  # Conditional: fallback when confidence < threshold
+    ALWAYS = "always"        # Always use fallback (for benchmarking)
+    NEVER = "never"          # Never fall back (fast-only path)
+```
+
+The old `fallback_strategy: str` parameter is validated in `__post_init__` and auto-converted to `FallbackStrategy`.
 
 ### Thread Safety
 

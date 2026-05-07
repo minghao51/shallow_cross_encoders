@@ -165,6 +165,36 @@ If salience disabled: keep first k tokens
    - Score = sum of max similarities
 3. **Rank**: Sort documents by MaxSim score (descending)
 
+### Batch Reranking
+
+`rerank_batch(queries, docs)` scores multiple queries against the same pre-built index in one call, batching all query token encoding:
+
+```python
+colbert.fit(all_docs)
+colbert.rerank_batch(
+    queries=["python tutorial", "rust guide"],
+    docs=all_docs,
+)
+```
+
+### Prebuilt Indices
+
+`score()` and `rerank()` accept an optional `prebuilt_indices` parameter to use a subset of the index without modifying the stored index:
+
+```python
+custom_index = [TokenIndex(text=d, tokens=..., vectors=...) for d in subset]
+colbert.score(query, subset, prebuilt_indices=custom_index)
+colbert.rerank(query, subset, prebuilt_indices=custom_index)
+```
+
+### No Auto-Fit
+
+`rerank()` raises `RuntimeError` if not fitted — it no longer silently calls `fit(docs)` on the first rerank call. Call `fit(docs)` explicitly before reranking.
+
+### Vectorized Salience
+
+Salience computation uses vectorized NumPy operations (`np.unique` with `return_inverse` and `return_counts`) instead of a per-document loop over token indices.
+
 ### Design Decisions
 
 | Decision | Rationale |
@@ -174,6 +204,7 @@ If salience disabled: keep first k tokens
 | **Static vectors** | Pre-computed at fit time, no re-encoding at query time |
 | **TF-IDF salience** | Downweights common tokens, upweights distinctive ones |
 | **Token pruning** | Controls memory and compute for long documents |
+| **Explicit fit contract** | `rerank()` raises `RuntimeError` if unfitted |
 
 ### Hyperparameters
 

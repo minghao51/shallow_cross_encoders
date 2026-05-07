@@ -90,6 +90,22 @@ uv run scripts/benchmarks/run_unified.py --quick
 
 **Use when:** Choosing between FlashRank (ONNX), SentenceTransformers (PyTorch), or local models (Hybrid, Binary) for deployment.
 
+#### Benchmark Artifact Schema
+
+`uv run reranker benchmark run` writes `benchmark_results.json` with:
+
+- `metrics`: aggregate strategy metrics (`ndcg@10`, `mrr`, latency, etc.)
+- `per_query_metrics`: paired per-query vectors used for statistical comparison
+
+`uv run reranker benchmark compare ...` requires paired per-query vectors
+(`per_query_<metric>`) for both strategies. Aggregate-only artifacts are rejected.
+
+```bash
+uv run reranker benchmark compare hybrid binary_reranker \
+  --results benchmarks/results/benchmark_results.json \
+  --metric ndcg@10
+```
+
 ### Configuration
 Settings live in [`src/reranker/config.py`](src/reranker/config.py) and are overridden via environment variables.
 

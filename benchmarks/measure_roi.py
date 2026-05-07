@@ -10,11 +10,15 @@ import time
 from pathlib import Path
 from typing import Any
 
+import structlog
+
 from reranker.config import get_settings
 from reranker.data.synth import SyntheticDataGenerator
 from reranker.eval.metrics import accuracy
 from reranker.strategies.distilled import DistilledPairwiseRanker
 from reranker.utils import read_jsonl
+
+logger = structlog.get_logger(__name__)
 
 
 def _semantic_baseline(query: str, doc_a: str, doc_b: str, ranker: DistilledPairwiseRanker) -> int:

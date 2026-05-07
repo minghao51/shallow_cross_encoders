@@ -1,0 +1,51 @@
+# Cascade Reranker — Confidence Threshold × Metric Sweep
+# Usage: uv run reranker benchmark sweep --config benchmarks/configs/sweep_cascade.yaml
+# Requires: train_cascade.py or pre-fitted primary/fallback strategies
+
+name: cascade_threshold_sweep
+description: >
+  Sweep confidence thresholds and confidence metrics for CascadeReranker.
+  Evaluates fallback rate vs NDCG@10 tradeoff at each threshold.
+
+variants:
+  threshold_04_top_margin:
+    cascade:
+      confidence_threshold: 0.4
+      confidence_metric: "TOP_MARGIN"
+      primary_strategy: "hybrid"
+      fallback_strategy: "flashrank_tiny"
+
+  threshold_06_top_margin:
+    cascade:
+      confidence_threshold: 0.6
+      confidence_metric: "TOP_MARGIN"
+      primary_strategy: "hybrid"
+      fallback_strategy: "flashrank_tiny"
+
+  threshold_08_top_margin:
+    cascade:
+      confidence_threshold: 0.8
+      confidence_metric: "TOP_MARGIN"
+      primary_strategy: "hybrid"
+      fallback_strategy: "flashrank_tiny"
+
+  threshold_04_max_prob:
+    cascade:
+      confidence_threshold: 0.4
+      confidence_metric: "MAX_PROB"
+      primary_strategy: "hybrid"
+      fallback_strategy: "flashrank_tiny"
+
+  threshold_06_max_prob:
+    cascade:
+      confidence_threshold: 0.6
+      confidence_metric: "MAX_PROB"
+      primary_strategy: "hybrid"
+      fallback_strategy: "flashrank_tiny"
+
+  threshold_08_max_prob:
+    cascade:
+      confidence_threshold: 0.8
+      confidence_metric: "MAX_PROB"
+      primary_strategy: "hybrid"
+      fallback_strategy: "flashrank_tiny"

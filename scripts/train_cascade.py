@@ -7,8 +7,9 @@ import structlog
 from reranker.config import get_settings
 from reranker.data.splits import partition_rows
 from reranker.data.synth import SyntheticDataGenerator
-from reranker.eval.runner import evaluate_strategy
 from reranker.heuristics.keyword import KeywordMatchAdapter
+from reranker.persistence import save_safe
+from reranker.strategies.cascade import CascadeConfig, CascadeReranker
 from reranker.strategies.hybrid import HybridFusionReranker
 from reranker.utils import read_jsonl
 
@@ -37,30 +38,45 @@ def main() -> None:
     if len({1 if row["score"] >= 2 else 0 for row in train_rows}) < 2:
         train_rows = rows
     labels = [1 if row["score"] >= 2 else 0 for row in train_rows]
-    reranker = HybridFusionReranker(adapters=[KeywordMatchAdapter()]).fit(
+
+    primary = HybridFusionReranker(adapters=[KeywordMatchAdapter()]).fit(
+        queries=[row["query"] for row in train_rows],
+        docs=[row["doc"] for row in train_rows],
+        labels=labels,
+    )
+    fallback = HybridFusionReranker(adapters=[KeywordMatchAdapter()]).fit(
         queries=[row["query"] for row in train_rows],
         docs=[row["doc"] for row in train_rows],
         labels=labels,
     )
 
-    model_suffix = ".json" if reranker.model_backend == "xgboost" else ".pkl"
-    model_path = Path(settings.paths.model_dir / f"hybrid_reranker{model_suffix}")
-    reranker.save(model_path)
-    validation_report = evaluate_strategy(
-        "hybrid",
-        "validation",
-        data_root,
-        settings.paths.model_dir,
+    cascade_config = CascadeConfig(confidence_threshold=0.6)
+    cascade = CascadeReranker(primary=primary, fallback=fallback, config=cascade_config)
+
+    model_dir = Path(settings.paths.model_dir)
+    model_dir.mkdir(parents=True, exist_ok=True)
+    model_path = model_dir / "cascade_reranker.pkl"
+    primary_path = model_dir / "cascade_primary.pkl"
+    fallback_path = model_dir / "cascade_fallback.pkl"
+    primary.save(primary_path)
+    fallback.save(fallback_path)
+    save_safe(
+        model_path,
+        artifact_type="cascade_reranker",
+        metadata={
+            "confidence_threshold": cascade_config.confidence_threshold,
+            "primary_model": str(primary_path),
+            "fallback_model": str(fallback_path),
+        },
+        weights={},
     )
-    test_report = evaluate_strategy("hybrid", "test", data_root, settings.paths.model_dir)
     print(f"saved_model={model_path}")
     print(f"train_rows={len(train_rows)}")
-    print(f"validation_ndcg@10={validation_report['ndcg@10']}")
-    print(f"validation_bm25_ndcg@10={validation_report['bm25_ndcg@10']}")
-    print(f"validation_ndcg@10_uplift_vs_bm25={validation_report['ndcg@10_uplift_vs_bm25']}")
-    print(f"test_ndcg@10={test_report['ndcg@10']}")
-    print(f"test_bm25_ndcg@10={test_report['bm25_ndcg@10']}")
-    print(f"test_ndcg@10_uplift_vs_bm25={test_report['ndcg@10_uplift_vs_bm25']}")
+    print(f"confidence_threshold={cascade_config.confidence_threshold}")
+
+    cascade.rerank("test query", ["doc a", "doc b", "doc c"])
+    stats = cascade.get_stats()
+    print(f"fallback_rate={stats['fallback_rate']}")
 
 
 if __name__ == "__main__":

@@ -60,6 +60,7 @@ watch:
 nav:
   - Home: index.md
   - Guides:
+    - Getting Started: getting-started.md
     - API Reference: guides/api-reference.md
     - Ensemble Distillation: guides/ensemble-distillation-guide.md
   - Methodology:

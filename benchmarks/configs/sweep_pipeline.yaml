@@ -1,0 +1,48 @@
+# Pipeline Reranker — Stage Ordering × Top-k Sweep
+# Usage: uv run reranker benchmark sweep --config benchmarks/configs/sweep_pipeline.yaml
+
+name: pipeline_ordering_sweep
+description: >
+  Sweep PipelineReranker stage orderings and per-stage top-k values.
+  Evaluates latency–accuracy tradeoff for different stage configurations.
+
+variants:
+  bm25_binary_hybrid_colbert:
+    pipeline:
+      stages: ["bm25", "binary", "hybrid", "colbert"]
+      top_ks: [200, 100, 50, 20]
+
+  bm25_hybrid_binary_colbert:
+    pipeline:
+      stages: ["bm25", "hybrid", "binary", "colbert"]
+      top_ks: [200, 100, 50, 20]
+
+  bm25_binary_colbert:
+    pipeline:
+      stages: ["bm25", "binary", "colbert"]
+      top_ks: [200, 100, 20]
+
+  bm25_hybrid_colbert:
+    pipeline:
+      stages: ["bm25", "hybrid", "colbert"]
+      top_ks: [200, 100, 20]
+
+  bm25_binary_hybrid:
+    pipeline:
+      stages: ["bm25", "binary", "hybrid"]
+      top_ks: [200, 100, 50]
+
+  bm25_only:
+    pipeline:
+      stages: ["bm25"]
+      top_ks: [200]
+
+  aggressive_top_ks:
+    pipeline:
+      stages: ["bm25", "binary", "hybrid", "colbert"]
+      top_ks: [100, 50, 25, 10]
+
+  conservative_top_ks:
+    pipeline:
+      stages: ["bm25", "binary", "hybrid", "colbert"]
+      top_ks: [500, 250, 100, 50]

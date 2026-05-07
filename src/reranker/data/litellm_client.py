@@ -3,14 +3,15 @@
 from __future__ import annotations
 
 import json
-import logging
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
+import structlog
+
 from reranker.config import get_settings
 
-logger = logging.getLogger("reranker.data.litellm_client")
+logger = structlog.get_logger(__name__)
 
 _litellm_module: Any = None
 

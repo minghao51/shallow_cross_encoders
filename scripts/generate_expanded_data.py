@@ -13,6 +13,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import structlog
+
 from reranker.data.expanded import (
     generate_expanded_contradictions,
     generate_expanded_pairs,
@@ -20,16 +22,18 @@ from reranker.data.expanded import (
 )
 from reranker.utils import write_jsonl
 
+logger = structlog.get_logger(__name__)
+
 
 def main():
     """Generate all expanded datasets."""
     output_dir = Path("data/raw_expanded")
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    print("Generating expanded datasets...")
+    logger.info("Generating expanded datasets...")
 
     # Generate pairs
-    print("\n--- Generating Pairs ---")
+    logger.info("\n--- Generating Pairs ---")
     pairs = generate_expanded_pairs(target_count=10000, seed=42)
     write_jsonl(output_dir / "pairs.jsonl", pairs)
 
@@ -42,15 +46,15 @@ def main():
         domain_counts[p["domain"]] = domain_counts.get(p["domain"], 0) + 1
         unique_queries.add(p["query"])
 
-    print(f"  Total pairs: {len(pairs)}")
-    print(f"  Unique queries: {len(unique_queries)}")
-    print(f"  Score distribution: {dict(sorted(score_counts.items()))}")
+    logger.info(f"  Total pairs: {len(pairs)}")
+    logger.info(f"  Unique queries: {len(unique_queries)}")
+    logger.info(f"  Score distribution: {dict(sorted(score_counts.items()))}")
     for domain in sorted(domain_counts.keys()):
         domain_queries = set(p["query"] for p in pairs if p["domain"] == domain)
-        print(f"    {domain}: {len(domain_queries)} queries, {domain_counts[domain]} pairs")
+        logger.info(f"    {domain}: {len(domain_queries)} queries, {domain_counts[domain]} pairs")
 
     # Generate preferences
-    print("\n--- Generating Preferences ---")
+    logger.info("\n--- Generating Preferences ---")
     prefs = generate_expanded_preferences(target_count=5000, seed=42)
     write_jsonl(output_dir / "preferences.jsonl", prefs)
 
@@ -60,12 +64,12 @@ def main():
         pref_stats[p["preferred"]] += 1
         pref_queries.add(p["query"])
 
-    print(f"  Total preferences: {len(prefs)}")
-    print(f"  Unique queries: {len(pref_queries)}")
-    print(f"  Preference distribution: {pref_stats}")
+    logger.info(f"  Total preferences: {len(prefs)}")
+    logger.info(f"  Unique queries: {len(pref_queries)}")
+    logger.info(f"  Preference distribution: {pref_stats}")
 
     # Generate contradictions
-    print("\n--- Generating Contradictions ---")
+    logger.info("\n--- Generating Contradictions ---")
     contras = generate_expanded_contradictions(contradiction_count=1000, control_count=400, seed=42)
     write_jsonl(output_dir / "contradictions.jsonl", contras)
 
@@ -75,9 +79,9 @@ def main():
         contra_stats[c["is_contradiction"]] += 1
         contra_subjects.add(c["subject"])
 
-    print(f"  Total: {len(contras)}")
-    print(f"  Contradictions: {contra_stats[True]}, Controls: {contra_stats[False]}")
-    print(f"  Unique subjects: {len(contra_subjects)}")
+    logger.info(f"  Total: {len(contras)}")
+    logger.info(f"  Contradictions: {contra_stats[True]}, Controls: {contra_stats[False]}")
+    logger.info(f"  Unique subjects: {len(contra_subjects)}")
 
     # Save manifest
     manifest = {
@@ -110,7 +114,7 @@ def main():
     with open(output_dir / "manifest.json", "w") as f:
         json.dump(manifest, f, indent=2)
 
-    print(f"\nSaved to {output_dir}")
+    logger.info(f"\nSaved to {output_dir}")
 
 
 if __name__ == "__main__":

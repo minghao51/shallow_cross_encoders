@@ -8,12 +8,12 @@ reranker works offline without any external model dependencies.
 from __future__ import annotations
 
 import hashlib
-import logging
 import warnings
 from dataclasses import dataclass, field
 from typing import Any
 
 import numpy as np
+import structlog
 
 from reranker.config import get_settings
 from reranker.deps import check_model2vec
@@ -24,7 +24,7 @@ try:
 except Exception:
     TTLCache = None  # type: ignore[assignment,misc]
 
-logger = logging.getLogger("reranker.embedder")
+logger = structlog.get_logger(__name__)
 
 
 def _normalize_rows(matrix: np.ndarray) -> np.ndarray:

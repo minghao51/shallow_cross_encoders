@@ -92,8 +92,9 @@ def test_run_sweep_cli_executable(monkeypatch, tmp_path: Path) -> None:
         cwd=str(project_root),
     )
     assert result.returncode == 0, f"Script failed: {result.stderr}"
-    assert "test_sweep" in result.stdout
-    assert "baseline_variant" in result.stdout
+    combined = result.stdout + result.stderr
+    assert "test_sweep" in combined
+    assert "baseline_variant" in combined
 
 
 def test_run_sweep_reports_variant_specific_metrics(monkeypatch, tmp_path: Path) -> None:
@@ -133,7 +134,7 @@ def test_run_sweep_reports_variant_specific_metrics(monkeypatch, tmp_path: Path)
     reset_settings_cache()
     benchmark_sweep = _load_benchmark_sweep_module()
 
-    def fake_build_reranker_for_variant(config_override, embedder):
+    def fake_build_hybrid(config_override, embedder):
         del config_override, embedder
         return object()
 
@@ -150,13 +151,9 @@ def test_run_sweep_reports_variant_specific_metrics(monkeypatch, tmp_path: Path)
         del config_override, pairs, embedder
         return {"ndcg@10": 0.7, "n_queries": 1.0}
 
-    monkeypatch.setattr(
-        benchmark_sweep,
-        "_build_reranker_for_variant",
-        fake_build_reranker_for_variant,
-    )
+    monkeypatch.setattr(benchmark_sweep, "_build_hybrid_for_variant", fake_build_hybrid)
     monkeypatch.setattr(benchmark_sweep, "_evaluate_hybrid", fake_evaluate_hybrid)
-    monkeypatch.setattr(benchmark_sweep, "_measure_latency", fake_measure_latency)
+    monkeypatch.setattr(benchmark_sweep, "_measure_latency_generic", fake_measure_latency)
     monkeypatch.setattr(benchmark_sweep, "_evaluate_colbert", fake_evaluate_colbert)
 
     try:
@@ -215,7 +212,7 @@ def test_run_sweep_rebuilds_embedder_after_each_variant_override(
     monkeypatch.setattr(benchmark_sweep, "Embedder", StubEmbedder)
     monkeypatch.setattr(
         benchmark_sweep,
-        "_build_reranker_for_variant",
+        "_build_hybrid_for_variant",
         lambda config_override, embedder: object(),
     )
     monkeypatch.setattr(
@@ -225,7 +222,7 @@ def test_run_sweep_rebuilds_embedder_after_each_variant_override(
     )
     monkeypatch.setattr(
         benchmark_sweep,
-        "_measure_latency",
+        "_measure_latency_generic",
         lambda reranker, query, docs, n_runs=5: 1.0,
     )
 
@@ -236,3 +233,132 @@ def test_run_sweep_rebuilds_embedder_after_each_variant_override(
         reset_settings_cache()
 
     assert embedder_models == ["model/one", "model/two"]
+
+
+def test_run_sweep_validates_unknown_variant_key(monkeypatch, tmp_path: Path) -> None:
+    raw_dir = tmp_path / "raw"
+    raw_dir.mkdir(parents=True)
+    (raw_dir / "pairs.jsonl").write_text(
+        json.dumps({"query": "q1", "doc": "d1", "score": 1}) + "\n",
+        encoding="utf-8",
+    )
+    config_path = tmp_path / "sweep.yaml"
+    config_path.write_text(
+        "\n".join(
+            [
+                "name: invalid_key_sweep",
+                "variants:",
+                "  bad_variant:",
+                "    hybrid:",
+                '      weighting_mode: "static"',
+                "    unknown_block:",
+                "      foo: bar",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("RERANKER_RAW_DATA_DIR", str(raw_dir))
+    benchmark_sweep = _load_benchmark_sweep_module()
+
+    try:
+        try:
+            benchmark_sweep.run_sweep(config_path)
+            assert False, "Expected ValueError for unknown variant key"
+        except ValueError as exc:
+            assert "Unsupported keys in variant" in str(exc)
+    finally:
+        clear_settings_override()
+        reset_settings_cache()
+
+
+def test_run_sweep_smoke_binary_cascade_distilled_pipeline(monkeypatch, tmp_path: Path) -> None:
+    raw_dir = tmp_path / "raw"
+    raw_dir.mkdir(parents=True)
+    (raw_dir / "pairs.jsonl").write_text(
+        "\n".join(
+            [
+                json.dumps({"query": "q1", "doc": "d1", "score": 3}),
+                json.dumps({"query": "q1", "doc": "d2", "score": 1}),
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (raw_dir / "preferences.jsonl").write_text(
+        json.dumps({"query": "q1", "doc_a": "d1", "doc_b": "d2", "preferred": "A"}) + "\n",
+        encoding="utf-8",
+    )
+    config_path = tmp_path / "sweep.yaml"
+    config_path.write_text(
+        "\n".join(
+            [
+                "name: smoke_all_sweeps",
+                "variants:",
+                "  binary_variant:",
+                "    binary:",
+                '      quantization: "int8"',
+                "      hamming_top_k: 10",
+                "      bilinear_top_k: 2",
+                "  cascade_variant:",
+                "    cascade:",
+                '      confidence_metric: "MAX_PROB"',
+                "      confidence_threshold: 0.6",
+                "  distilled_variant:",
+                "    distilled:",
+                '      loss_type: "logistic"',
+                "      C: 1.0",
+                "      max_iter: 100",
+                "  pipeline_variant:",
+                "    pipeline:",
+                '      stages: ["bm25"]',
+                "      top_ks: [10]",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    monkeypatch.setenv("RERANKER_RAW_DATA_DIR", str(raw_dir))
+    benchmark_sweep = _load_benchmark_sweep_module()
+
+    class StubEmbedder:
+        pass
+
+    monkeypatch.setattr(benchmark_sweep, "Embedder", StubEmbedder)
+    monkeypatch.setattr(benchmark_sweep, "_build_binary_for_variant", lambda *_args: object())
+    monkeypatch.setattr(benchmark_sweep, "_build_cascade_for_variant", lambda *_args: object())
+    monkeypatch.setattr(benchmark_sweep, "_build_distilled_for_variant", lambda *_args: object())
+    monkeypatch.setattr(benchmark_sweep, "_build_pipeline_for_variant", lambda *_args: object())
+    monkeypatch.setattr(
+        benchmark_sweep,
+        "_evaluate_binary",
+        lambda _reranker, _pairs: {"ndcg@10": 0.5, "n_queries": 1.0},
+    )
+    monkeypatch.setattr(
+        benchmark_sweep,
+        "_evaluate_cascade",
+        lambda _reranker, _pairs: {"ndcg@10": 0.6, "n_queries": 1.0},
+    )
+    monkeypatch.setattr(
+        benchmark_sweep,
+        "_evaluate_distilled",
+        lambda _reranker, _prefs: {"accuracy": 1.0, "n_comparisons": 1.0},
+    )
+    monkeypatch.setattr(
+        benchmark_sweep,
+        "_evaluate_pipeline",
+        lambda _reranker, _pairs: {"ndcg@10": 0.4, "n_queries": 1.0},
+    )
+    monkeypatch.setattr(benchmark_sweep, "_measure_latency_generic", lambda *_args, **_kwargs: 1.0)
+
+    try:
+        results = benchmark_sweep.run_sweep(config_path)
+    finally:
+        clear_settings_override()
+        reset_settings_cache()
+
+    assert len(results) == 4
+    by_name = {r.variant_name: r for r in results}
+    assert by_name["binary_variant"].metrics["ndcg@10"] == 0.5
+    assert by_name["cascade_variant"].metrics["ndcg@10"] == 0.6
+    assert by_name["distilled_variant"].metrics["accuracy"] == 1.0
+    assert by_name["pipeline_variant"].metrics["ndcg@10"] == 0.4
