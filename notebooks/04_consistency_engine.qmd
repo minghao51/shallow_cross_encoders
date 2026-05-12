@@ -1,0 +1,220 @@
+---
+title: "Consistency Engine"
+description: "Detect factual contradictions across documents using structured claim extraction and semantic alignment — with evaluation and diagnosis."
+date: today
+format:
+  html:
+    self-contained: true
+    embed-resources: true
+    code-fold: true
+    code-tools: true
+---
+
+The **ConsistencyEngine** is a unique component in this codebase: rather than ranking documents, it **detects factual contradictions** across them. It works in two phases:
+
+1. **Claim extraction** — Pattern matching extracts entity-attribute-value triples from text
+2. **Contradiction detection** — Semantically aligned claims with conflicting values are flagged
+
+## 1. How It Works
+
+```{python}
+#| label: setup
+from reranker.embedder import Embedder
+from reranker.strategies.consistency import ConsistencyEngine, Claim, Contradiction
+
+engine = ConsistencyEngine(embedder=Embedder())
+print(f"Similarity threshold: {engine.sim_threshold}")
+print(f"Value tolerance:      {engine.value_tolerance}")
+```
+
+### The Claim Extraction Pipeline
+
+```{python}
+#| label: claim-extraction
+doc = "Model2Vec Potion-8M reports latency_ms as 2. BM25Engine requires no embedding model for inference."
+
+claims = engine.extract_claims([doc], ["doc_1"])
+print(f"Document: '{doc}'\n")
+for cs in claims:
+    for claim in cs.claims:
+        print(f"  Entity:    {claim.entity}")
+        print(f"  Attribute: {claim.attribute}")
+        print(f"  Value:     {claim.value}")
+        print(f"  Source:    {claim.source_doc_id}\n")
+```
+
+**How claims are extracted:**
+1. Document is split into sentences
+2. Each sentence is matched against regex patterns (e.g., `"X reports Y as Z"`, `"X is N"`)
+3. Entity/attribute/value are normalized (lowercase, strip articles, normalize units)
+
+## 2. Contradiction Detection Demo
+
+```{python}
+#| label: contradiction-demo
+docs_a = [
+    "Model2Vec Potion-8M reports latency_ms as 2.",
+    "HybridFusionReranker reports best_metric as NDCG@10.",
+    "Frodo Baggins was born in the Shire.",
+    "BM25Engine requires no embedding model for inference.",
+    "The Eiffel Tower is located in Paris, France.",
+    "Algorithm X has space complexity O(n log n).",
+]
+
+docs_b = [
+    "Model2Vec Potion-8M reports latency_ms as 7.",
+    "HybridFusionReranker reports best_metric as MRR.",
+    "Frodo Baggins was born in Gondor.",
+    "BM25Engine requires a pre-computed token index on disk.",
+    "The Eiffel Tower is located in London, England.",
+    "Algorithm X has space complexity O(2^n).",
+]
+
+all_docs = docs_a + docs_b
+labels = ["A"] * len(docs_a) + ["B"] * len(docs_b)
+
+engine.sim_threshold = 0.95
+engine.value_tolerance = 0.01
+
+claim_sets = engine.extract_claims(all_docs, labels)
+contradictions = engine.check(claim_sets)
+
+print(f"Documents: {len(all_docs)} ({len(docs_a)} pairs)\n")
+print(f"Found **{len(contradictions)}** contradictions:\n")
+for i, c in enumerate(contradictions):
+    print(f"### Contradiction {i + 1}")
+    print(f"  **A:** {c.claim_a.entity} → {c.claim_a.attribute} = `{c.claim_a.value}` (from {c.claim_a.source_doc_id})")
+    print(f"  **B:** {c.claim_b.entity} → {c.claim_b.attribute} = `{c.claim_b.value}` (from {c.claim_b.source_doc_id})")
+    print(f"  **Reason:** {c.reason}\n")
+```
+
+### Visualizing the Contradiction Graph
+
+```{python}
+#| label: contradiction-graph
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import numpy as np
+
+fig, ax = plt.subplots(figsize=(8, 6))
+
+doc_nodes = list(range(len(all_docs)))
+n_a = len(docs_a)
+
+for i in doc_nodes:
+    x = 0.2 if i < n_a else 0.8
+    y = 1 - (i % n_a) / max(n_a - 1, 1)
+    color = "#4A90D9" if i < n_a else "#E8575A"
+    ax.scatter(x, y, s=300, c=color, zorder=5, edgecolors="white", linewidth=1.5)
+    label = f"A{i+1}" if i < n_a else f"B{i - n_a + 1}"
+    ax.annotate(label, (x, y), fontsize=8, ha="center", va="center", fontweight="bold")
+
+contradiction_pairs = set()
+for c in contradictions:
+    src_a = labels.index(c.claim_a.source_doc_id)
+    src_b = labels.index(c.claim_b.source_doc_id)
+    contradiction_pairs.add((min(src_a, src_b), max(src_a, src_b)))
+
+for (i, j) in contradiction_pairs:
+    x1 = 0.2 if i < n_a else 0.8
+    y1 = 1 - (i % n_a) / max(n_a - 1, 1)
+    x2 = 0.2 if j < n_a else 0.8
+    y2 = 1 - (j % n_a) / max(n_a - 1, 1)
+    ax.plot([x1, x2], [y1, y2], "r-", alpha=0.4, linewidth=1.5, zorder=1)
+
+ax.scatter([], [], c="#4A90D9", s=100, label="Source A")
+ax.scatter([], [], c="#E8575A", s=100, label="Source B")
+ax.plot([], [], "r-", alpha=0.5, label=f"Contradiction ({len(contradictions)})")
+ax.legend(loc="lower center", ncol=3, fontsize=8)
+ax.set_title("Contradiction Graph: Cross-Source Conflicts")
+ax.set_xlim(-0.1, 1.1)
+ax.axis("off")
+fig.tight_layout()
+plt.show()
+```
+
+## 3. Evaluation on Labeled Test Cases
+
+```{python}
+#| label: evaluation
+test_cases = [
+    ("A: potion-base-32M latency is 0.02ms.", "B: potion-base-32M latency is 0.67ms.", True),
+    ("A: BM25 achieves NDCG@10 of 0.0861.", "B: BM25 achieves NDCG@10 of 0.2000.", True),
+    ("A: model2vec uses Potion embeddings.", "B: Potion embeddings power model2vec.", False),
+    ("A: HybridFusion trains with XGBoost.", "B: XGBoost is used by HybridFusion.", False),
+    ("A: Python 3.12 was released in October 2023.", "B: Python 3.12 was released in April 2024.", True),
+    ("A: BinaryQuantizedReranker scores at 22866 QPS.", "B: BinaryQuantizedReranker scores at 932 QPS.", True),
+    ("A: The project uses Pydantic v2.", "B: Pydantic v2 is used for validation.", False),
+    ("A: ColBERT uses MaxSim scoring.", "B: ColBERT uses mean-pooling for scoring.", True),
+]
+
+tp = fp = fn = tn = 0
+details = []
+for doc_a, doc_b, expected in test_cases:
+    eval_claims = engine.extract_claims([doc_a, doc_b], ["A", "B"])
+    detected = len(engine.check(eval_claims)) > 0
+    if expected and detected: tp += 1
+    elif expected and not detected: fn += 1
+    elif not expected and detected: fp += 1
+    else: tn += 1
+    details.append((doc_a[:40], doc_b[:40], expected, detected))
+
+total = tp + fp + fn + tn
+recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
+f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
+
+print("### Evaluation Results\n")
+print(f"| Metric | Value |")
+print(f"|--------|-------|")
+print(f"| Total cases | {total} |")
+print(f"| True Positives | {tp} |")
+print(f"| False Positives | {fp} |")
+print(f"| False Negatives | {fn} |")
+print(f"| True Negatives | {tn} |")
+print(f"| **Precision** | **{precision:.2%}** |")
+print(f"| **Recall** | **{recall:.2%}** |")
+print(f"| **F1** | **{f1:.2%}** |")
+```
+
+### Confusion Matrix Visualization
+
+```{python}
+#| label: confusion-matrix
+cm = np.array([[tn, fp], [fn, tp]])
+fig, ax = plt.subplots(figsize=(5, 4))
+im = ax.imshow(cm, cmap="Blues", interpolation="nearest")
+ax.set_xticks([0, 1])
+ax.set_yticks([0, 1])
+ax.set_xticklabels(["No Contradiction", "Contradiction"])
+ax.set_yticklabels(["No Contradiction", "Contradiction"])
+ax.set_xlabel("Predicted")
+ax.set_ylabel("Actual")
+ax.set_title("Confusion Matrix")
+for i in range(2):
+    for j in range(2):
+        color = "white" if cm[i, j] > cm.max() / 2 else "black"
+        ax.text(j, i, str(cm[i, j]), ha="center", va="center", fontsize=14, color=color)
+fig.tight_layout()
+plt.show()
+```
+
+## 4. Per-Case Analysis
+
+```{python}
+#| label: per-case
+print("| Doc A | Doc B | Expected | Detected | Match? |")
+print("|-------|-------|----------|----------|--------|")
+for doc_a, doc_b, expected, detected in details:
+    match = "OK" if expected == detected else "MISS"
+    print(f"| {doc_a:40s} | {doc_b:40s} | {'YES':>8s} | {'YES' if detected else 'no':>8s} | {match} |")
+```
+
+## 5. Key Takeaways
+
+- **Two-phase detection:** Claim extraction (regex patterns) + semantic alignment (embeddings)
+- **Strengths:** High precision on structured claims with numeric or categorical values
+- **Limitations:** Regex extraction misses implicit or narrative claims; semantic fuzzy matching can produce false positives on similar entities
+- **Best use case:** Fact-checking pipelines, RAG output verification, document consistency audits across sources
+- **Configuration:** Tune `sim_threshold` (stricter = fewer matches) and `value_tolerance` (larger = more lenient on numeric differences)

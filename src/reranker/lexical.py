@@ -169,27 +169,8 @@ class BM25Engine:
         self._rebuild_bm25()
 
     def rerank(self, query: str, docs: list[str]) -> list:
-        """Score and rank documents by BM25 relevance.
-
-        Implements the BaseReranker protocol for drop-in compatibility.
-
-        Args:
-            query: Search query string.
-            docs: Documents to rank.
-
-        Returns:
-            List of RankedDoc sorted by BM25 score descending.
-        """
-        from reranker.protocols import RankedDoc
+        from reranker.utils import rank_docs
 
         self.fit(docs)
         scores = self.score(query)
-        ranked = sorted(
-            zip(docs, scores, strict=False),
-            key=lambda item: float(item[1]),
-            reverse=True,
-        )
-        return [
-            RankedDoc(doc=doc, score=float(score), rank=rank, metadata={"strategy": "bm25"})
-            for rank, (doc, score) in enumerate(ranked, start=1)
-        ]
+        return rank_docs(docs, scores, "bm25")

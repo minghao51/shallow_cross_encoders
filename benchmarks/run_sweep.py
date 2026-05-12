@@ -230,7 +230,7 @@ def _evaluate_cascade(
         docs.append(row["doc"])
         scores.append(float(row.get("score", 0)))
 
-    reranker.primary.fit_pointwise(queries, docs, scores)
+    reranker.primary.fit_pointwise(queries, docs, scores)  # type: ignore[attr-defined]
     base = _evaluate_ranking_reranker(reranker, pairs)
     try:
         stats = reranker.get_stats()
@@ -291,6 +291,7 @@ def _build_pipeline_for_variant(
 
     pipeline = PipelineReranker()
     for stage_name, top_k in zip(stage_names, top_ks, strict=False):
+        stage: Any = None
         if stage_name == "bm25":
             from reranker.lexical import BM25Engine
 
@@ -482,6 +483,7 @@ def run_sweep(config_path: str | Path) -> list[SweepResult]:
             metrics: dict[str, float] = {}
             latency = 0.0
 
+            reranker: Any = None
             if variant_type == "cascade":
                 reranker = _build_cascade_for_variant(variant_config, embedder)
                 if reranker is not None:

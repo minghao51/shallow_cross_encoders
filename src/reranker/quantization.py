@@ -20,7 +20,7 @@ class QuantizationResult:
         codebook: Optional codebook for vector quantization.
         scale: Per-dimension scale factors for dequantization.
         min_val: Per-dimension minimum values for dequantization.
-    mode: str = "none"
+        mode: Quantization mode identifier (e.g. "4bit", "ternary", "none").
         original_shape: Shape of the original float32 matrix.
     """
 

@@ -85,11 +85,18 @@ nav:
     - Heuristics: api/heuristics.md
   - Notebooks:
     - Overview: notebooks/index.md
-    - Interactive Reranking Explorer: notebooks/01_interactive_reranking.md
-    - Consistency Engine Demo: notebooks/02_consistency_engine_demo.md
-    - Feature Analysis Dashboard: notebooks/03_feature_analysis_dashboard.md
-    - Reranking Methods Atlas: notebooks/04_methods_atlas.md
+    - Architecture & Live Reranking: notebooks/01_interactive_reranking.md
+    - Feature Engineering Deep Dive: notebooks/02_consistency_engine_demo.md
+    - Pipeline & Composition Patterns: notebooks/03_feature_analysis_dashboard.md
+    - Consistency Engine: notebooks/04_methods_atlas.md
+    - Benchmark Analysis: notebooks/05_benchmark_analysis.md
   - About: about.md
+
+extra_css:
+  - stylesheets/notebooks.css
+
+extra_javascript:
+  - javascripts/notebooks.js
 
 markdown_extensions:
   - admonition

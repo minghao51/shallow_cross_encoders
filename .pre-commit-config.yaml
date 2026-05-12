@@ -3,7 +3,9 @@ repos:
     rev: v5.0.0
     hooks:
       - id: trailing-whitespace
+        exclude: ^(notebooks/_freeze/|docs/notebooks/html/)
       - id: end-of-file-fixer
+        exclude: ^(notebooks/_freeze/|docs/notebooks/html/)
       - id: check-yaml
         exclude: mkdocs\.yml
       - id: check-toml
@@ -45,11 +47,17 @@ repos:
 
   - repo: local
     hooks:
+      - id: pip-audit
+        name: pip-audit
+        entry: uv run pip-audit --skip-editable
+        language: system
+        always_run: true
+        pass_filenames: false
       - id: mypy
         name: mypy
         entry: uv run mypy . --exclude tests/ --exclude scripts/ --exclude benchmarks/ --exclude notebooks/
         language: system
-        types: [python]
+        always_run: true
         pass_filenames: false
 
       - id: mkdocs-build

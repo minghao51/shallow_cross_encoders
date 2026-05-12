@@ -1,10 +1,14 @@
 """Persistent caching for expensive teacher label generation."""
 
+import json
+import logging
 from collections.abc import Callable
 from hashlib import sha256
 from pathlib import Path
 
 from reranker.utils import read_json, write_json
+
+logger = logging.getLogger(__name__)
 
 
 class EnsembleLabelCache:
@@ -96,9 +100,9 @@ class EnsembleLabelCache:
             try:
                 cached = read_json(cache_file)
                 return self._convert_lists_to_tuples(cached)
-            except Exception:
+            except (json.JSONDecodeError, OSError, ValueError) as exc:
                 # Corrupted cache - fall through to regeneration
-                pass
+                logger.warning("Cache read failed for %s: %s", cache_file, exc)
 
         # Generate new labels
         labels = generator_fn()

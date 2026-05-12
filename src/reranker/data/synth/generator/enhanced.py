@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Iterator
 
 from reranker.config import get_settings
@@ -25,6 +26,8 @@ from reranker.data.synth.generator.types import (
     ListwiseSpec,
     QueryExpansionSpec,
 )
+
+logger = logging.getLogger(__name__)
 
 DOMAIN_HARD_NEGATIVES: dict[str, list[str]] = {
     "python": [
@@ -116,6 +119,11 @@ def iter_hard_negatives(
                     yield core.validate_record(HardNegativeRecord, record)
                 core.log_cost(gen, metadata, "hard_negatives")
             except Exception:
+                logger.warning(
+                    "Hard-negative batch generation failed; splitting batch.",
+                    extra={"chunk_size": len(chunk), "batch_size": batch_size},
+                    exc_info=True,
+                )
                 midpoint = len(chunk) // 2
                 if midpoint > 0:
                     yield from iter_hard_negatives(
@@ -216,6 +224,11 @@ def iter_listwise_preferences(
                     yield core.validate_record(ListwisePreferenceRecord, record)
                 core.log_cost(gen, metadata, "listwise_preferences")
             except Exception:
+                logger.warning(
+                    "Listwise preference batch generation failed; skipping chunk.",
+                    extra={"chunk_size": len(chunk), "batch_size": batch_size},
+                    exc_info=True,
+                )
                 continue
         return
 
@@ -293,6 +306,11 @@ def iter_query_expansions(
                     yield core.validate_record(QueryExpansionRecord, record)
                 core.log_cost(gen, metadata, "query_expansions")
             except Exception:
+                logger.warning(
+                    "Query expansion batch generation failed; skipping chunk.",
+                    extra={"chunk_size": len(chunk), "batch_size": batch_size},
+                    exc_info=True,
+                )
                 continue
         return
 

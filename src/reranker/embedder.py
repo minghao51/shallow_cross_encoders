@@ -19,11 +19,6 @@ from reranker.config import get_settings
 from reranker.deps import check_model2vec
 from reranker.embedding_cache import EmbeddingCache, get_shared_cache
 
-try:
-    from cachetools import TTLCache  # type: ignore[import-untyped]
-except Exception:
-    TTLCache = None  # type: ignore[assignment,misc]
-
 logger = structlog.get_logger(__name__)
 
 
@@ -65,34 +60,11 @@ class Embedder:
     normalize: bool = field(default_factory=lambda: get_settings().embedder.normalize)
     _backend: Any = field(init=False, default=None, repr=False)
     backend_name: str = field(init=False, default="hashed")
-    _encode_cache: Any = field(init=False, default=None, repr=False)
     _cache: EmbeddingCache | None = field(init=False, default=None, repr=False)
-
-    def _sync_backend_dimension(self) -> None:
-        if self._backend is None:
-            return
-        try:
-            probe_vectors = np.asarray(
-                self._backend.encode([""], normalize=self.normalize),
-                dtype=np.float32,
-            )
-        except Exception:
-            return
-        if probe_vectors.ndim == 2 and probe_vectors.shape[1] > 0:
-            self.dimension = int(probe_vectors.shape[1])
-
-    def _init_cache(self) -> None:
-        if TTLCache is None:
-            return
-        settings = get_settings()
-        max_size = settings.embedder.cache_max_size
-        ttl = settings.embedder.cache_ttl_seconds
-        self._encode_cache = TTLCache(maxsize=max_size, ttl=ttl)
 
     def __post_init__(self) -> None:
         self._backend = None
         self.backend_name = "hashed"
-        self._init_cache()
         self._cache = get_shared_cache()
         backend_cls, status = check_model2vec()
         if backend_cls is not None:
@@ -117,6 +89,19 @@ class Embedder:
                 )
                 self._backend = None
                 self.backend_name = "hashed"
+
+    def _sync_backend_dimension(self) -> None:
+        if self._backend is None:
+            return
+        try:
+            probe_vectors = np.asarray(
+                self._backend.encode([""], normalize=self.normalize),
+                dtype=np.float32,
+            )
+        except Exception:
+            return
+        if probe_vectors.ndim == 2 and probe_vectors.shape[1] > 0:
+            self.dimension = int(probe_vectors.shape[1])
 
     def _encode_hashed(self, texts: list[str]) -> np.ndarray:
         matrix = np.zeros((len(texts), self.dimension), dtype=np.float32)
@@ -154,7 +139,7 @@ class Embedder:
 
         Uses the model2vec backend if available, otherwise falls back to
         deterministic feature-hashed embeddings. Results are cached via
-        a shared EmbeddingCache (or per-instance TTLCache fallback).
+        a shared EmbeddingCache.
 
         Args:
             texts: List of text strings to encode.
@@ -165,28 +150,8 @@ class Embedder:
         if not texts:
             return np.zeros((0, self.dimension), dtype=np.float32)
 
-        # Shared cache path (preferred)
         if self._cache is not None and self._cache.enabled:
             return self._cache.get_or_encode(texts, self)
-
-        # Per-instance cache fallback
-        if self._encode_cache is not None:
-            result = []
-            uncached = []
-            for i, text in enumerate(texts):
-                cached = self._encode_cache.get(text)
-                if cached is not None:
-                    result.append(cached)
-                else:
-                    result.append(None)
-                    uncached.append(i)
-            if not uncached:
-                return np.stack(result)
-            vectors = self._encode_raw([texts[i] for i in uncached])
-            for idx, vec in zip(uncached, vectors, strict=True):
-                self._encode_cache[texts[idx]] = vec
-                result[idx] = vec
-            return np.stack(result)
 
         return self._encode_raw(texts)
 

@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import numpy as np
+import pytest
 
 from reranker.config import (
     apply_settings_override,
@@ -9,8 +10,9 @@ from reranker.config import (
     settings_from_dict,
 )
 from reranker.heuristics.keyword import KeywordMatchAdapter
-from reranker.persistence import load_safe
+from reranker.persistence import load_safe, save_safe
 from reranker.strategies.hybrid import HybridFusionReranker
+from reranker.strategies.meta_router import MetaRouter
 
 
 def test_hybrid_reranks_relevant_doc_first() -> None:
@@ -79,6 +81,28 @@ def test_hybrid_pickle_round_trip_preserves_artifact_metadata(tmp_path: Path) ->
     assert meta["artifact_type"] == "hybrid_reranker"
     assert meta["format"] == "safe-joblib"
     assert "token_overlap_ratio" in meta["feature_names"]
+    assert isinstance(weights.get("router"), MetaRouter) or weights.get("router") is None
+
+
+def test_hybrid_load_rejects_legacy_router_bytes_with_wrong_type(tmp_path: Path) -> None:
+    model_path = tmp_path / "hybrid_legacy.pkl"
+    reranker = HybridFusionReranker()
+    reranker.is_fitted = True
+
+    import pickle
+
+    save_safe(
+        model_path,
+        artifact_type="hybrid_reranker",
+        metadata=reranker._save_metadata(),
+        weights={"model": reranker.model, "router": pickle.dumps({"legacy": "router"})},
+    )
+
+    with (
+        pytest.warns(UserWarning, match="legacy byte-encoded"),
+        pytest.raises(TypeError, match="Expected MetaRouter"),
+    ):
+        HybridFusionReranker.load(model_path)
 
 
 def test_hybrid_empty_document_list() -> None:

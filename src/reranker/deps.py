@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib
 import warnings
 from dataclasses import dataclass
 from typing import Any
@@ -21,95 +22,67 @@ class DepStatus:
     fallback_description: str
 
 
-def check_model2vec() -> tuple[Any, DepStatus]:
-    """Check if model2vec is available. Returns (StaticModel_class_or_None, status)."""
+def _check_dep(
+    name: str,
+    module_name: str,
+    attr: str | None,
+    fallback_backend: str,
+    fallback_desc: str,
+    pip_name: str,
+) -> tuple[Any, DepStatus]:
     try:
-        from model2vec import StaticModel  # type: ignore[import-untyped]
-
-        return (
-            StaticModel,
-            DepStatus(  # noqa: E501
-                name="model2vec",
-                available=True,
-                backend="model2vec",
-                fallback_description="",
-            ),
-        )
+        mod = importlib.import_module(module_name)
+        result = getattr(mod, attr) if attr else mod
+        return result, DepStatus(name=name, available=True, backend=name, fallback_description="")
     except Exception:
         status = DepStatus(
-            name="model2vec",
+            name=name,
             available=False,
-            backend="hashed",
-            fallback_description="deterministic hashed embeddings",
+            backend=fallback_backend,
+            fallback_description=fallback_desc,
         )
         logger.info(
-            "model2vec not available; using %s. Install with: pip install model2vec",
+            "%s not available; using %s. Install with: pip install %s",
+            name,
             status.fallback_description,
+            pip_name,
         )
         warnings.warn(
-            "model2vec is not available; falling back to deterministic hashed embeddings. "
-            "Install with: pip install model2vec",
-            stacklevel=3,
+            f"{name} is not available; falling back to {fallback_desc}. "
+            f"Install with: pip install {pip_name}",
+            stacklevel=2,
         )
         return None, status
+
+
+def check_model2vec() -> tuple[Any, DepStatus]:
+    return _check_dep(
+        name="model2vec",
+        module_name="model2vec",
+        attr="StaticModel",
+        fallback_backend="hashed",
+        fallback_desc="deterministic hashed embeddings",
+        pip_name="model2vec",
+    )
 
 
 def check_rank_bm25() -> tuple[Any, DepStatus]:
-    """Check if rank_bm25 is available. Returns (BM25Okapi_class_or_None, status)."""
-    try:
-        from rank_bm25 import BM25Okapi  # type: ignore[import-untyped]
-
-        return (
-            BM25Okapi,
-            DepStatus(  # noqa: E501
-                name="rank_bm25",
-                available=True,
-                backend="rank_bm25",
-                fallback_description="",
-            ),
-        )
-    except Exception:
-        status = DepStatus(
-            name="rank_bm25",
-            available=False,
-            backend="pure_python",
-            fallback_description="pure-Python BM25 implementation",
-        )
-        logger.info(
-            "rank_bm25 not available; using %s. Install with: pip install rank-bm25",
-            status.fallback_description,
-        )
-        warnings.warn(
-            "rank_bm25 is not available; falling back to pure-Python BM25 implementation. "
-            "Install with: pip install rank-bm25",
-            stacklevel=3,
-        )
-        return None, status
+    return _check_dep(
+        name="rank_bm25",
+        module_name="rank_bm25",
+        attr="BM25Okapi",
+        fallback_backend="pure_python",
+        fallback_desc="pure-Python BM25 implementation",
+        pip_name="rank-bm25",
+    )
 
 
 def check_xgboost() -> tuple[Any, DepStatus]:
-    """Check if xgboost is available. Returns (xgboost_module_or_None, status)."""
-    try:
-        import xgboost as xgb  # type: ignore[import-untyped]
-
-        return (
-            xgb,
-            DepStatus(name="xgboost", available=True, backend="xgboost", fallback_description=""),
-        )
-    except Exception:
-        status = DepStatus(
-            name="xgboost",
-            available=False,
-            backend="sklearn",
-            fallback_description="sklearn GradientBoostingClassifier",
-        )
-        logger.info(
-            "xgboost not available; using %s. Install with: pip install xgboost",
-            status.fallback_description,
-        )
-        warnings.warn(
-            "xgboost is not available; falling back to sklearn.GradientBoostingClassifier. "
-            "Install with: pip install xgboost",
-            stacklevel=3,
-        )
-        return None, status
+    return _check_dep(
+        name="xgboost",
+        module_name="xgboost",
+        attr=None,
+        fallback_backend="sklearn",
+        fallback_desc="sklearn GradientBoostingClassifier",
+        pip_name="xgboost",
+    )

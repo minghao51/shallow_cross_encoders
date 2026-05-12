@@ -72,7 +72,17 @@ class TestMeasureWarmStart:
 
         result = measure_warm_start(noop, n_warmup=0, n_measure=0)
         assert result["warm_n"] == 0
-        assert result["cold_start_ms"] == 0.0
+        assert result["cold_start_ms"] >= 0.0
+
+    def test_invocation_count_includes_explicit_cold_start(self):
+        call_count = 0
+
+        def counter():
+            nonlocal call_count
+            call_count += 1
+
+        measure_warm_start(counter, n_warmup=2, n_measure=3)
+        assert call_count == 6
 
     def test_nonzero_times(self):
         def slow_enough():

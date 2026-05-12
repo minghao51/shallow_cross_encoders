@@ -1,9 +1,19 @@
-# Reranking Methods Atlas
+---
+hide:
+  - navigation
+  - toc
+---
 
-A self-contained reference for every reranking strategy — with methodology, benchmark stats, pros/cons, and comparisons.
+# Consistency Engine
 
-<div style="margin: 0 -0.8rem">
-  <iframe src="/shallow_cross_encoders/notebooks/html/04_methods_atlas.html"    style="width:100%; height:600px; border:1px solid var(--md-default-fg-color--lightest); border-radius:4px;"    loading="lazy"></iframe>
+Detect factual contradictions across documents using structured claim extraction and semantic alignment — with evaluation and diagnosis.
+
+<div class="iframe-container" id="iframe-wrapper-consistency-engine">
+  <div class="iframe-controls">
+    <button onclick="toggleNotebookFullscreen(this)" class="md-button">Expand</button>
+    <a href="/shallow_cross_encoders/notebooks/html/04_consistency_engine.html" target="_blank" class="md-button">Open in New Tab</a>
+  </div>
+  <iframe src="/shallow_cross_encoders/notebooks/html/04_consistency_engine.html" allowfullscreen loading="lazy"></iframe>
 </div>
 
 ## Run Locally

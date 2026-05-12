@@ -1,14 +1,10 @@
-"""Distilled pairwise ranker using LLM-generated preference comparisons.
-
-Trains a lightweight model (logistic regression or cross-encoder) to
-approximate an expensive teacher reranker's pairwise preferences.
-"""
+"""Distilled pairwise ranker using LLM-generated preference comparisons."""
 
 from __future__ import annotations
 
 from collections import deque
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 import numpy as np
 import structlog
@@ -17,23 +13,16 @@ from sklearn.linear_model import LogisticRegression
 
 from reranker.config import get_settings
 from reranker.embedder import Embedder
-from reranker.persistence import save_safe, try_load_safe_or_warn
-from reranker.protocols import RankedDoc
-from reranker.utils import (
-    load_pickle,
-)
+from reranker.protocols import RankedDoc, SaveableReranker
+from reranker.utils import rank_docs
 
 logger = structlog.get_logger(__name__)
 
 
-class DistilledPairwiseRanker:
-    """Local pairwise preference model trained on LLM-generated comparisons.
+class DistilledPairwiseRanker(SaveableReranker):
+    """Local pairwise preference model trained on LLM-generated comparisons."""
 
-    Supports multiple loss types for improved NDCG optimization:
-    - "pairwise": Original LogisticRegression on pairwise features (baseline)
-    - "listwise": ListMLE loss for direct listwise optimization
-    - "lambdaloss": LambdaLoss with NDCG weighting for NDCG-optimized ranking
-    """
+    _artifact_type = "pairwise_ranker"
 
     def __init__(
         self,
@@ -113,8 +102,9 @@ class DistilledPairwiseRanker:
             )
             self.model.fit(X, y)
 
-    def _fit_listwise(
+    def _fit_cross_encoder(
         self,
+        loss_class: Any,
         queries: list[str],
         doc_as: list[str],
         doc_bs: list[str],
@@ -122,34 +112,40 @@ class DistilledPairwiseRanker:
     ) -> None:
         try:
             from sentence_transformers import CrossEncoder, InputExample
-            from sentence_transformers.cross_encoder.losses import ListMLELoss
             from torch.utils.data import DataLoader
         except ImportError as e:
             raise ImportError(
                 "sentence-transformers with full training dependencies is required "
-                "for listwise loss. Please run: pip install sentence-transformers "
+                "for cross-encoder losses. Install with: pip install sentence-transformers "
                 "datasets accelerate transformers[torch]",
             ) from e
 
         try:
-            ce_model = CrossEncoder(
-                self._cross_encoder_model_name,
-                max_length=512,
-            )
-            ce_loss = ListMLELoss(ce_model)
+            ce_model = CrossEncoder(self._cross_encoder_model_name, max_length=512)
+            ce_loss = loss_class(ce_model)
 
             train_examples = []
             for idx, (query, doc_a, doc_b, label) in enumerate(
                 zip(queries, doc_as, doc_bs, labels, strict=False)
             ):
-                if label == 1:
+                if getattr(loss_class, "__name__", "") == "LambdaLoss":
+                    label_a = 1 if label == 1 else 0
+                    label_b = 0 if label == 1 else 1
                     train_examples.append(
-                        InputExample(guid=str(idx), texts=[query, doc_a], label=idx)
+                        InputExample(guid=f"{idx}a", texts=[query, doc_a], label=label_a)
+                    )
+                    train_examples.append(
+                        InputExample(guid=f"{idx}b", texts=[query, doc_b], label=label_b)
                     )
                 else:
-                    train_examples.append(
-                        InputExample(guid=str(idx), texts=[query, doc_b], label=idx)
-                    )
+                    if label == 1:
+                        train_examples.append(
+                            InputExample(guid=str(idx), texts=[query, doc_a], label=idx)
+                        )
+                    else:
+                        train_examples.append(
+                            InputExample(guid=str(idx), texts=[query, doc_b], label=idx)
+                        )
 
             if len(train_examples) < 2:
                 train_examples = [InputExample(guid="0", texts=[queries[0], doc_as[0]], label=0)]
@@ -165,8 +161,25 @@ class DistilledPairwiseRanker:
             self._cross_encoder = ce_model
         except ImportError as e:
             raise ImportError(
-                f"Failed to train with listwise loss: {e}. "
+                f"Failed to train with cross-encoder loss: {e}. "
                 "Please ensure accelerate and transformers[torch] are installed."
+            ) from e
+
+    def _fit_listwise(
+        self,
+        queries: list[str],
+        doc_as: list[str],
+        doc_bs: list[str],
+        labels: list[int],
+    ) -> None:
+        try:
+            from sentence_transformers.cross_encoder.losses import ListMLELoss
+
+            self._fit_cross_encoder(ListMLELoss, queries, doc_as, doc_bs, labels)
+        except ImportError as e:
+            raise ImportError(
+                "sentence-transformers is required for listwise loss. "
+                "Install with: pip install sentence-transformers",
             ) from e
 
     def _fit_lambdaloss(
@@ -177,54 +190,13 @@ class DistilledPairwiseRanker:
         labels: list[int],
     ) -> None:
         try:
-            from sentence_transformers import CrossEncoder, InputExample
             from sentence_transformers.cross_encoder.losses import LambdaLoss
-            from torch.utils.data import DataLoader
+
+            self._fit_cross_encoder(LambdaLoss, queries, doc_as, doc_bs, labels)
         except ImportError as e:
             raise ImportError(
-                "sentence-transformers with full training dependencies is required "
-                "for LambdaLoss. Please run: pip install sentence-transformers "
-                "datasets accelerate transformers[torch]",
-            ) from e
-
-        try:
-            ce_model = CrossEncoder(
-                self._cross_encoder_model_name,
-                max_length=512,
-            )
-            ce_loss = LambdaLoss(ce_model)
-
-            train_examples = []
-            relevance_labels = []
-            for idx, (query, doc_a, doc_b, label) in enumerate(
-                zip(queries, doc_as, doc_bs, labels, strict=False)
-            ):
-                train_examples.append(
-                    InputExample(guid=f"{idx}a", texts=[query, doc_a], label=1 if label == 1 else 0)
-                )
-                train_examples.append(
-                    InputExample(guid=f"{idx}b", texts=[query, doc_b], label=0 if label == 1 else 1)
-                )
-                relevance_labels.append(1 if label == 1 else 0)
-                relevance_labels.append(0 if label == 1 else 1)
-
-            if len(set(relevance_labels)) < 2:
-                train_examples = [InputExample(guid="0", texts=[queries[0], doc_as[0]], label=1)]
-                relevance_labels = [1]
-
-            train_dataloader = DataLoader(train_examples, shuffle=False, batch_size=32)  # type: ignore[var-annotated, arg-type]
-
-            ce_model.fit(
-                train_dataloader=train_dataloader,
-                loss_fct=ce_loss,
-                epochs=1,
-                show_progress_bar=False,
-            )
-            self._cross_encoder = ce_model
-        except ImportError as e:
-            raise ImportError(
-                f"Failed to train with LambdaLoss: {e}. "
-                "Please ensure accelerate and transformers[torch] are installed."
+                "sentence-transformers is required for LambdaLoss. "
+                "Install with: pip install sentence-transformers",
             ) from e
 
     def fit(
@@ -299,21 +271,6 @@ class DistilledPairwiseRanker:
         return merged
 
     def rerank(self, query: str, docs: list[str]) -> list[RankedDoc]:
-        """Rerank documents using the fitted pairwise model.
-
-        For listwise/lambdaloss cross-encoder models, scores directly.
-        For pairwise logistic, runs a full or merge-sort tournament.
-
-        Args:
-            query: Search query.
-            docs: Documents to rerank.
-
-        Returns:
-            Ranked list of RankedDoc.
-
-        Raises:
-            RuntimeError: If the ranker has not been fitted.
-        """
         if not self.is_fitted:
             raise RuntimeError("DistilledPairwiseRanker must be fitted before reranking.")
         if not docs:
@@ -321,20 +278,7 @@ class DistilledPairwiseRanker:
 
         if self.loss_type in ("listwise", "lambdaloss") and self._cross_encoder is not None:
             scores = self._score_cross_encoder(query, docs)
-            ranked = sorted(
-                zip(docs, scores, strict=False),
-                key=lambda item: float(item[1]),
-                reverse=True,
-            )
-            return [
-                RankedDoc(
-                    doc=doc,
-                    score=float(score),
-                    rank=rank,
-                    metadata={"strategy": f"distilled_{self.loss_type}"},
-                )
-                for rank, (doc, score) in enumerate(ranked, start=1)
-            ]
+            return rank_docs(docs, scores, f"distilled_{self.loss_type}")
 
         q_vec = self.embedder.encode([query])[0]
         d_vecs = self.embedder.encode(docs)
@@ -372,60 +316,37 @@ class DistilledPairwiseRanker:
             total = len(ranked_indices)
             for position, (doc_idx, merge_score) in enumerate(ranked_indices):
                 scores[doc_idx] = merge_score + float(total - position)
-        ranked = sorted(
-            zip(docs, scores, strict=False),
-            key=lambda item: float(item[1]),
-            reverse=True,
-        )
-        return [
-            RankedDoc(doc=doc, score=float(score), rank=rank, metadata={"strategy": "distilled"})
-            for rank, (doc, score) in enumerate(ranked, start=1)
-        ]
+        return rank_docs(docs, scores, "distilled")
 
-    def save(self, path: str | Path) -> None:
-        """Persist the distilled ranker to disk.
-
-        Saves the logistic model (and cross-encoder if present).
-
-        Args:
-            path: Destination file path.
-        """
-        metadata = {
+    def _save_metadata(self) -> dict:
+        meta = {
             "embedder_model_name": self.embedder.model_name,
             "full_tournament_max_docs": self.full_tournament_max_docs,
             "loss_type": self.loss_type,
         }
+        if self._cross_encoder is not None:
+            meta["cross_encoder_path"] = "_cross_encoder"
+        return meta
+
+    def _save_weights(self) -> dict:
         weights = {"model": self.model}
+        if self._cross_encoder is not None:
+            weights["cross_encoder"] = self._cross_encoder
+        return weights
+
+    def save(self, path: str | Path) -> None:
         if self._cross_encoder is not None:
             cross_encoder_path = str(Path(path).with_suffix("")) + "_cross_encoder"
             self._cross_encoder.save(cross_encoder_path)
-            metadata["cross_encoder_path"] = cross_encoder_path
-        save_safe(
-            path,
-            artifact_type="pairwise_ranker",
-            metadata=metadata,
-            weights=weights,
-        )
+        super().save(path)
 
     @classmethod
     def load(cls, path: str | Path, embedder: Embedder | None = None) -> DistilledPairwiseRanker:
-        """Load a saved DistilledPairwiseRanker from disk.
-
-        Args:
-            path: Path to the saved artifact.
-            embedder: Optional embedder override.
-
-        Returns:
-            Loaded DistilledPairwiseRanker instance.
-        """
-        payload = try_load_safe_or_warn(
-            path,
-            expected_type="pairwise_ranker",
-            legacy_loader=load_pickle,
-        )
+        payload = cls._load_payload(path, expected_type=cls._artifact_type)
         loss_type = payload.get("loss_type", "pairwise")
         instance = cls(
-            embedder=embedder or Embedder(payload.get("embedder_model_name")),
+            embedder=embedder
+            or Embedder(str(payload.get("embedder_model_name", "minishlab/potion-base-32M"))),
             loss_type=loss_type,
         )
         instance.model = payload["model"]
@@ -438,11 +359,12 @@ class DistilledPairwiseRanker:
             try:
                 from sentence_transformers import CrossEncoder
 
-                instance._cross_encoder = CrossEncoder(cross_encoder_path)
+                instance._cross_encoder = CrossEncoder(
+                    str(Path(path).with_suffix("")) + "_cross_encoder"
+                )
             except Exception as exc:
                 logger.warning(
-                    "Failed to load cross-encoder from '%s': %s. "
-                    "Pairwise comparisons will fall back to the logistic model.",
+                    "Failed to load cross-encoder from '%s': %s.",
                     cross_encoder_path,
                     exc,
                     exc_info=True,

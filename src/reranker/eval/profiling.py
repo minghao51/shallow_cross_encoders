@@ -6,11 +6,14 @@ when optional dependencies (memory_profiler, psutil) are unavailable.
 
 from __future__ import annotations
 
+import logging
 import os
 import time
 from collections.abc import Iterator
 from contextlib import contextmanager
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 
 @contextmanager
@@ -26,20 +29,25 @@ def memory_profile(label: str = "") -> Iterator[dict[str, float]]:
         import memory_profiler  # type: ignore[import-untyped]
     except ImportError:
         yield result
-        return result
+        return
 
     try:
         before = memory_profiler.memory_usage(-1, interval=0.01, timeout=1)
         yield result
         after = memory_profiler.memory_usage(-1, interval=0.01, timeout=1)
     except Exception:
+        logger.debug(
+            "memory_profile fallback to zero metrics",
+            extra={"label": label},
+            exc_info=True,
+        )
         yield result
-        return result
+        return
 
     max_before = max(before) if before else 0.0
     max_after = max(after) if after else 0.0
     result["peak_rss_mb"] = max(max_after - max_before, 0.0)
-    return result
+    return
 
 
 @contextmanager
@@ -59,7 +67,7 @@ def cpu_profile(label: str = "") -> Iterator[dict[str, float]]:
         import psutil  # type: ignore[import-untyped]
     except ImportError:
         yield result
-        return result
+        return
 
     try:
         proc = psutil.Process(os.getpid())
@@ -69,8 +77,13 @@ def cpu_profile(label: str = "") -> Iterator[dict[str, float]]:
         elapsed = time.perf_counter() - start
         after = proc.cpu_times()
     except Exception:
+        logger.debug(
+            "cpu_profile fallback to zero metrics",
+            extra={"label": label},
+            exc_info=True,
+        )
         yield result
-        return result
+        return
 
     user_delta = after.user - before.user
     system_delta = after.system - before.system
@@ -81,7 +94,7 @@ def cpu_profile(label: str = "") -> Iterator[dict[str, float]]:
         result["cpu_system_pct"] = (system_delta / elapsed) * 100.0
         result["cpu_idle_pct"] = max(0.0, 100.0 - result["cpu_user_pct"] - result["cpu_system_pct"])
 
-    return result
+    return
 
 
 def measure_warm_start(
@@ -104,6 +117,10 @@ def measure_warm_start(
     """
     import statistics
 
+    cold_start_begin = time.perf_counter()
+    warmup_fn()
+    cold_start_ms = (time.perf_counter() - cold_start_begin) * 1000
+
     for _ in range(n_warmup):
         warmup_fn()
 
@@ -116,7 +133,7 @@ def measure_warm_start(
 
     ordered = sorted(samples)
     return {
-        "cold_start_ms": samples[0] if samples else 0.0,
+        "cold_start_ms": cold_start_ms,
         "warm_p50_ms": float(statistics.median(ordered)) if ordered else 0.0,
         "warm_mean_ms": float(statistics.fmean(ordered)) if ordered else 0.0,
         "warm_min_ms": ordered[0] if ordered else 0.0,

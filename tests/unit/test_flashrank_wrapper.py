@@ -2,7 +2,7 @@
 
 
 def test_flashrank_wrapper_init():
-    from reranker.adapters.flashrank_wrapper import FlashRankWrapper
+    from reranker.strategies.flashrank_ensemble import FlashRankWrapper
 
     wrapper = FlashRankWrapper()
     assert wrapper.model_name == "ms-marco-TinyBERT-L-2-v2"
@@ -12,7 +12,7 @@ def test_flashrank_wrapper_init():
 
 
 def test_flashrank_wrapper_rerank_empty():
-    from reranker.adapters.flashrank_wrapper import FlashRankWrapper
+    from reranker.strategies.flashrank_ensemble import FlashRankWrapper
 
     wrapper = FlashRankWrapper()
     result = wrapper.rerank("test query", [])
@@ -20,7 +20,7 @@ def test_flashrank_wrapper_rerank_empty():
 
 
 def test_flashrank_wrapper_return_type():
-    from reranker.adapters.flashrank_wrapper import FlashRankWrapper
+    from reranker.strategies.flashrank_ensemble import FlashRankWrapper
 
     wrapper = FlashRankWrapper()
     assert hasattr(wrapper, "_load_ranker")

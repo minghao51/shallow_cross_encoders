@@ -65,16 +65,17 @@ class LiteLLMClient:
         litellm = _get_litellm()
         started = datetime.now(UTC)
 
+        completion_kwargs: dict[str, Any] = {
+            "model": self.model,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0.2,
+            "response_format": {"type": "json_object"},
+            "num_retries": 3,
+        }
         if self.api_key:
-            litellm.api_key = self.api_key
+            completion_kwargs["api_key"] = self.api_key
 
-        response = litellm.completion(
-            model=self.model,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.2,
-            response_format={"type": "json_object"},
-            num_retries=3,
-        )
+        response = litellm.completion(**completion_kwargs)
 
         finished = datetime.now(UTC)
         usage = getattr(response, "usage", None)

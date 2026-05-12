@@ -13,30 +13,35 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
-      - run: uv sync --all-extras
+      - run: uv sync --dev
       - uses: pre-commit/action@v3.0.1
 
   typecheck:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
-      - run: uv sync --all-extras
+      - run: uv sync --dev
       - run: uv run mypy
 
   test:
     runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
-      - run: uv sync --all-extras
+          python-version: ${{ matrix.python-version }}
+      - run: uv sync --dev
+      - run: uv run python -c "import reranker"
       - run: uv run pytest -q --cov=src --cov-report=term-missing --cov-fail-under=85
       - name: Quantization benchmark (non-blocking)
         run: uv run python scripts/benchmark_quantization.py
@@ -46,15 +51,24 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - run: uv sync --dev
       - run: uvx bandit -r src -c pyproject.toml -lll
-      - run: uvx pip-audit --ignore-vuln CVE-2026-3219
+      - run: uv run pip-audit --ignore-vuln CVE-2026-3219
+      - name: Guard broad exception usage in src
+        run: |
+          if rg -n "except Exception" src/reranker/data/ensemble_cache.py src/reranker/data/active_distill.py src/reranker/eval/runner.py; then
+            echo "Broad exception usage found in guarded files."
+            exit 1
+          fi
 
   docs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
       - uses: quarto-dev/quarto-action/setup@v2

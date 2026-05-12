@@ -1,8 +1,7 @@
 """Protocols and data types implemented by all ranking strategies.
 
 Defines the core interfaces that every reranker, adapter, and
-persistence-aware component must satisfy. Use these protocols for
-type-checking and runtime interface validation.
+persistence-aware component must satisfy.
 """
 
 from __future__ import annotations
@@ -10,6 +9,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Protocol, runtime_checkable
+
+from reranker.persistence import save_safe, try_load_safe_or_warn
+from reranker.utils import load_pickle
 
 
 @dataclass(slots=True)
@@ -31,46 +33,51 @@ class RankedDoc:
 
 @runtime_checkable
 class HeuristicAdapter(Protocol):
-    """Inject domain-specific scalar features into feature construction."""
+    """Protocol for domain-specific scalar feature adapters."""
 
     def compute(self, query: str, doc: str) -> dict[str, float]: ...
 
 
 @runtime_checkable
 class BaseReranker(Protocol):
-    """Common contract every ranking strategy resolves to."""
+    """Common contract every ranking strategy must satisfy."""
 
     def rerank(self, query: str, docs: list[str]) -> list[RankedDoc]: ...
 
 
-@runtime_checkable
-class TrainableReranker(Protocol):
-    """Training contract for rerankers that support pairwise or pointwise learning."""
+class SaveableReranker:
+    """Base class providing DRY save/load via the persistence layer.
 
-    def fit(
-        self,
-        queries: list[str],
-        doc_as: list[str],
-        doc_bs: list[str],
-        labels: list[int],
-    ) -> Any: ...
+    Subclasses define ``_artifact_type`` and override
+    ``_save_metadata()`` / ``_save_weights()`` to control what gets
+    serialized. The concrete ``save()`` method handles the rest.
 
-    def fit_pointwise(
-        self,
-        queries: list[str],
-        docs: list[str],
-        scores: list[float],
-        use_regression: bool = True,
-    ) -> Any: ...
+    Each subclass still provides its own ``load()`` classmethod since
+    reconstruction logic varies per strategy.
+    """
 
-    def save(self, path: str | Path) -> None: ...
+    _artifact_type: str = ""
 
+    def _save_metadata(self) -> dict[str, Any]:
+        return {
+            "embedder_model_name": getattr(getattr(self, "embedder", None), "model_name", "unknown")
+        }
 
-@runtime_checkable
-class SaveableReranker(Protocol):
-    """Persistence contract for rerankers."""
+    def _save_weights(self) -> dict[str, Any]:
+        return {}
 
-    def save(self, path: str | Path) -> None: ...
+    def save(self, path: str | Path) -> None:
+        save_safe(
+            path,
+            artifact_type=self._artifact_type,
+            metadata=self._save_metadata(),
+            weights=self._save_weights(),
+        )
 
-    @classmethod
-    def load(cls, path: str | Path, **kwargs: Any) -> Any: ...
+    @staticmethod
+    def _load_payload(path: str | Path, expected_type: str) -> dict[str, Any]:
+        return try_load_safe_or_warn(
+            path,
+            expected_type=expected_type,
+            legacy_loader=load_pickle,
+        )

@@ -1,8 +1,4 @@
-"""Late-interaction reranker using token-level MaxSim scoring.
-
-Stores per-token embeddings for documents and computes MaxSim between
-query tokens and document tokens at inference time.
-"""
+"""Late-interaction reranker using token-level MaxSim scoring."""
 
 from __future__ import annotations
 
@@ -14,12 +10,9 @@ import numpy as np
 
 from reranker.config import get_settings
 from reranker.embedder import Embedder
-from reranker.persistence import save_safe, try_load_safe_or_warn
-from reranker.protocols import RankedDoc
+from reranker.protocols import RankedDoc, SaveableReranker
 from reranker.quantization import QuantizationResult, dequantize, quantize
-from reranker.utils import (
-    load_pickle,
-)
+from reranker.utils import rank_docs
 
 
 @dataclass(slots=True)
@@ -33,16 +26,10 @@ class TokenIndex:
     quantized: QuantizationResult | None = None
 
 
-class StaticColBERTReranker:
-    """Late interaction reranker using token-level MaxSim scoring.
+class StaticColBERTReranker(SaveableReranker):
+    """Late interaction reranker using token-level MaxSim scoring."""
 
-    Instead of collapsing a document into a single vector, this stores
-    individual token embeddings and computes MaxSim at query time:
-        score = sum_{q_t in query} max_{d_t in doc} cosine(q_t, d_t)
-
-    This captures term-level alignment that mean-pooling loses, while
-    remaining CPU-efficient because the vectors are static and pre-computed.
-    """
+    _artifact_type = "late_interaction_reranker"
 
     def __init__(
         self,
@@ -85,65 +72,41 @@ class StaticColBERTReranker:
         return tf * idf
 
     def _prune_tokens(
-        self,
-        doc_text: str | list[str],
-        tokens: list[str] | np.ndarray,
-        vectors: np.ndarray | None = None,
+        self, tokens: list[str], vectors: np.ndarray, doc_text: str = ""
     ) -> TokenIndex:
-        if vectors is None:
-            actual_doc_text = " ".join(doc_text) if isinstance(doc_text, list) else str(doc_text)
-            actual_tokens = list(doc_text) if isinstance(doc_text, list) else [str(doc_text)]
-            actual_vectors = np.asarray(tokens, dtype=np.float32)
-        else:
-            actual_doc_text = str(doc_text)
-            actual_tokens = list(tokens)
-            actual_vectors = vectors
-        if actual_vectors.shape[0] <= self.top_k_tokens:
-            salience = (
-                self._compute_salience(actual_tokens, actual_vectors) if self.use_salience else None
-            )
+        if vectors.shape[0] <= self.top_k_tokens:
+            salience = self._compute_salience(tokens, vectors) if self.use_salience else None
             return TokenIndex(
-                text=actual_doc_text,
-                tokens=actual_tokens,
-                vectors=actual_vectors,
+                text=doc_text or " ".join(tokens),
+                tokens=tokens,
+                vectors=vectors,
                 salience=salience,
             )
 
         if self.use_salience:
-            salience = self._compute_salience(actual_tokens, actual_vectors)
+            salience = self._compute_salience(tokens, vectors)
             top_indices = np.argsort(salience)[-self.top_k_tokens :]
             return TokenIndex(
-                text=actual_doc_text,
-                tokens=[actual_tokens[i] for i in top_indices],
-                vectors=actual_vectors[top_indices],
+                text=doc_text or " ".join([tokens[i] for i in top_indices]),
+                tokens=[tokens[i] for i in top_indices],
+                vectors=vectors[top_indices],
                 salience=salience[top_indices],
             )
 
-        top_indices = np.arange(min(self.top_k_tokens, len(actual_tokens)))
+        top_indices = np.arange(min(self.top_k_tokens, len(tokens)))
         return TokenIndex(
-            text=actual_doc_text,
-            tokens=[actual_tokens[i] for i in top_indices],
-            vectors=actual_vectors[top_indices],
+            text=doc_text or " ".join([tokens[i] for i in top_indices]),
+            tokens=[tokens[i] for i in top_indices],
+            vectors=vectors[top_indices],
             salience=None,
         )
 
     def fit(self, docs: list[str]) -> StaticColBERTReranker:
-        """Fit the reranker by indexing document token embeddings.
-
-        Tokenises each document, encodes tokens, prunes to top-k,
-        and optionally quantises the stored vectors.
-
-        Args:
-            docs: Documents to index.
-
-        Returns:
-            Self, fitted.
-        """
         self._index = []
         for doc in docs:
             tokens = self._tokenize(doc)
             vectors = self._encode_tokens(tokens)
-            entry = self._prune_tokens(doc, tokens, vectors)
+            entry = self._prune_tokens(tokens, vectors, doc_text=doc)
             if self.quantization_mode != "none" and entry.vectors.shape[0] > 0:
                 entry.quantized = quantize(
                     entry.vectors,
@@ -221,25 +184,10 @@ class StaticColBERTReranker:
     ) -> list[RankedDoc]:
         if not docs:
             return []
-
         if not self.is_fitted:
             raise RuntimeError("StaticColBERTReranker is not fitted. Call fit() or load() first.")
-
         scores = self.score(query, docs, prebuilt_indices=prebuilt_indices)
-        ranked = sorted(
-            zip(docs, scores, strict=False),
-            key=lambda item: float(item[1]),
-            reverse=True,
-        )
-        return [
-            RankedDoc(
-                doc=doc,
-                score=float(score),
-                rank=rank,
-                metadata={"strategy": "late_interaction"},
-            )
-            for rank, (doc, score) in enumerate(ranked, start=1)
-        ]
+        return rank_docs(docs, scores, "late_interaction")
 
     def rerank_batch(
         self,
@@ -283,32 +231,18 @@ class StaticColBERTReranker:
                 if entry.salience is not None:
                     doc_vectors = doc_vectors * entry.salience[:, np.newaxis]
                 scores[d_idx] = self._maxsim(q_vecs, doc_vectors)
-            ranked = sorted(
-                zip(docs, scores, strict=False),
-                key=lambda item: float(item[1]),
-                reverse=True,
-            )
-            results.append(
-                [
-                    RankedDoc(
-                        doc=doc,
-                        score=float(score),
-                        rank=rank,
-                        metadata={"strategy": "late_interaction"},
-                    )
-                    for rank, (doc, score) in enumerate(ranked, start=1)
-                ]
-            )
+            results.append(rank_docs(docs, scores, "late_interaction"))
         return results
 
-    def save(self, path: str | Path) -> None:
-        """Persist the late-interaction reranker to disk.
+    def _save_metadata(self) -> dict:
+        return {
+            "embedder_model_name": self.embedder.model_name,
+            "top_k_tokens": self.top_k_tokens,
+            "use_salience": self.use_salience,
+            "quantization_mode": self.quantization_mode,
+        }
 
-        Saves token indices, quantised vectors, and configuration.
-
-        Args:
-            path: Destination file path.
-        """
+    def _save_weights(self) -> dict:
         index_data = []
         for entry in self._index:
             item: dict[str, Any] = {
@@ -329,17 +263,7 @@ class StaticColBERTReranker:
             else:
                 item["vectors"] = entry.vectors
             index_data.append(item)
-        save_safe(
-            path,
-            artifact_type="late_interaction_reranker",
-            metadata={
-                "embedder_model_name": self.embedder.model_name,
-                "top_k_tokens": self.top_k_tokens,
-                "use_salience": self.use_salience,
-                "quantization_mode": self.quantization_mode,
-            },
-            weights={"index_data": index_data},
-        )
+        return {"index_data": index_data}
 
     @classmethod
     def load(
@@ -347,23 +271,11 @@ class StaticColBERTReranker:
         path: str | Path,
         embedder: Embedder | None = None,
     ) -> StaticColBERTReranker:
-        """Load a saved StaticColBERTReranker from disk.
-
-        Args:
-            path: Path to the saved artifact.
-            embedder: Optional embedder override.
-
-        Returns:
-            Loaded StaticColBERTReranker instance.
-        """
-        payload = try_load_safe_or_warn(
-            path,
-            expected_type="late_interaction_reranker",
-            legacy_loader=load_pickle,
-        )
+        payload = cls._load_payload(path, expected_type=cls._artifact_type)
         q_mode = payload.get("quantization_mode", "none")
         instance = cls(
-            embedder=embedder or Embedder(payload.get("embedder_model_name")),
+            embedder=embedder
+            or Embedder(str(payload.get("embedder_model_name", "minishlab/potion-base-32M"))),
             top_k_tokens=payload.get("top_k_tokens"),
             use_salience=payload.get("use_salience", False),
             quantization_mode=q_mode,

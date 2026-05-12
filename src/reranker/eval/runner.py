@@ -12,6 +12,7 @@ from reranker.data.synth import SyntheticDataGenerator
 from reranker.eval.metrics import (
     LatencyTracker,
     accuracy,
+    is_relevant,
     mean_average_precision,
     mrr,
     ndcg_at_k,
@@ -94,7 +95,7 @@ def _metrics_for_rows(
 
         label_map = {str(item["doc"]): int(item["score"]) for item in items}
         relevances: list[float] = [float(label_map[result.doc]) for result in ranked]
-        binary = [1 if rel >= 2 else 0 for rel in relevances]
+        binary = [1 if is_relevant(rel, threshold=2.0) else 0 for rel in relevances]
         ndcgs.append(ndcg_at_k(relevances, 10))
         mrr_inputs.append(relevances)
         map_inputs.append(relevances)
@@ -117,8 +118,8 @@ def _metrics_for_rows(
         "ndcg@10": round(hybrid_ndcg, 4),
         "bm25_ndcg@10": round(bm25_ndcg, 4),
         "ndcg@10_uplift_vs_bm25": round(hybrid_ndcg - bm25_ndcg, 4),
-        "mrr": round(mrr(mrr_inputs, k=10), 4),
-        "map": round(mean_average_precision(map_inputs, k=10), 4),
+        "mrr": round(mrr(mrr_inputs, k=10, relevance_threshold=2.0), 4),
+        "map": round(mean_average_precision(map_inputs, k=10, relevance_threshold=2.0), 4),
         "p@1": round(_mean(p1s), 4),
         "latency_p50_ms": round(summary["p50"], 4),
         "latency_p99_ms": round(summary["p99"], 4),

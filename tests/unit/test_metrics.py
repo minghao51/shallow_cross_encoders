@@ -223,22 +223,25 @@ class TestAccuracy:
 
 class TestMRR:
     def test_mrr_averages_first_relevant_rank_per_query(self) -> None:
-        result = mrr([[0, 1, 0], [0, 0, 1], [0, 0, 0]])
+        result = mrr([[0, 1, 0], [0, 0, 1], [0, 0, 0]], relevance_threshold=1.0)
         expected = (0.5 + (1.0 / 3.0) + 0.0) / 3.0
         assert abs(result - expected) < 1e-6
 
     def test_mrr_respects_k(self) -> None:
-        assert mrr([[0, 0, 1]], k=2) == 0.0
+        assert mrr([[0, 0, 1]], k=2, relevance_threshold=1.0) == 0.0
 
 
 class TestMAP:
     def test_map_averages_query_average_precision(self) -> None:
-        result = mean_average_precision([[1, 0, 1], [0, 1, 1], [0, 0, 0]])
+        result = mean_average_precision(
+            [[1, 0, 1], [0, 1, 1], [0, 0, 0]],
+            relevance_threshold=1.0,
+        )
         expected = [(1.0 + (2.0 / 3.0)) / 2.0, ((1.0 / 2.0) + (2.0 / 3.0)) / 2.0, 0.0]
         assert abs(result - (sum(expected) / 3.0)) < 1e-6
 
     def test_map_respects_k(self) -> None:
-        assert mean_average_precision([[1, 0, 1]], k=2) == 1.0
+        assert mean_average_precision([[1, 0, 1]], k=2, relevance_threshold=1.0) == 1.0
 
     def test_accuracy_empty_lists(self) -> None:
         """Accuracy should be 0.0 for empty lists."""

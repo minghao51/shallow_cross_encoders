@@ -12,6 +12,11 @@ from dataclasses import dataclass, field
 import numpy as np
 
 
+def is_relevant(score: float, threshold: float = 2.0) -> bool:
+    """Return whether a graded relevance score is considered relevant."""
+    return score >= threshold
+
+
 def dcg_at_k(relevances: list[float], k: int) -> float:
     """Compute Discounted Cumulative Gain at k.
 
@@ -92,7 +97,11 @@ def accuracy(y_true: list[int], y_pred: list[int]) -> float:
     return float(sum(int(a == b) for a, b in compared)) / len(compared)
 
 
-def mrr(relevance_scores: list[list[float]], k: int | None = None) -> float:
+def mrr(
+    relevance_scores: list[list[float]],
+    k: int | None = None,
+    relevance_threshold: float = 2.0,
+) -> float:
     """Mean Reciprocal Rank across queries.
 
     Args:
@@ -111,7 +120,7 @@ def mrr(relevance_scores: list[list[float]], k: int | None = None) -> float:
         if k is not None:
             scores = scores[:k]
         for idx, score in enumerate(scores, start=1):
-            if score > 0:
+            if is_relevant(score, threshold=relevance_threshold):
                 reciprocal_ranks.append(1.0 / idx)
                 break
         else:
@@ -120,7 +129,11 @@ def mrr(relevance_scores: list[list[float]], k: int | None = None) -> float:
     return float(sum(reciprocal_ranks) / len(reciprocal_ranks)) if reciprocal_ranks else 0.0
 
 
-def mean_average_precision(relevance_scores: list[list[float]], k: int | None = None) -> float:
+def mean_average_precision(
+    relevance_scores: list[list[float]],
+    k: int | None = None,
+    relevance_threshold: float = 2.0,
+) -> float:
     """Mean Average Precision across queries.
 
     Args:
@@ -141,7 +154,7 @@ def mean_average_precision(relevance_scores: list[list[float]], k: int | None = 
         precisions: list[float] = []
         relevant_count = 0
         for idx, score in enumerate(scores, start=1):
-            if score > 0:
+            if is_relevant(score, threshold=relevance_threshold):
                 relevant_count += 1
                 precisions.append(relevant_count / idx)
         if precisions:

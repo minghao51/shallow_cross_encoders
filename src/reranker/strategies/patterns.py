@@ -219,4 +219,9 @@ STRUCTURED_PATTERN_HINTS: tuple[tuple[str, ...], ...] = (
     (" for ",),
     ("with ", " of ", ","),
     (":", "=", " - "),
+    (" characterized ",),
+    (" according to ",),
+    (" demonstrates ",),
+    (" features ", " includes ", " contains "),
+    (" makes ", " defines ", " characterizes ", " distinguishes "),
 )

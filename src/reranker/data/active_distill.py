@@ -143,7 +143,8 @@ class ActiveDistiller:
                     prob = model_predict_fn(query, doc)
                     if self.uncertainty_low <= prob <= self.uncertainty_high:
                         candidates.append((query, doc))
-                except Exception:
+                except (TypeError, ValueError) as exc:
+                    logger.warning("Skipping pair after model predict error: %s", exc)
                     continue
         return candidates
 
@@ -222,8 +223,14 @@ class ActiveDistiller:
                 self._seen_pairs.add(pair)
                 if cost_log_path is not None:
                     append_jsonl(cost_log_path, record)
-            except Exception as e:
-                logger.warning("Teacher labeling failed: %s", e)
+            except (
+                RuntimeError,
+                ValueError,
+                KeyError,
+                TypeError,
+                OSError,
+            ) as exc:
+                logger.warning("Teacher labeling failed for query hash=%s: %s", hash(query), exc)
                 continue
         return results
 

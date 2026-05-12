@@ -1,0 +1,273 @@
+---
+title: "Feature Engineering Deep Dive"
+description: "Dissect the 9 features that power the Hybrid Fusion Reranker — visualize each one, run ablations, and see which features matter most."
+date: today
+format:
+  html:
+    self-contained: true
+    embed-resources: true
+    code-fold: true
+    code-tools: true
+---
+
+The **Hybrid Fusion Reranker** is the most accurate strategy in this codebase. It works by extracting 9 engineered features per query-document pair, then feeding them to a gradient-boosted model (XGBoost or sklearn GBDT).
+
+This notebook **dissects each feature** and answers: *which features actually matter?*
+
+## 1. Setup & Training
+
+```{python}
+#| label: setup
+#| cache: true
+import numpy as np
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+from reranker.embedder import Embedder
+from reranker.strategies.hybrid import HybridFusionReranker, BASE_FEATURES
+from reranker.lexical import BM25Engine
+
+embedder = Embedder()
+
+queries = [
+    "python dataclass default factory",
+    "machine learning model deployment",
+    "fastapi async request validation",
+]
+docs = [
+    "In Python, a dataclass field can use default_factory to generate mutable default values like lists or dictionaries.",
+    "Dataclasses in Python 3.7+ provide a decorator that automatically generates __init__, __repr__, and __eq__ methods.",
+    "The default_factory parameter in field() is called when a default value is needed for a new instance.",
+    "Use dataclasses.field(default_factory=list) to create a new list for each instance rather than sharing one.",
+    "FastAPI relies heavily on Python dataclasses and Pydantic models for request validation.",
+    "ML model deployment can use FastAPI to serve predictions via REST endpoints with automatic OpenAPI docs.",
+    "XGBoost and LightGBM models can be serialized and served through ONNX Runtime for production inference.",
+    "Containerizing ML models with Docker ensures reproducible deployment across environments.",
+]
+pairs = [
+    (queries[0], docs[0], 1.0), (queries[0], docs[1], 0.6), (queries[0], docs[2], 0.9),
+    (queries[0], docs[3], 0.8), (queries[0], docs[4], 0.3),
+    (queries[1], docs[5], 0.9), (queries[1], docs[6], 0.7), (queries[1], docs[7], 0.5),
+    (queries[2], docs[4], 1.0), (queries[2], docs[5], 0.8),
+]
+
+reranker = HybridFusionReranker(embedder=embedder)
+reranker.fit_pointwise(
+    [p[0] for p in pairs], [p[1] for p in pairs],
+    [float(p[2]) for p in pairs], use_regression=True,
+)
+print(f"Fitted: {reranker.is_fitted}")
+print(f"Features ({len(reranker.feature_names_)}): {reranker.feature_names_}")
+```
+
+## 2. The 9 Base Features
+
+The Hybrid Fusion Reranker extracts these features for each (query, doc) pair:
+
+| Feature | Signal | Source |
+|---------|--------|--------|
+| `sem_score` | Semantic similarity (cosine) | Embedder |
+| `bm25_score` | Lexical relevance | BM25Engine |
+| `vec_norm_diff` | Embedding distance | Embedder |
+| `token_overlap_ratio` | Jaccard overlap of tokens | Tokenizer |
+| `query_coverage_ratio` | Fraction of query tokens in doc | Tokenizer |
+| `shared_token_char_sum` | Total chars in shared tokens | Tokenizer |
+| `exact_phrase_match` | Binary: query substring in doc? | String match |
+| `query_len` | Number of query tokens | Tokenizer |
+| `doc_len` | Number of doc tokens | Tokenizer |
+
+### Feature Matrix Visualization
+
+```{python}
+#| label: feature-matrix
+test_query = queries[0]
+test_docs = docs[:6]
+
+X = reranker._build_features(test_query, test_docs)
+feature_names = reranker.feature_names_
+
+fig, ax = plt.subplots(figsize=(10, 5))
+im = ax.imshow(X.T, cmap="RdBu_r", aspect="auto", interpolation="nearest")
+ax.set_yticks(range(len(feature_names)))
+ax.set_yticklabels(feature_names, fontsize=9)
+ax.set_xticks(range(len(test_docs)))
+ax.set_xticklabels([f"Doc {i+1}" for i in range(len(test_docs))], fontsize=9)
+ax.set_title(f"Feature Matrix: '{test_query}'")
+ax.set_xlabel("Document")
+fig.colorbar(im, ax=ax, shrink=0.6, label="Feature value")
+fig.tight_layout()
+plt.show()
+```
+
+**Reading the heatmap:** Red = high, Blue = low. Doc 1 should have high `sem_score`, `bm25_score`, `token_overlap_ratio`, and `exact_phrase_match` since it directly discusses `default_factory`.
+
+## 3. Per-Feature Breakdown
+
+### Semantic Score vs BM25 Score
+
+These are the two most important signals. Let's see how they differ:
+
+```{python}
+#| label: sem-vs-bm25
+#| cache: true
+fig, axes = plt.subplots(1, 2, figsize=(12, 4))
+
+for ax_idx, (query, color) in enumerate([(queries[0], "#4A90D9"), (queries[1], "#E8575A")]):
+    ax = axes[ax_idx]
+    X_q = reranker._build_features(query, docs)
+    sem_idx = reranker._feature_registry["sem_score"]
+    bm25_idx = reranker._feature_registry["bm25_score"]
+    sem_vals = X_q[:, sem_idx]
+    bm25_vals = X_q[:, bm25_idx]
+
+    ax.scatter(bm25_vals, sem_vals, c=color, s=80, edgecolors="white", zorder=5)
+    for i in range(len(docs)):
+        ax.annotate(f"D{i+1}", (bm25_vals[i], sem_vals[i]),
+                    textcoords="offset points", xytext=(5, 5), fontsize=7)
+    ax.set_xlabel("BM25 Score")
+    ax.set_ylabel("Semantic Score")
+    ax.set_title(f"Semantic vs BM25\n'{query[:35]}...'")
+    ax.grid(True, alpha=0.3)
+
+fig.tight_layout()
+plt.show()
+```
+
+**Key insight:** Semantic and BM25 scores capture *different* signals. A document can have high semantic similarity but low BM25 (paraphrases), or vice versa (keyword match without meaning). The Hybrid model learns to combine them.
+
+### Token Overlap Features
+
+```{python}
+#| label: overlap-features
+overlap_features = ["token_overlap_ratio", "query_coverage_ratio", "shared_token_char_sum"]
+fig, ax = plt.subplots(figsize=(9, 5))
+X_q = reranker._build_features(queries[0], docs)
+x = np.arange(len(docs))
+w = 0.25
+for i, feat in enumerate(overlap_features):
+    idx = reranker._feature_registry[feat]
+    vals = X_q[:, idx]
+    if feat == "shared_token_char_sum":
+        vals = vals / max(vals.max(), 1)
+    ax.bar(x + i * w, vals, w, label=feat)
+
+ax.set_xticks(x + w)
+ax.set_xticklabels([f"Doc {i+1}" for i in range(len(docs))], fontsize=8)
+ax.set_ylabel("Normalized Value")
+ax.set_title(f"Token Overlap Features — '{queries[0]}'")
+ax.legend(fontsize=8)
+ax.grid(True, alpha=0.3, axis="y")
+fig.tight_layout()
+plt.show()
+```
+
+## 4. Feature Importance (Ablation)
+
+Which features does the GBDT actually rely on? We'll measure via **permutation importance** — shuffle one feature, measure the score drop.
+
+```{python}
+#| label: feature-importance
+#| cache: true
+test_q = queries[0]
+test_d = [p[1] for p in pairs]
+test_y = np.array([float(p[2]) for p in pairs])
+
+X_test = np.vstack([reranker._build_features(p[0], [p[1]])[0] for p in pairs])
+baseline_preds = reranker.model.predict(X_test)
+baseline_mse = np.mean((baseline_preds - test_y) ** 2)
+
+importances = {}
+rng = np.random.RandomState(42)
+for fname in feature_names:
+    idx = reranker._feature_registry[fname]
+    X_permuted = X_test.copy()
+    rng.shuffle(X_permuted[:, idx])
+    perm_preds = reranker.model.predict(X_permuted)
+    perm_mse = np.mean((perm_preds - test_y) ** 2)
+    importances[fname] = perm_mse - baseline_mse
+
+sorted_imp = sorted(importances.items(), key=lambda x: x[1], reverse=True)
+fig, ax = plt.subplots(figsize=(8, 5))
+names_fi = [s[0] for s in sorted_imp]
+values_fi = [s[1] for s in sorted_imp]
+colors_fi = ["#E8575A" if v > 0 else "#4A90D9" for v in values_fi]
+ax.barh(names_fi, values_fi, color=colors_fi, edgecolor="white")
+ax.set_xlabel("MSE Increase (higher = more important)")
+ax.set_title("Permutation Feature Importance")
+ax.axvline(0, color="black", linewidth=0.5)
+ax.grid(True, alpha=0.3, axis="x")
+fig.tight_layout()
+plt.show()
+```
+
+**Red bars** = shuffling this feature hurt performance (important). **Blue bars** = shuffling actually *helped* (the model may be overfitting to that feature).
+
+## 5. Feature Correlation Matrix
+
+```{python}
+#| label: correlation-matrix
+X_all = np.vstack([
+    reranker._build_features(p[0], [p[1]])[0] for p in pairs
+])
+corr = np.corrcoef(X_all.T)
+
+fig, ax = plt.subplots(figsize=(8, 7))
+im = ax.imshow(corr, cmap="RdBu_r", vmin=-1, vmax=1, aspect="auto")
+ax.set_xticks(range(len(feature_names)))
+ax.set_yticks(range(len(feature_names)))
+ax.set_xticklabels(feature_names, fontsize=7, rotation=45, ha="right")
+ax.set_yticklabels(feature_names, fontsize=7)
+ax.set_title("Feature Correlation Matrix")
+for i in range(len(feature_names)):
+    for j in range(len(feature_names)):
+        ax.text(j, i, f"{corr[i, j]:.2f}", ha="center", va="center", fontsize=6,
+                color="white" if abs(corr[i, j]) > 0.6 else "black")
+fig.colorbar(im, ax=ax, shrink=0.8)
+fig.tight_layout()
+plt.show()
+```
+
+**Highly correlated features** (e.g., `token_overlap_ratio` and `query_coverage_ratio`) carry redundant signal — the GBDT handles this well, but it's useful to know for manual analysis.
+
+## 6. Single-Feature Ablation: Impact on Ranking
+
+```{python}
+#| label: single-feature-ablation
+base_results = reranker.rerank(test_query, test_docs)
+base_order = [r.doc for r in base_results]
+
+ablation_data = []
+for fname in feature_names:
+    idx = reranker._feature_registry[fname]
+    X_feat = reranker._build_features(test_query, test_docs).copy()
+    X_feat[:, idx] = 0.0
+
+    weighting_mode = reranker.model_backend
+    scores = reranker.model.predict(X_feat)
+    ranked = sorted(zip(test_docs, scores), key=lambda x: float(x[1]), reverse=True)
+    ablated_order = [d for d, _ in ranked]
+
+    kendall_dist = sum(1 for i in range(len(base_order)) for j in range(i+1, len(base_order))
+                       if (base_order.index(base_order[i]) < base_order.index(base_order[j])) !=
+                          (ablated_order.index(ablated_order[i]) < ablated_order.index(ablated_order[j])))
+    max_pairs = len(base_order) * (len(base_order) - 1) / 2
+    ablation_data.append((fname, kendall_dist / max_pairs if max_pairs > 0 else 0))
+
+fig, ax = plt.subplots(figsize=(8, 4))
+sorted_abl = sorted(ablation_data, key=lambda x: x[1], reverse=True)
+ax.barh([a[0] for a in sorted_abl], [a[1] for a in sorted_abl],
+        color="#9B59B6", edgecolor="white")
+ax.set_xlabel("Kendall Tau Distance (0 = same ranking, 1 = fully inverted)")
+ax.set_title("Ranking Disruption When Feature is Zeroed")
+ax.grid(True, alpha=0.3, axis="x")
+fig.tight_layout()
+plt.show()
+```
+
+## 7. Key Takeaways
+
+- **9 features** span three signal types: semantic (embedder), lexical (BM25), and structural (token overlap, phrase match, lengths)
+- **Semantic + BM25** are complementary — one catches paraphrases, the other catches exact terms
+- The GBDT learns **non-linear combinations** that hand-tuned weights can't match
+- Correlated features (`token_overlap_ratio` / `query_coverage_ratio`) are handled natively by tree-based models
+- Use `HeuristicAdapter` protocol to inject custom domain-specific features without modifying the strategy code

@@ -1,7 +1,9 @@
 # ruff: noqa: B008
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 import typer
 
@@ -18,33 +20,58 @@ _STRATEGIES = {
 }
 
 
-@train_app.command("hybrid")
-def train_hybrid(
-    dataset: Path | None = typer.Option(None, "--dataset", help="Path to data root directory."),
-    output: Path | None = typer.Option(None, "--output", help="Path to save trained model."),
-    config: Path | None = typer.Option(None, "--config", help="YAML config override."),
-) -> None:
+def _load_rows(
+    config: Path | None,
+    dataset: Path | None,
+    *,
+    required_file: str,
+) -> tuple[Any, Path, list[dict[str, Any]]]:
     from reranker.config import get_settings
-    from reranker.data.splits import partition_rows
     from reranker.data.synth import SyntheticDataGenerator
-    from reranker.heuristics.keyword import KeywordMatchAdapter
-    from reranker.strategies.hybrid import HybridFusionReranker
     from reranker.utils import read_jsonl
 
     _apply_config(config)
     settings = get_settings()
     data_root = dataset or Path(settings.paths.raw_data_dir)
     data_root.mkdir(parents=True, exist_ok=True)
-    if not (data_root / "pairs.jsonl").exists():
+    if not (data_root / required_file).exists():
         SyntheticDataGenerator().materialize_all(data_root)
+    rows = read_jsonl(data_root / required_file)
+    return settings, data_root, rows
 
-    rows = read_jsonl(data_root / "pairs.jsonl")
+
+def _partition_train_rows(
+    settings: Any,
+    rows: list[dict[str, Any]],
+    *,
+    key_fn: Callable[[dict[str, Any]], str],
+    fallback_needed: Callable[[list[dict[str, Any]]], bool],
+) -> list[dict[str, Any]]:
+    from reranker.data.splits import partition_rows
+
     ratios = (settings.eval.train_ratio, settings.eval.validation_ratio, settings.eval.test_ratio)
-    train_rows = partition_rows(
-        rows, key_fn=lambda row: str(row["query"]), split="train", ratios=ratios
+    train_rows = partition_rows(rows, key_fn=key_fn, split="train", ratios=ratios)
+    if fallback_needed(train_rows):
+        return rows
+    return train_rows
+
+
+@train_app.command("hybrid")
+def train_hybrid(
+    dataset: Path | None = typer.Option(None, "--dataset", help="Path to data root directory."),
+    output: Path | None = typer.Option(None, "--output", help="Path to save trained model."),
+    config: Path | None = typer.Option(None, "--config", help="YAML config override."),
+) -> None:
+    from reranker.heuristics.keyword import KeywordMatchAdapter
+    from reranker.strategies.hybrid import HybridFusionReranker
+
+    settings, data_root, rows = _load_rows(config, dataset, required_file="pairs.jsonl")
+    train_rows = _partition_train_rows(
+        settings,
+        rows,
+        key_fn=lambda row: str(row["query"]),
+        fallback_needed=lambda items: len({1 if row["score"] >= 2 else 0 for row in items}) < 2,
     )
-    if len({1 if row["score"] >= 2 else 0 for row in train_rows}) < 2:
-        train_rows = rows
     queries = [row["query"] for row in train_rows]
     docs = [row["doc"] for row in train_rows]
     scores = [float(row.get("score", 0)) for row in train_rows]
@@ -62,26 +89,17 @@ def train_distilled(
     output: Path | None = typer.Option(None, "--output", help="Path to save trained model."),
     config: Path | None = typer.Option(None, "--config", help="YAML config override."),
 ) -> None:
-    from reranker.config import get_settings
-    from reranker.data.splits import partition_rows
-    from reranker.data.synth import SyntheticDataGenerator
     from reranker.strategies.distilled import DistilledPairwiseRanker
-    from reranker.utils import read_jsonl
 
-    _apply_config(config)
-    settings = get_settings()
-    data_root = dataset or Path(settings.paths.raw_data_dir)
-    data_root.mkdir(parents=True, exist_ok=True)
-    if not (data_root / "preferences.jsonl").exists():
-        SyntheticDataGenerator().materialize_all(data_root)
-
-    rows = read_jsonl(data_root / "preferences.jsonl")
-    ratios = (settings.eval.train_ratio, settings.eval.validation_ratio, settings.eval.test_ratio)
-    train_rows = partition_rows(
-        rows, key_fn=lambda row: str(row["query"]), split="train", ratios=ratios
+    settings, data_root, rows = _load_rows(config, dataset, required_file="preferences.jsonl")
+    train_rows = _partition_train_rows(
+        settings,
+        rows,
+        key_fn=lambda row: str(row["query"]),
+        fallback_needed=lambda items: (
+            len({1 if row["preferred"] == "A" else 0 for row in items}) < 2
+        ),
     )
-    if len({1 if row["preferred"] == "A" else 0 for row in train_rows}) < 2:
-        train_rows = rows
     labels = [1 if row["preferred"] == "A" else 0 for row in train_rows]
     ranker = DistilledPairwiseRanker().fit(
         queries=[row["query"] for row in train_rows],
@@ -102,26 +120,15 @@ def train_binary(
     output: Path | None = typer.Option(None, "--output", help="Path to save trained model."),
     config: Path | None = typer.Option(None, "--config", help="YAML config override."),
 ) -> None:
-    from reranker.config import get_settings
-    from reranker.data.splits import partition_rows
-    from reranker.data.synth import SyntheticDataGenerator
     from reranker.strategies.binary_reranker import BinaryQuantizedReranker
-    from reranker.utils import read_jsonl
 
-    _apply_config(config)
-    settings = get_settings()
-    data_root = dataset or Path(settings.paths.raw_data_dir)
-    data_root.mkdir(parents=True, exist_ok=True)
-    if not (data_root / "pairs.jsonl").exists():
-        SyntheticDataGenerator().materialize_all(data_root)
-
-    rows = read_jsonl(data_root / "pairs.jsonl")
-    ratios = (settings.eval.train_ratio, settings.eval.validation_ratio, settings.eval.test_ratio)
-    train_rows = partition_rows(
-        rows, key_fn=lambda row: str(row["query"]), split="train", ratios=ratios
+    settings, data_root, rows = _load_rows(config, dataset, required_file="pairs.jsonl")
+    train_rows = _partition_train_rows(
+        settings,
+        rows,
+        key_fn=lambda row: str(row["query"]),
+        fallback_needed=lambda items: len({1 if row["score"] >= 2 else 0 for row in items}) < 2,
     )
-    if len({1 if row["score"] >= 2 else 0 for row in train_rows}) < 2:
-        train_rows = rows
     labels = [1 if row["score"] >= 2 else 0 for row in train_rows]
     reranker = BinaryQuantizedReranker().fit(
         queries=[row["query"] for row in train_rows],
@@ -141,26 +148,15 @@ def train_late_interaction(
     output: Path | None = typer.Option(None, "--output", help="Path to save trained model."),
     config: Path | None = typer.Option(None, "--config", help="YAML config override."),
 ) -> None:
-    from reranker.config import get_settings
-    from reranker.data.splits import partition_rows
-    from reranker.data.synth import SyntheticDataGenerator
     from reranker.strategies.late_interaction import StaticColBERTReranker
-    from reranker.utils import read_jsonl
 
-    _apply_config(config)
-    settings = get_settings()
-    data_root = dataset or Path(settings.paths.raw_data_dir)
-    data_root.mkdir(parents=True, exist_ok=True)
-    if not (data_root / "pairs.jsonl").exists():
-        SyntheticDataGenerator().materialize_all(data_root)
-
-    rows = read_jsonl(data_root / "pairs.jsonl")
-    ratios = (settings.eval.train_ratio, settings.eval.validation_ratio, settings.eval.test_ratio)
-    train_rows = partition_rows(
-        rows, key_fn=lambda row: str(row["query"]), split="train", ratios=ratios
+    settings, data_root, rows = _load_rows(config, dataset, required_file="pairs.jsonl")
+    train_rows = _partition_train_rows(
+        settings,
+        rows,
+        key_fn=lambda row: str(row["query"]),
+        fallback_needed=lambda items: len({1 if row["score"] >= 2 else 0 for row in items}) < 2,
     )
-    if len({1 if row["score"] >= 2 else 0 for row in train_rows}) < 2:
-        train_rows = rows
 
     unique_docs = list({row["doc"] for row in train_rows})
     reranker = StaticColBERTReranker()
@@ -181,28 +177,17 @@ def train_cascade(
         0.6, "--threshold", help="Cascade confidence threshold."
     ),
 ) -> None:
-    from reranker.config import get_settings
-    from reranker.data.splits import partition_rows
-    from reranker.data.synth import SyntheticDataGenerator
     from reranker.heuristics.keyword import KeywordMatchAdapter
     from reranker.strategies.cascade import CascadeConfig, CascadeReranker
     from reranker.strategies.hybrid import HybridFusionReranker
-    from reranker.utils import read_jsonl
 
-    _apply_config(config)
-    settings = get_settings()
-    data_root = dataset or Path(settings.paths.raw_data_dir)
-    data_root.mkdir(parents=True, exist_ok=True)
-    if not (data_root / "pairs.jsonl").exists():
-        SyntheticDataGenerator().materialize_all(data_root)
-
-    rows = read_jsonl(data_root / "pairs.jsonl")
-    ratios = (settings.eval.train_ratio, settings.eval.validation_ratio, settings.eval.test_ratio)
-    train_rows = partition_rows(
-        rows, key_fn=lambda row: str(row["query"]), split="train", ratios=ratios
+    settings, data_root, rows = _load_rows(config, dataset, required_file="pairs.jsonl")
+    train_rows = _partition_train_rows(
+        settings,
+        rows,
+        key_fn=lambda row: str(row["query"]),
+        fallback_needed=lambda items: len({1 if row["score"] >= 2 else 0 for row in items}) < 2,
     )
-    if len({1 if row["score"] >= 2 else 0 for row in train_rows}) < 2:
-        train_rows = rows
     queries = [row["query"] for row in train_rows]
     docs = [row["doc"] for row in train_rows]
     scores = [float(row.get("score", 0)) for row in train_rows]
@@ -244,27 +229,16 @@ def train_meta_router(
     output: Path | None = typer.Option(None, "--output", help="Path to save trained model."),
     config: Path | None = typer.Option(None, "--config", help="YAML config override."),
 ) -> None:
-    from reranker.config import get_settings
-    from reranker.data.splits import partition_rows
-    from reranker.data.synth import SyntheticDataGenerator
     from reranker.persistence import save_safe
     from reranker.strategies.meta_router import MetaRouter
-    from reranker.utils import read_jsonl
 
-    _apply_config(config)
-    settings = get_settings()
-    data_root = dataset or Path(settings.paths.raw_data_dir)
-    data_root.mkdir(parents=True, exist_ok=True)
-    if not (data_root / "pairs.jsonl").exists():
-        SyntheticDataGenerator().materialize_all(data_root)
-
-    rows = read_jsonl(data_root / "pairs.jsonl")
-    ratios = (settings.eval.train_ratio, settings.eval.validation_ratio, settings.eval.test_ratio)
-    train_rows = partition_rows(
-        rows, key_fn=lambda row: str(row["query"]), split="train", ratios=ratios
+    settings, data_root, rows = _load_rows(config, dataset, required_file="pairs.jsonl")
+    train_rows = _partition_train_rows(
+        settings,
+        rows,
+        key_fn=lambda row: str(row["query"]),
+        fallback_needed=lambda items: len(items) < 2,
     )
-    if len(train_rows) < 2:
-        train_rows = rows
 
     queries = [str(row["query"]) for row in train_rows]
     categories = _auto_label_meta_router_categories(train_rows)
@@ -298,26 +272,15 @@ def train_splade(
     config: Path | None = typer.Option(None, "--config", help="YAML config override."),
     top_k_terms: int = typer.Option(128, "--top-k", help="Number of top terms per doc."),
 ) -> None:
-    from reranker.config import get_settings
-    from reranker.data.splits import partition_rows
-    from reranker.data.synth import SyntheticDataGenerator
     from reranker.strategies.splade import SPLADEReranker
-    from reranker.utils import read_jsonl
 
-    _apply_config(config)
-    settings = get_settings()
-    data_root = dataset or Path(settings.paths.raw_data_dir)
-    data_root.mkdir(parents=True, exist_ok=True)
-    if not (data_root / "pairs.jsonl").exists():
-        SyntheticDataGenerator().materialize_all(data_root)
-
-    rows = read_jsonl(data_root / "pairs.jsonl")
-    ratios = (settings.eval.train_ratio, settings.eval.validation_ratio, settings.eval.test_ratio)
-    train_rows = partition_rows(
-        rows, key_fn=lambda row: str(row["query"]), split="train", ratios=ratios
+    settings, _data_root, rows = _load_rows(config, dataset, required_file="pairs.jsonl")
+    train_rows = _partition_train_rows(
+        settings,
+        rows,
+        key_fn=lambda row: str(row["query"]),
+        fallback_needed=lambda items: not items,
     )
-    if not train_rows:
-        train_rows = rows
 
     unique_docs = list({row["doc"] for row in train_rows})
     splade = SPLADEReranker(top_k_terms=top_k_terms)

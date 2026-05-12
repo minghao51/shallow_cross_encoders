@@ -1,8 +1,4 @@
-"""Consistency engine that detects contradictions across document claims.
-
-Extracts structured claims from documents using pattern matching, then
-compares semantically aligned claims to find contradictions.
-"""
+"""Consistency engine that detects contradictions across document claims."""
 
 from __future__ import annotations
 
@@ -11,13 +7,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel, Field
 from scipy.spatial.distance import cdist
 
 from reranker.config import get_settings
 from reranker.embedder import Embedder
-from reranker.persistence import save_safe, try_load_safe_or_warn
-from reranker.protocols import RankedDoc
+from reranker.protocols import RankedDoc, SaveableReranker
 from reranker.strategies.patterns import (
     ENTITY_PATTERN,
     SENTENCE_SPLIT_PATTERN,
@@ -27,14 +21,16 @@ from reranker.strategies.patterns import (
 )
 
 
-class Claim(BaseModel):
-    entity: str = Field(description="The subject entity this claim is about")
-    attribute: str = Field(description="The attribute or field being stated")
-    value: Any = Field(description="The stated value")
+@dataclass(slots=True)
+class Claim:
+    entity: str
+    attribute: str
+    value: Any
     source_doc_id: str
 
 
-class ClaimSet(BaseModel):
+@dataclass(slots=True)
+class ClaimSet:
     claims: list[Claim]
 
 
@@ -45,8 +41,10 @@ class Contradiction:
     reason: str
 
 
-class ConsistencyEngine:
+class ConsistencyEngine(SaveableReranker):
     """Detect contradictions across semantically aligned claims."""
+
+    _artifact_type = "consistency_engine"
 
     _ENTITY_PATTERN = ENTITY_PATTERN
     _VALUE_PATTERN = VALUE_PATTERN
@@ -157,12 +155,7 @@ class ConsistencyEngine:
             return None
         if not entity or not attribute or not value:
             return None
-        return Claim(
-            entity=entity,
-            attribute=attribute,
-            value=value,
-            source_doc_id=source_doc_id,
-        )
+        return Claim(entity=entity, attribute=attribute, value=value, source_doc_id=source_doc_id)
 
     def _extract_structured_claims(self, doc: str, source_doc_id: str) -> list[Claim]:
         claims: list[Claim] = []
@@ -196,17 +189,6 @@ class ConsistencyEngine:
         return claims
 
     def extract_claims(self, docs: list[str], doc_ids: list[str] | None = None) -> list[ClaimSet]:
-        """Extract structured claims from documents.
-
-        Uses pattern matching to identify entity-attribute-value triples.
-
-        Args:
-            docs: List of document strings.
-            doc_ids: Optional list of document IDs; defaults to doc_0, doc_1, ...
-
-        Returns:
-            List of ClaimSets, one per document.
-        """
         doc_ids = doc_ids or [f"doc_{idx}" for idx in range(len(docs))]
         sets: list[ClaimSet] = []
         pattern = re.compile(
@@ -298,18 +280,6 @@ class ConsistencyEngine:
                 return canon_a != canon_b
 
     def check(self, claim_sets: list[ClaimSet]) -> list[Contradiction]:
-        """Check claim sets for contradictions.
-
-        Compares claims with the same entity and attribute (fast path)
-        and semantically similar attributes (fuzzy path), flagging
-        conflicting values.
-
-        Args:
-            claim_sets: ClaimSets to check for contradictions.
-
-        Returns:
-            List of Contradictions found.
-        """
         all_claims = [claim for claim_set in claim_sets for claim in claim_set.claims]
         if len(all_claims) < 2:
             return []
@@ -328,12 +298,10 @@ class ConsistencyEngine:
                 continue
             threshold = 1.0 - self.sim_threshold
 
-            # Phase 1: Group by exact attribute for fast path
             by_attr: dict[str, list[int]] = {}
             for idx, claim in enumerate(claims):
                 by_attr.setdefault(claim.attribute, []).append(idx)
 
-            # Fast path: compare within same-attribute groups
             for indices in by_attr.values():
                 for a_pos in range(len(indices)):
                     for b_pos in range(a_pos + 1, len(indices)):
@@ -346,13 +314,12 @@ class ConsistencyEngine:
                                     claim_a=claims[i],
                                     claim_b=claims[j],
                                     reason=(
-                                        "Structured claims report conflicting values for the same "
-                                        "entity and attribute."
+                                        "Structured claims report conflicting values "
+                                        "for the same entity and attribute."
                                     ),
                                 )
                             )
 
-            # Fuzzy path: compare across semantically similar attribute groups
             unique_attrs = list(by_attr.keys())
             if len(unique_attrs) > 1:
                 attr_vectors = self.embedder.encode(unique_attrs)
@@ -403,17 +370,6 @@ class ConsistencyEngine:
         return contradictions
 
     def rerank(self, query: str, docs: list[str]) -> list[RankedDoc]:
-        """Rerank documents by contradiction penalty.
-
-        Documents with more contradictions receive lower scores.
-
-        Args:
-            query: Search query (unused, kept for interface compatibility).
-            docs: Documents to rerank.
-
-        Returns:
-            Ranked list of RankedDoc.
-        """
         claim_sets = self.extract_claims(docs)
         contradictions = self.check(claim_sets)
         penalties = {f"doc_{idx}": 0.0 for idx in range(len(docs))}
@@ -438,16 +394,6 @@ class ConsistencyEngine:
         ]
 
     def diagnose_misses(self, contradictions_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        """Analyze which contradictions were missed and why.
-
-        Args:
-            contradictions_data: List of dicts with keys:
-                subject, doc_a, doc_b, is_contradiction, contradicted_field,
-                value_a, value_b.
-
-        Returns:
-            List of dicts with diagnosis info for each contradiction.
-        """
         results: list[dict[str, Any]] = []
         for item in contradictions_data:
             doc_a = str(item["doc_a"])
@@ -514,47 +460,21 @@ class ConsistencyEngine:
                 )
         return results
 
-    def save(self, path: str | Path) -> None:
-        """Persist the consistency engine to disk.
+    def _save_metadata(self) -> dict:
+        return {
+            "sim_threshold": self.sim_threshold,
+            "value_tolerance": self.value_tolerance,
+            "embedder_model_name": self.embedder.model_name,
+        }
 
-        Args:
-            path: Destination file path.
-        """
-        save_safe(
-            path,
-            artifact_type="consistency_engine",
-            metadata={
-                "sim_threshold": self.sim_threshold,
-                "value_tolerance": self.value_tolerance,
-                "embedder_model_name": self.embedder.model_name,
-            },
-            weights={},
-        )
+    def _save_weights(self) -> dict:
+        return {}
 
     @classmethod
     def load(cls, path: str | Path, embedder: Embedder | None = None) -> ConsistencyEngine:
-        """Load a saved ConsistencyEngine from disk.
-
-        Args:
-            path: Path to the saved artifact.
-            embedder: Optional embedder override.
-
-        Returns:
-            Loaded ConsistencyEngine instance.
-        """
-        payload = try_load_safe_or_warn(
-            path,
-            expected_type="consistency_engine",
-            legacy_loader=_legacy_load,
-        )
+        payload = cls._load_payload(path, expected_type=cls._artifact_type)
         return cls(
             sim_threshold=payload["sim_threshold"],
             value_tolerance=payload["value_tolerance"],
             embedder=embedder or Embedder(payload["embedder_model_name"]),
         )
-
-
-def _legacy_load(path: Path) -> dict[str, Any]:
-    from reranker.utils import load_pickle
-
-    return load_pickle(path)

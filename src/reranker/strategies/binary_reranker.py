@@ -16,26 +16,16 @@ from sklearn.linear_model import LogisticRegression
 
 from reranker.config import get_settings
 from reranker.embedder import Embedder
-from reranker.persistence import save_safe, try_load_safe_or_warn
-from reranker.protocols import RankedDoc
-from reranker.utils import (
-    load_pickle,
-)
+from reranker.protocols import RankedDoc, SaveableReranker
+from reranker.utils import rank_docs
 
 logger = structlog.get_logger(__name__)
 
 
-class BinaryQuantizedReranker:
-    """Fast reranker using binary quantization and Hamming distance.
+class BinaryQuantizedReranker(SaveableReranker):
+    """Fast reranker using binary quantization and Hamming distance."""
 
-    Stage 1: Quantize embeddings to bits, rank by Hamming distance (ultra-fast).
-    Stage 2: For top-k candidates, apply bilinear interaction score = q^T W d
-             where W is a learned diagonal weight matrix.
-
-    This provides parameterized similarity — instead of assuming all dimensions
-    are equally important, W learns which semantic dimensions are high-signal
-    for specific query types.
-    """
+    _artifact_type = "binary_reranker"
 
     def __init__(
         self,
@@ -101,8 +91,7 @@ class BinaryQuantizedReranker:
                 self._bilinear_weights = np.ones(self.embedder.dimension, dtype=np.float32)
         except Exception as exc:
             logger.warning(
-                "Bilinear model fit failed (%s). Falling back to uniform weights. "
-                "This usually means the training data has too few samples or no variance.",
+                "Bilinear model fit failed (%s). Falling back to uniform weights.",
                 exc,
                 exc_info=True,
             )
@@ -121,16 +110,6 @@ class BinaryQuantizedReranker:
         docs: list[str],
         labels: list[int],
     ) -> BinaryQuantizedReranker:
-        """Fit the reranker by encoding docs and learning bilinear weights.
-
-        Args:
-            queries: List of query strings.
-            docs: List of document strings.
-            labels: Relevance labels for each (query, doc) pair.
-
-        Returns:
-            Self, fitted.
-        """
         if not queries or not docs:
             self._doc_vectors = np.zeros((0, self.embedder.dimension), dtype=np.float32)
             self._doc_bits = np.zeros((0, self.embedder.dimension), dtype=np.uint8)
@@ -166,18 +145,6 @@ class BinaryQuantizedReranker:
         return self
 
     def score(self, query: str, docs: list[str]) -> np.ndarray:
-        """Score documents using Hamming distance + bilinear re-scoring.
-
-        Args:
-            query: Search query.
-            docs: Documents to score.
-
-        Returns:
-            Array of relevance scores.
-
-        Raises:
-            RuntimeError: If the reranker has not been fitted.
-        """
         if not self.is_fitted:
             raise RuntimeError("BinaryQuantizedReranker must be fitted before scoring.")
         if not docs:
@@ -224,58 +191,27 @@ class BinaryQuantizedReranker:
         return final_scores
 
     def rerank(self, query: str, docs: list[str]) -> list[RankedDoc]:
-        """Rerank documents by binary quantised scoring.
-
-        Args:
-            query: Search query.
-            docs: Documents to rerank.
-
-        Returns:
-            Ranked list of RankedDoc.
-
-        Raises:
-            RuntimeError: If the reranker has not been fitted.
-        """
         if not docs:
             return []
-
         if not self.is_fitted:
             raise RuntimeError("BinaryQuantizedReranker is not fitted. Call fit() or load() first.")
-
         scores = self.score(query, docs)
-        ranked = sorted(
-            zip(docs, scores, strict=False),
-            key=lambda item: float(item[1]),
-            reverse=True,
-        )
-        return [
-            RankedDoc(
-                doc=doc, score=float(score), rank=rank, metadata={"strategy": "binary_reranker"}
-            )
-            for rank, (doc, score) in enumerate(ranked, start=1)
-        ]
+        return rank_docs(docs, scores, "binary_reranker")
 
-    def save(self, path: str | Path) -> None:
-        """Persist the binary reranker to disk.
+    def _save_metadata(self) -> dict:
+        return {
+            "embedder_model_name": self.embedder.model_name,
+            "hamming_top_k": self.hamming_top_k,
+            "bilinear_top_k": self.bilinear_top_k,
+        }
 
-        Args:
-            path: Destination file path.
-        """
-        save_safe(
-            path,
-            artifact_type="binary_reranker",
-            metadata={
-                "embedder_model_name": self.embedder.model_name,
-                "hamming_top_k": self.hamming_top_k,
-                "bilinear_top_k": self.bilinear_top_k,
-            },
-            weights={
-                "doc_vectors": self._doc_vectors,
-                "doc_bits": self._doc_bits,
-                "bilinear_weights": self._bilinear_weights,
-                "bilinear_model": self._bilinear_model,
-            },
-        )
+    def _save_weights(self) -> dict:
+        return {
+            "doc_vectors": self._doc_vectors,
+            "doc_bits": self._doc_bits,
+            "bilinear_weights": self._bilinear_weights,
+            "bilinear_model": self._bilinear_model,
+        }
 
     @classmethod
     def load(
@@ -283,22 +219,10 @@ class BinaryQuantizedReranker:
         path: str | Path,
         embedder: Embedder | None = None,
     ) -> BinaryQuantizedReranker:
-        """Load a saved BinaryQuantizedReranker from disk.
-
-        Args:
-            path: Path to the saved artifact.
-            embedder: Optional embedder override.
-
-        Returns:
-            Loaded BinaryQuantizedReranker instance.
-        """
-        payload = try_load_safe_or_warn(
-            path,
-            expected_type="binary_reranker",
-            legacy_loader=load_pickle,
-        )
+        payload = cls._load_payload(path, expected_type=cls._artifact_type)
         instance = cls(
-            embedder=embedder or Embedder(payload.get("embedder_model_name")),
+            embedder=embedder
+            or Embedder(str(payload.get("embedder_model_name", "minishlab/potion-base-32M"))),
             hamming_top_k=payload.get("hamming_top_k"),
             bilinear_top_k=payload.get("bilinear_top_k"),
         )

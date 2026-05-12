@@ -1,9 +1,19 @@
-# Feature Analysis Dashboard
+---
+hide:
+  - navigation
+  - toc
+---
 
-Explore the feature vectors that drive the Hybrid Fusion Reranker — semantic scores, BM25, token overlap, and more.
+# Pipeline & Composition Patterns
 
-<div style="margin: 0 -0.8rem">
-  <iframe src="/shallow_cross_encoders/notebooks/html/03_feature_analysis_dashboard.html"    style="width:100%; height:600px; border:1px solid var(--md-default-fg-color--lightest); border-radius:4px;"    loading="lazy"></iframe>
+Learn how to compose reranking strategies using PipelineReranker, CascadeReranker, and MultiReranker for production-grade workflows.
+
+<div class="iframe-container" id="iframe-wrapper-pipeline-patterns">
+  <div class="iframe-controls">
+    <button onclick="toggleNotebookFullscreen(this)" class="md-button">Expand</button>
+    <a href="/shallow_cross_encoders/notebooks/html/03_pipeline_patterns.html" target="_blank" class="md-button">Open in New Tab</a>
+  </div>
+  <iframe src="/shallow_cross_encoders/notebooks/html/03_pipeline_patterns.html" allowfullscreen loading="lazy"></iframe>
 </div>
 
 ## Run Locally

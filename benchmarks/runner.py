@@ -160,6 +160,8 @@ class BenchmarkRunner:
         self.bm25.fit(all_docs)
 
         profiling_data: dict[str, float] = {}
+        mem_result: dict[str, float] | None = None
+        cpu_result: dict[str, float] | None = None
         if getattr(self, "profiling_enabled", False):
             from reranker.eval.profiling import cpu_profile, memory_profile
 
@@ -167,8 +169,6 @@ class BenchmarkRunner:
             cpu_ctx = cpu_profile(strategy_name)
             mem_result = mem_ctx.__enter__()
             cpu_result = cpu_ctx.__enter__()
-        else:
-            mem_result = cpu_result = None
 
         for query in unique_queries:
             query_docs = [str(row["doc"]) for row in test_data if str(row["query"]) == query]
@@ -274,7 +274,7 @@ class BenchmarkRunner:
             "per_query_p@1": [float(x) for x in p1_scores],
         }
         result.update(profiling_data)
-        return result
+        return result  # type: ignore[return-value]
 
     def _evaluate_distilled(self, ranker: Any, test_data: list[dict[str, Any]]) -> dict[str, float]:
         n_eval = 50 if self.quick else 200
@@ -365,6 +365,7 @@ class BenchmarkRunner:
     def _measure_cold_start(self, strategy_name: str, **kwargs: Any) -> float:
         start = time.perf_counter()
         try:
+            r: Any = None
             if strategy_name == "hybrid":
                 r = HybridFusionReranker(
                     adapters=[KeywordMatchAdapter()],
@@ -417,21 +418,21 @@ class BenchmarkRunner:
                     categories=[i % 3 for i in range(20)],
                 )
             elif strategy_name == "flashrank_tiny":
-                from reranker.adapters.flashrank_wrapper import FlashRankWrapper
+                from reranker.strategies.flashrank_ensemble import FlashRankWrapper
 
                 r = FlashRankWrapper("ms-marco-TinyBERT-L-2-v2")
             elif strategy_name == "flashrank_mini":
-                from reranker.adapters.flashrank_wrapper import FlashRankWrapper
+                from reranker.strategies.flashrank_ensemble import FlashRankWrapper
 
                 r = FlashRankWrapper("ms-marco-MiniLM-L-12-v2")
             elif strategy_name == "st_tiny":
-                from reranker.adapters.sentence_transformer_wrapper import (
+                from reranker.strategies.flashrank_ensemble import (
                     SentenceTransformerWrapper,
                 )
 
                 r = SentenceTransformerWrapper("cross-encoder/ms-marco-TinyBERT-L-2-v2")
             elif strategy_name == "st_mini":
-                from reranker.adapters.sentence_transformer_wrapper import (
+                from reranker.strategies.flashrank_ensemble import (
                     SentenceTransformerWrapper,
                 )
 
@@ -808,7 +809,7 @@ class BenchmarkRunner:
 
         logger.info("\n--- External Baselines: FlashRank Tiny ---")
         try:
-            from reranker.adapters.flashrank_wrapper import FlashRankWrapper
+            from reranker.strategies.flashrank_ensemble import FlashRankWrapper
 
             fr_tiny = FlashRankWrapper("ms-marco-TinyBERT-L-2-v2")
             fr_tiny_metrics = self._evaluate_reranker(fr_tiny, self.test_pairs, "flashrank_tiny")
@@ -829,7 +830,7 @@ class BenchmarkRunner:
 
         logger.info("\n--- External Baselines: FlashRank Mini ---")
         try:
-            from reranker.adapters.flashrank_wrapper import FlashRankWrapper
+            from reranker.strategies.flashrank_ensemble import FlashRankWrapper
 
             fr_mini = FlashRankWrapper("ms-marco-MiniLM-L-12-v2")
             fr_mini_metrics = self._evaluate_reranker(fr_mini, self.test_pairs, "flashrank_mini")
@@ -850,7 +851,7 @@ class BenchmarkRunner:
 
         logger.info("\n--- External Baselines: ST TinyBERT Cross-Encoder ---")
         try:
-            from reranker.adapters.sentence_transformer_wrapper import SentenceTransformerWrapper
+            from reranker.strategies.flashrank_ensemble import SentenceTransformerWrapper
 
             st_tiny = SentenceTransformerWrapper("cross-encoder/ms-marco-TinyBERT-L-2-v2")
             st_tiny_metrics = self._evaluate_reranker(st_tiny, self.test_pairs, "st_tiny")
@@ -871,7 +872,7 @@ class BenchmarkRunner:
 
         logger.info("\n--- External Baselines: ST MiniLM Cross-Encoder ---")
         try:
-            from reranker.adapters.sentence_transformer_wrapper import SentenceTransformerWrapper
+            from reranker.strategies.flashrank_ensemble import SentenceTransformerWrapper
 
             st_mini = SentenceTransformerWrapper("cross-encoder/ms-marco-MiniLM-L-6-v2")
             st_mini_metrics = self._evaluate_reranker(st_mini, self.test_pairs, "st_mini")

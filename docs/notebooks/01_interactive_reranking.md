@@ -1,9 +1,19 @@
-# Interactive Reranking Explorer
+---
+hide:
+  - navigation
+  - toc
+---
 
-Compare Hybrid Fusion, Distilled Pairwise, and Shallow ColBERT reranking strategies side-by-side on custom queries and documents.
+# Architecture & Live Reranking
 
-<div style="margin: 0 -0.8rem">
-  <iframe src="/shallow_cross_encoders/notebooks/html/01_interactive_reranking.html"    style="width:100%; height:600px; border:1px solid var(--md-default-fg-color--lightest); border-radius:4px;"    loading="lazy"></iframe>
+Walk through the protocol layer, embedder internals, then compare all reranking strategies side-by-side on real data.
+
+<div class="iframe-container" id="iframe-wrapper-interactive-reranking">
+  <div class="iframe-controls">
+    <button onclick="toggleNotebookFullscreen(this)" class="md-button">Expand</button>
+    <a href="/shallow_cross_encoders/notebooks/html/01_interactive_reranking.html" target="_blank" class="md-button">Open in New Tab</a>
+  </div>
+  <iframe src="/shallow_cross_encoders/notebooks/html/01_interactive_reranking.html" allowfullscreen loading="lazy"></iframe>
 </div>
 
 ## Run Locally

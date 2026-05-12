@@ -243,6 +243,39 @@ def reciprocal_rank_fusion(
     return fused
 
 
+def rank_docs(
+    docs: list[str],
+    scores: np.ndarray,
+    strategy: str,
+    extra_metadata: dict[str, Any] | None = None,
+) -> list:
+    """Sort documents by score descending and return RankedDoc list.
+
+    Args:
+        docs: Document strings.
+        scores: Relevance scores (higher = better).
+        strategy: Strategy name for metadata.
+        extra_metadata: Additional metadata to merge into each RankedDoc.
+
+    Returns:
+        List of RankedDoc sorted by score descending.
+    """
+    from reranker.protocols import RankedDoc
+
+    ranked = sorted(
+        zip(docs, scores, strict=False),
+        key=lambda item: float(item[1]),
+        reverse=True,
+    )
+    metadata: dict[str, Any] = {"strategy": strategy}
+    if extra_metadata:
+        metadata.update(extra_metadata)
+    return [
+        RankedDoc(doc=doc, score=float(score), rank=rank, metadata=dict(metadata))
+        for rank, (doc, score) in enumerate(ranked, start=1)
+    ]
+
+
 def rrf_from_scores(score_arrays: list[np.ndarray], k: int = 60) -> np.ndarray:
     """Apply RRF fusion directly from score arrays.
 
@@ -255,24 +288,14 @@ def rrf_from_scores(score_arrays: list[np.ndarray], k: int = 60) -> np.ndarray:
         Fused scores array with same length as input score arrays.
     """
     if not score_arrays:
-        return np.array([])
+        return np.array([], dtype=np.float32)
 
     n_docs = len(score_arrays[0])
-    doc_ids = list(range(n_docs))
+    fused = np.zeros(n_docs, dtype=np.float32)
 
-    ranked_lists: list[list[tuple[int, float]]] = []
     for scores in score_arrays:
-        ranked = sorted(doc_ids, key=lambda i: scores[i], reverse=True)
-        ranked_lists.append([(doc_id, scores[doc_id]) for doc_id in ranked])
+        ranked_indices = np.argsort(-np.asarray(scores, dtype=np.float32))
+        for rank, idx in enumerate(ranked_indices):
+            fused[idx] += 1.0 / (k + rank + 1)
 
-    str_ranked_lists = [[(f"doc_{i}", s) for i, s in ranked_list] for ranked_list in ranked_lists]
-
-    fused = reciprocal_rank_fusion(str_ranked_lists, k=k)
-
-    fused_scores = np.zeros(n_docs, dtype=np.float32)
-    str_to_int = {f"doc_{i}": i for i in doc_ids}
-
-    for doc_id_str, score in fused:
-        fused_scores[str_to_int[doc_id_str]] = score
-
-    return fused_scores
+    return fused

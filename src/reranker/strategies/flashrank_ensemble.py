@@ -1,172 +1,171 @@
-"""FlashRank ensemble wrapper for multi-teacher distillation.
-
-This module provides a wrapper around multiple FlashRank models to serve
-as teachers for ensemble distillation. It averages predictions from multiple
-teacher models (e.g., TinyBERT and MiniLM) to generate soft labels for
-training a student model.
-"""
-
 from __future__ import annotations
 
 from pathlib import Path
 from typing import Any
 
 import numpy as np
+import structlog
 
-from reranker.persistence import save_safe, try_load_safe_or_warn
+from reranker.data.hard_negative_sampler import prepare_benchmark_data_with_hard_negatives
+from reranker.protocols import RankedDoc, SaveableReranker
+from reranker.utils import rank_docs
+
+logger = structlog.get_logger(__name__)
 
 
-class FlashRankEnsemble:
-    """Ensemble of FlashRank models for multi-teacher distillation.
+class FlashRankEnsemble(SaveableReranker):
+    """Ensemble of FlashRank models for multi-teacher distillation."""
 
-    This class wraps multiple FlashRank rerankers and averages their
-    predictions to generate ensemble scores. These ensemble scores serve
-    as teacher labels for distilling knowledge into a student model.
-
-    Example:
-        >>> ensemble = FlashRankEnsemble(
-        ...     models=["ms-marco-TinyBERT-L-2-v2", "ms-marco-MiniLM-L-12-v2"]
-        ... )
-        >>> scores = ensemble.score_batch("python tutorial", ["doc1", "doc2"])
-        >>> # Returns averaged scores from both teacher models
-    """
+    _artifact_type = "flashrank_ensemble"
 
     def __init__(self, models: list[str]) -> None:
-        """Initialize the ensemble with a list of FlashRank model names.
-
-        Args:
-            models: List of FlashRank model names to ensemble.
-                   Common choices: "ms-marco-TinyBERT-L-2-v2",
-                                  "ms-marco-MiniLM-L-12-v2"
-
-        Raises:
-            ValueError: If models list is empty.
-        """
         if not models:
             raise ValueError("models list cannot be empty")
-
         self.models = models
-        self._rankers: list[Any] | None = None  # Lazy loaded
+        self._rankers: list[Any] | None = None
 
     def _load_rankers(self) -> list[Any]:
-        """Lazy load FlashRank rankers.
-
-        Raises:
-            ImportError: If flashrank is not installed.
-        """
         if self._rankers is not None:
             return self._rankers
-
         try:
             from flashrank import Ranker
         except ImportError as e:
             raise ImportError(
                 "flashrank is not installed. Install with: uv sync --extra flashrank"
             ) from e
-
         self._rankers = [Ranker(model_name=model) for model in self.models]
         return self._rankers
 
     def score_batch(self, query: str, docs: list[str]) -> np.ndarray:
-        """Score documents using ensemble of FlashRank models.
-
-        Args:
-            query: The query text.
-            docs: List of document texts to score.
-
-        Returns:
-            np.ndarray: Averaged scores across all teacher models.
-                       Shape: (len(docs),), dtype: np.float32
-
-        Raises:
-            ImportError: If flashrank is not installed.
-        """
         if not docs:
             return np.zeros(0, dtype=np.float32)
-
-        # Lazy load rankers on first use
         rankers = self._load_rankers()
-
         from flashrank import RerankRequest
 
-        # Collect scores from all teacher models
         all_scores: list[np.ndarray] = []
-
         for ranker in rankers:
-            # Prepare passages for flashrank
             passages = [{"id": str(i), "text": doc} for i, doc in enumerate(docs)]
-
-            # Create rerank request
             request = RerankRequest(query=query, passages=passages)
-
-            # Get reranking results
             results = ranker.rerank(request)
-
-            # Map results back to original doc order
             scores = np.zeros(len(docs), dtype=np.float32)
             for result in results:
                 doc_idx = int(result["id"])
                 scores[doc_idx] = float(result.get("score", 0.0))
-
             all_scores.append(scores)
-
-        # Average scores across all teacher models
-        ensemble_scores = np.mean(all_scores, axis=0).astype(np.float32)
-
-        return ensemble_scores
+        return np.mean(all_scores, axis=0).astype(np.float32)
 
     def rerank(self, query: str, docs: list[str]) -> list[Any]:
-        """Rerank documents using the ensemble.
-
-        Args:
-            query: The query text.
-            docs: List of document texts to rerank.
-
-        Returns:
-            list[RankedDoc]: Documents sorted by relevance score (descending).
-        """
-        from reranker.protocols import RankedDoc
-
         if not docs:
             return []
-
         scores = self.score_batch(query, docs)
-        ranked = sorted(zip(docs, scores, strict=True), key=lambda x: x[1], reverse=True)
-        return [RankedDoc(doc=d, score=s, rank=i + 1) for i, (d, s) in enumerate(ranked)]
+        return rank_docs(docs, scores, "flashrank_ensemble")
 
-    def save(self, path: str | Path) -> None:
-        """Persist the ensemble configuration to disk.
+    def _save_metadata(self) -> dict:
+        return {"models": self.models}
 
-        Serialises the model name list so the ensemble can be reconstructed.
-        The actual FlashRank model weights are re-loaded lazily on next use.
-
-        Args:
-            path: Destination file path.
-        """
-        save_safe(
-            path,
-            artifact_type="flashrank_ensemble",
-            metadata={"models": self.models},
-            weights={},
-        )
+    def _save_weights(self) -> dict:
+        return {}
 
     @classmethod
-    def load(cls, path: str | Path) -> FlashRankEnsemble:
-        """Load a saved FlashRankEnsemble from disk.
-
-        Args:
-            path: Path to the saved artifact.
-
-        Returns:
-            Reconstructed FlashRankEnsemble instance.
-        """
-
-        def _no_legacy(p: Path) -> dict[str, Any]:
-            raise ValueError(f"No legacy loader for flashrank_ensemble: {p}")
-
-        payload = try_load_safe_or_warn(
-            path,
-            expected_type="flashrank_ensemble",
-            legacy_loader=_no_legacy,
-        )
+    def load(cls, path: str | Path, **kwargs: Any) -> FlashRankEnsemble:
+        payload = cls._load_payload(path, expected_type=cls._artifact_type)
         return cls(models=payload.get("models", []))
+
+
+class FlashRankWrapper(SaveableReranker):
+    """Single-model FlashRank wrapper for benchmarking baselines."""
+
+    _artifact_type = "flashrank_wrapper"
+
+    def __init__(self, model_name: str = "ms-marco-TinyBERT-L-2-v2"):
+        self.model_name = model_name
+        self._ranker: Any = None
+
+    def _load_ranker(self) -> Any:
+        if self._ranker is not None:
+            return self._ranker
+        try:
+            from flashrank import Ranker
+        except ImportError as e:
+            raise ImportError(
+                "flashrank is not installed. Install with: uv sync --extra flashrank"
+            ) from e
+        self._ranker = Ranker(model_name=self.model_name)
+        return self._ranker
+
+    def rerank(self, query: str, docs: list[str]) -> list[RankedDoc]:
+        if not docs:
+            return []
+        ranker = self._load_ranker()
+        from flashrank import RerankRequest
+
+        passages = [{"id": str(i), "text": doc} for i, doc in enumerate(docs)]
+        request = RerankRequest(query=query, passages=passages)
+        results = ranker.rerank(request)
+        return [
+            RankedDoc(
+                doc=docs[int(result["id"])],
+                score=float(result.get("score", 0.0)),
+                rank=rank,
+                metadata={"strategy": "flashrank"},
+            )
+            for rank, result in enumerate(results, start=1)
+        ]
+
+
+class SentenceTransformerWrapper(SaveableReranker):
+    """SentenceTransformer cross-encoder adapter for benchmarking."""
+
+    _artifact_type = "sentence_transformer_wrapper"
+
+    def __init__(self, model_name: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"):
+        self.model_name = model_name
+        self._model: Any = None
+
+    def _load_model(self) -> Any:
+        if self._model is not None:
+            return self._model
+        try:
+            from sentence_transformers import CrossEncoder
+        except ImportError as e:
+            raise ImportError(
+                "sentence-transformers not installed. "
+                "Install with: uv sync --extra sentence-transformers"
+            ) from e
+        self._model = CrossEncoder(self.model_name)
+        return self._model
+
+    def rerank(self, query: str, docs: list[str]) -> list[RankedDoc]:
+        if not docs:
+            return []
+        model = self._load_model()
+        pairs = [[query, doc] for doc in docs]
+        scores = model.predict(pairs)
+        indexed_scores = list(enumerate(scores))
+        indexed_scores.sort(key=lambda x: x[1], reverse=True)
+        return [
+            RankedDoc(
+                doc=docs[idx],
+                score=float(score),
+                rank=rank,
+                metadata={"strategy": "cross_encoder"},
+            )
+            for rank, (idx, score) in enumerate(indexed_scores, start=1)
+        ]
+
+
+class HardNegativeFlashRankEnsemble(FlashRankEnsemble):
+    """FlashRank ensemble that uses hard negative sampling for scoring."""
+
+    def score_batch(self, query: str, docs: list[str]) -> np.ndarray:
+        try:
+            hard_neg_data = prepare_benchmark_data_with_hard_negatives(
+                [{"query": query, "doc": d, "score": 0} for d in docs],  # type: ignore[arg-type]
+                top_k=min(20, len(docs)),  # type: ignore[call-arg]
+                rerank_fn=lambda q, d: super().score_batch(q, d),  # type: ignore[call-arg]
+            )
+            hard_scores = [row.get("hard_neg_score", 0.0) for row in hard_neg_data]
+            return np.asarray(hard_scores, dtype=np.float32)
+        except Exception as exc:
+            logger.warning("Hard negative scoring failed, falling back to standard. Error: %s", exc)
+            return super().score_batch(query, docs)

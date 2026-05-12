@@ -8,6 +8,7 @@ but emits a security warning.
 from __future__ import annotations
 
 import json
+import os
 import warnings
 from pathlib import Path
 from typing import Any
@@ -80,6 +81,7 @@ def try_load_safe_or_warn(
     *,
     expected_type: str,
     legacy_loader: Any,
+    allow_legacy_pickle: bool | None = None,
 ) -> Any:
     """Attempt safe load; fall back to legacy pickle with a security warning."""
     target = Path(path)
@@ -92,6 +94,19 @@ def try_load_safe_or_warn(
         payload.update(weights)
         return payload
 
+    if allow_legacy_pickle is None:
+        allow_legacy_pickle = os.getenv("RERANKER_ALLOW_LEGACY_PICKLE", "").strip().lower() in {
+            "1",
+            "true",
+            "yes",
+            "on",
+        }
+    if not allow_legacy_pickle:
+        raise RuntimeError(
+            "Legacy pickle loading is disabled by default. "
+            "Set RERANKER_ALLOW_LEGACY_PICKLE=1 to load legacy artifacts."
+        )
+
     warnings.warn(
         f"Loading legacy pickle artifact from {target}. "
         "Pickle files can execute arbitrary code on deserialization. "
@@ -100,3 +115,26 @@ def try_load_safe_or_warn(
         stacklevel=3,
     )
     return legacy_loader(target)
+
+
+def legacy_pickle_loader(artifact_type: str) -> Any:
+    """Return a legacy loader function for try_load_safe_or_warn.
+
+    This factory creates a loader that attempts to load pickle artifacts
+    with schema validation. Useful as the `legacy_loader` argument for
+    strategies that used pickle serialization before the safe format.
+
+    Args:
+        artifact_type: Expected artifact type for validation.
+    """
+
+    from reranker.utils import load_pickle, validate_artifact_metadata
+
+    def _load(path: Path) -> dict[str, Any]:
+        payload = load_pickle(path)
+        validate_artifact_metadata(
+            payload, expected_type=artifact_type, expected_formats={"pickle"}
+        )
+        return payload
+
+    return _load

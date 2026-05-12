@@ -162,12 +162,12 @@ def train_strategies(
 
     # FlashRank models (don't need training, just instantiate)
     if "flashrank_tiny" in strategies_config:
-        from reranker.adapters.flashrank_wrapper import FlashRankWrapper
+        from reranker.strategies.flashrank_ensemble import FlashRankWrapper
 
         strategies["flashrank_tiny"] = FlashRankWrapper("ms-marco-TinyBERT-L-2-v2")
 
     if "flashrank_mini" in strategies_config:
-        from reranker.adapters.flashrank_wrapper import FlashRankWrapper
+        from reranker.strategies.flashrank_ensemble import FlashRankWrapper
 
         strategies["flashrank_mini"] = FlashRankWrapper("ms-marco-MiniLM-L-12-v2")
 
