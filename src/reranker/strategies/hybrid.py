@@ -2,85 +2,40 @@
 
 from __future__ import annotations
 
-import warnings
-from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
-import joblib
 import numpy as np
-from sklearn.dummy import DummyClassifier
-from sklearn.ensemble import GradientBoostingClassifier, GradientBoostingRegressor
 
 from reranker.config import get_settings
-from reranker.deps import check_xgboost
 from reranker.embedder import Embedder
 from reranker.lexical import BM25Engine
-from reranker.protocols import HeuristicAdapter, RankedDoc, SaveableReranker
-from reranker.strategies.meta_router import MetaRouter
-from reranker.utils import (
-    build_artifact_metadata,
-    rank_docs,
-    read_json,
-    validate_artifact_metadata,
-    write_json,
+from reranker.protocols import (
+    EmbedderProtocol,
+    HeuristicAdapter,
+    NotFittedError,
+    RankedDoc,
+    SaveableReranker,
 )
+from reranker.strategies.hybrid_features import (
+    WeightingMode,
+    _is_xgboost_model,
+    _make_classifier,
+    _make_model,  # noqa: F401
+    _make_regressor,  # noqa: F401
+)
+from reranker.strategies.hybrid_persistence import HybridPersistence
+from reranker.strategies.hybrid_training import HybridTrainer
+from reranker.strategies.meta_router import MetaRouter
+from reranker.utils import rank_docs
 
-
-class WeightingMode(StrEnum):
-    STATIC = "static"
-    LEARNED = "learned"
-    META_ROUTER = "meta_router"
-
-
-def _is_xgboost_model(model: Any) -> bool:
-    return model.__class__.__module__.startswith("xgboost")
-
-
-def _make_model(regress: bool = False, random_state: int | None = None) -> Any:
-    settings = get_settings()
-    resolved_random_state = settings.hybrid.random_state if random_state is None else random_state
-    xgb_module, _ = check_xgboost()
-    if xgb_module is not None:
-        cls = xgb_module.XGBRegressor if regress else xgb_module.XGBClassifier
-        kwargs: dict[str, Any] = {
-            "n_estimators": settings.hybrid.xgb_n_estimators,
-            "max_depth": settings.hybrid.xgb_max_depth,
-            "learning_rate": settings.hybrid.xgb_learning_rate,
-            "subsample": settings.hybrid.xgb_subsample,
-            "colsample_bytree": settings.hybrid.xgb_colsample_bytree,
-            "random_state": resolved_random_state,
-        }
-        if regress:
-            kwargs["objective"] = "reg:squarederror"
-        else:
-            kwargs["eval_metric"] = "logloss"
-        return cls(**kwargs)
-    return (
-        GradientBoostingRegressor(random_state=resolved_random_state)
-        if regress
-        else GradientBoostingClassifier(random_state=resolved_random_state)
-    )
-
-
-def _make_classifier(random_state: int | None = None) -> Any:
-    return _make_model(regress=False, random_state=random_state)
-
-
-def _make_regressor(random_state: int | None = None) -> Any:
-    return _make_model(regress=True, random_state=random_state)
-
-
-BASE_FEATURES = [
-    "sem_score",
-    "bm25_score",
-    "vec_norm_diff",
-    "token_overlap_ratio",
-    "query_coverage_ratio",
-    "shared_token_char_sum",
-    "exact_phrase_match",
-    "query_len",
-    "doc_len",
+__all__ = [
+    "HybridFusionReranker",
+    "WeightingMode",
+    "_is_xgboost_model",
+    "_make_classifier",
+    "_make_model",
+    "_make_regressor",
 ]
 
 
@@ -92,41 +47,36 @@ class HybridFusionReranker(SaveableReranker):
     def __init__(
         self,
         adapters: list[HeuristicAdapter] | None = None,
-        embedder: Embedder | None = None,
+        embedder: EmbedderProtocol | None = None,
         random_state: int | None = None,
     ) -> None:
         self.embedder = embedder or Embedder()
         self.adapters = adapters or []
         self.model = _make_classifier(random_state=random_state)
         self.model_backend = "xgboost" if _is_xgboost_model(self.model) else "sklearn"
-        self._feature_registry: dict[str, int] = {}
         self.is_fitted = False
         self._router: MetaRouter | None = None
 
+        from reranker.strategies.hybrid_features import HybridFeatureBuilder
+
+        self._feature_builder = HybridFeatureBuilder(self.embedder, self.adapters)
+        self._trainer = HybridTrainer(self)
+        self._persistence = HybridPersistence(self)
+
+    @property
+    def _feature_registry(self) -> dict[str, int]:
+        return self._feature_builder.feature_registry
+
+    @_feature_registry.setter
+    def _feature_registry(self, value: dict[str, int]) -> None:
+        self._feature_builder.feature_registry = value
+
     def _init_feature_registry(self, adapter_names: list[str] | None = None) -> None:
-        self._feature_registry = {name: idx for idx, name in enumerate(BASE_FEATURES)}
-        if adapter_names:
-            for name in adapter_names:
-                if name not in self._feature_registry:
-                    self._feature_registry[name] = len(self._feature_registry)
+        self._feature_builder.init_feature_registry(adapter_names)
 
-    def _get_feature_index(self, name: str) -> int:
-        if name not in self._feature_registry:
-            self._feature_registry[name] = len(self._feature_registry)
-        return self._feature_registry[name]
-
-    def _adapter_feature_names(self, query: str, doc: str) -> list[str]:
-        names: list[str] = []
-        for adapter in self.adapters:
-            names.extend(adapter.compute(query, doc).keys())
-        return names
-
-    def _register_adapter_feature_names(self, query: str, docs: list[str]) -> None:
-        if not self._feature_registry:
-            self._init_feature_registry()
-        for doc in docs:
-            for name in self._adapter_feature_names(query, doc):
-                self._get_feature_index(name)
+    @property
+    def feature_names_(self) -> list[str]:
+        return self._feature_builder.feature_names
 
     def _build_features(
         self,
@@ -137,93 +87,17 @@ class HybridFusionReranker(SaveableReranker):
         query_vec: np.ndarray | None = None,
         d_vecs: np.ndarray | None = None,
     ) -> np.ndarray:
-        if not docs:
-            if not self._feature_registry:
-                self._init_feature_registry()
-            return np.zeros((0, len(self._feature_registry)), dtype=np.float32)
+        return self._feature_builder.build_features(
+            query, docs, bm25=bm25, query_vec=query_vec, d_vecs=d_vecs, is_fitted=self.is_fitted
+        )
 
-        q_vec = query_vec if query_vec is not None else self.embedder.encode([query])[0]
-        d_vecs = d_vecs if d_vecs is not None else self.embedder.encode(docs)
-        lexical = bm25
-        if lexical is None:
-            lexical = BM25Engine(tokenize_fn=self.embedder.tokenize)
-            lexical.fit(docs)
-        bm25_scores = lexical.score(query)
-
-        query_lower = query.lower()
-        query_tokens = self.embedder.tokenize(query_lower)
-        query_terms = set(query_tokens)
-        query_len = float(len(query_tokens))
-
-        rows: list[dict[str, float]] = []
-        for idx, doc in enumerate(docs):
-            doc_lower = doc.lower()
-            doc_tokens = self.embedder.tokenize(doc_lower)
-            doc_terms = set(doc_tokens)
-            shared_terms = query_terms & doc_terms
-            overlap = len(shared_terms)
-            row_dict: dict[str, float] = {
-                "sem_score": float(np.dot(q_vec, d_vecs[idx])),
-                "bm25_score": float(bm25_scores[idx]) if bm25_scores.size else 0.0,
-                "vec_norm_diff": float(np.linalg.norm(q_vec - d_vecs[idx])),
-                "token_overlap_ratio": float(overlap / max(len(query_terms | doc_terms), 1)),
-                "query_coverage_ratio": float(overlap / max(len(query_terms), 1)),
-                "shared_token_char_sum": float(sum(len(term) for term in shared_terms)),
-                "exact_phrase_match": float(1.0 if query_lower in doc_lower else 0.0),
-                "query_len": query_len,
-                "doc_len": float(len(doc_tokens)),
-            }
-            for adapter in self.adapters:
-                row_dict.update(adapter.compute(query, doc))
-            rows.append(row_dict)
-
-        if not self._feature_registry:
-            self._init_feature_registry()
-        if not self.is_fitted:
-            for row_dict in rows:
-                for name in row_dict:
-                    self._get_feature_index(name)
-
-        feature_names = list(self._feature_registry.keys())
-        n_features = len(feature_names)
-        result = np.zeros((len(rows), n_features), dtype=np.float32)
-        for i, row_dict in enumerate(rows):
-            for name, value in row_dict.items():
-                idx_feat = self._feature_registry.get(name)
-                if idx_feat is not None and idx_feat < n_features:
-                    result[i, idx_feat] = value
-        return result
-
-    @property
-    def feature_names_(self) -> list[str]:
-        return list(self._feature_registry.keys())
+    def _register_adapter_feature_names(self, query: str, docs: list[str]) -> None:
+        self._feature_builder.register_adapter_feature_names(query, docs)
 
     def fit(
         self, queries: list[str], doc_as: list[str], doc_bs: list[str], labels: list[int]
     ) -> HybridFusionReranker:
-        self._init_feature_registry()
-        for query, doc_a, doc_b in zip(queries, doc_as, doc_bs, strict=False):
-            self._register_adapter_feature_names(query, [doc_a, doc_b])
-
-        samples = []
-        for query, doc_a, doc_b in zip(queries, doc_as, doc_bs, strict=False):
-            features_a = self._build_features(query, [doc_a])[0]
-            features_b = self._build_features(query, [doc_b])[0]
-            samples.append(features_a - features_b)
-
-        if not samples:
-            self._init_feature_registry()
-            feature_count = len(self._feature_registry)
-            samples = [np.zeros(feature_count, dtype=np.float32)]
-            labels = [0]
-        X = np.vstack(samples)
-        y = np.asarray(labels[: len(samples)], dtype=np.int32)
-        if len(set(y.tolist())) < 2:
-            self.model = DummyClassifier(strategy="constant", constant=int(y[0]))
-        self.model.fit(X, y)
-        self.model_backend = "xgboost" if _is_xgboost_model(self.model) else "sklearn"
-        self.is_fitted = True
-        return self
+        return self._trainer.fit(queries, doc_as, doc_bs, labels)
 
     def fit_pointwise(
         self,
@@ -232,80 +106,12 @@ class HybridFusionReranker(SaveableReranker):
         scores: list[float],
         use_regression: bool = True,
     ) -> HybridFusionReranker:
-        self._init_feature_registry()
-        for query, doc in zip(queries, docs, strict=False):
-            self._register_adapter_feature_names(query, [doc])
-
-        samples = [
-            self._build_features(query, [doc])[0] for query, doc in zip(queries, docs, strict=False)
-        ]
-        if not samples:
-            return self
-
-        X = np.vstack(samples)
-        y = np.asarray(scores[: len(samples)], dtype=np.float32)
-
-        if use_regression:
-            self.model = _make_regressor(random_state=get_settings().hybrid.random_state)
-            self.model.fit(X, y)
-            self.model_backend = "xgboost" if _is_xgboost_model(self.model) else "sklearn"
-        else:
-            self.model = _make_classifier(random_state=get_settings().hybrid.random_state)
-            threshold = np.median(y)
-            y_binary = (y >= threshold).astype(int)
-            self.model.fit(X, y_binary)
-
-        self.is_fitted = True
-
-        settings = get_settings()
-        if (
-            settings.meta_router.enabled
-            and WeightingMode(settings.hybrid.weighting_mode) == WeightingMode.META_ROUTER
-        ):
-            self._router = MetaRouter(embedder=self.embedder)
-            router_categories = self._auto_label_queries(queries, docs, scores)
-            self._router.fit(queries, router_categories)
-
-        return self
+        return self._trainer.fit_pointwise(queries, docs, scores, use_regression)
 
     def _auto_label_queries(
         self, queries: list[str], docs: list[str], scores: list[float]
     ) -> list[int]:
-        from reranker.lexical import BM25Engine as _BM25
-
-        router_categories = max(1, min(get_settings().meta_router.n_categories, 3))
-        query_groups: dict[str, list[tuple[str, float]]] = {}
-        for q, d, s in zip(queries, docs, scores, strict=False):
-            query_groups.setdefault(q, []).append((d, s))
-        category_by_query: dict[str, int] = {}
-        query_embedding_cache: dict[str, np.ndarray] = {}
-
-        for query, group in query_groups.items():
-            if len(group) < 2:
-                category_by_query[query] = 0
-                continue
-            group_docs = [d for d, _ in group]
-            group_scores = np.array([s for _, s in group], dtype=np.float32)
-            bm25 = _BM25(tokenize_fn=self.embedder.tokenize)
-            bm25.fit(group_docs)
-            bm25_scores = bm25.score(query)
-            query_vec = query_embedding_cache.setdefault(query, self.embedder.encode([query])[0])
-            doc_vectors = self.embedder.encode(group_docs)
-            sem_score = float(
-                self.embedder.similarity(
-                    query_vec,
-                    doc_vectors[int(np.argmax(group_scores))],
-                )
-            )
-            bm25_best = float(bm25_scores.max()) if bm25_scores.size > 0 else 0.0
-            if router_categories >= 3:
-                score_gap = abs(bm25_best - sem_score)
-                score_scale = max(abs(bm25_best), abs(sem_score), 1.0)
-                if score_gap <= 0.1 * score_scale:
-                    category_by_query[query] = 2
-                    continue
-            category_by_query[query] = 0 if bm25_best > sem_score else 1
-        return [category_by_query.get(query, 0) for query in queries]
+        return self._trainer._auto_label_queries(queries, docs, scores)
 
     def _resolve_weights(self, query: str) -> dict[str, float]:
         settings = get_settings().hybrid
@@ -399,7 +205,7 @@ class HybridFusionReranker(SaveableReranker):
             blended = np.zeros(X.shape[0], dtype=np.float32)
 
         if not self.is_fitted:
-            raise RuntimeError("HybridFusionReranker is not fitted. Call fit() or load() first.")
+            raise NotFittedError("HybridFusionReranker is not fitted. Call fit() or load() first.")
 
         if weighting_mode == WeightingMode.LEARNED:
             return self._model_predict(self.model, X)
@@ -455,37 +261,13 @@ class HybridFusionReranker(SaveableReranker):
         return results
 
     def _save_metadata(self) -> dict:
-        adapter_types = [type(adapter).__name__ for adapter in self.adapters]
-        return {
-            "embedder_model_name": self.embedder.model_name,
-            "feature_names": self.feature_names_,
-            "feature_registry": self._feature_registry,
-            "adapter_types": adapter_types,
-            "has_router": self._router is not None and self._router.is_fitted,
-        }
+        return self._persistence._save_metadata()
 
     def _save_weights(self) -> dict:
-        router_payload = None
-        if self._router is not None and self._router.is_fitted:
-            router_payload = self._router
-        return {"model": self.model, "router": router_payload}
+        return self._persistence._save_weights()
 
     def save(self, path: str | Path) -> None:
-        target = Path(path)
-        if self.model_backend == "xgboost" and target.suffix == ".json":
-            self.model.save_model(str(target))
-            meta = build_artifact_metadata(
-                "hybrid_reranker",
-                format_name="xgboost-json",
-                embedder_model_name=self.embedder.model_name,
-                extra=self._save_metadata(),
-            )
-            write_json(target.with_suffix(".meta.json"), meta)
-
-            if self._router is not None and self._router.is_fitted:
-                joblib.dump(self._router, target.with_suffix(".router.joblib"))
-            return
-        super().save(path)
+        self._persistence.save(path)
 
     @classmethod
     def load(
@@ -494,70 +276,4 @@ class HybridFusionReranker(SaveableReranker):
         adapters: list[HeuristicAdapter] | None = None,
         embedder: Embedder | None = None,
     ) -> HybridFusionReranker:
-        target = Path(path)
-        if target.suffix == ".json":
-            from xgboost import XGBClassifier  # type: ignore
-
-            meta_path = target.with_suffix(".meta.json")
-            payload = read_json(meta_path)
-            validate_artifact_metadata(
-                payload,
-                expected_type=cls._artifact_type,
-                expected_formats={"xgboost-json"},
-            )
-            instance = cls(
-                adapters=adapters,
-                embedder=embedder or Embedder(payload["embedder_model_name"]),
-            )
-            instance.model = XGBClassifier()
-            instance.model.load_model(str(target))
-            instance.model_backend = "xgboost"
-            instance._feature_registry = dict(payload.get("feature_registry", {}))
-            instance.is_fitted = True
-            router_path = target.with_suffix(".router.joblib")
-            if payload.get("has_router") and router_path.exists():
-                loaded_router = joblib.load(router_path)
-                if isinstance(loaded_router, MetaRouter):
-                    instance._router = loaded_router
-                else:
-                    raise TypeError(
-                        f"Expected MetaRouter in {router_path}, got {type(loaded_router).__name__}."
-                    )
-            return instance
-
-        payload = cls._load_payload(target, expected_type=cls._artifact_type)
-        embedder_model_name = payload.get("embedder_model_name")
-        instance = cls(
-            adapters=adapters,
-            embedder=embedder
-            or Embedder(
-                str(embedder_model_name)
-                if embedder_model_name is not None
-                else get_settings().embedder.model_name
-            ),
-        )
-        instance.model = payload["model"]
-        instance.model_backend = (
-            "xgboost" if instance.model.__class__.__module__.startswith("xgboost") else "sklearn"
-        )
-        instance._feature_registry = dict(payload.get("feature_registry", {}))
-        instance.is_fitted = True
-        router_data = payload.get("router")
-        if isinstance(router_data, MetaRouter):
-            instance._router = router_data
-        elif isinstance(router_data, bytes):
-            import pickle
-
-            warnings.warn(
-                "Loading legacy byte-encoded MetaRouter payload. Re-save model to migrate.",
-                UserWarning,
-                stacklevel=2,
-            )
-            loaded_router = pickle.loads(router_data)
-            if isinstance(loaded_router, MetaRouter):
-                instance._router = loaded_router
-            else:
-                raise TypeError(
-                    f"Expected MetaRouter in legacy payload, got {type(loaded_router).__name__}."
-                )
-        return instance
+        return HybridPersistence.load(path, adapters=adapters, embedder=embedder)
