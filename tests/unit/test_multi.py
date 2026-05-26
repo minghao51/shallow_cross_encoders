@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import pytest
 
-from reranker.protocols import RankedDoc
 from reranker.strategies.multi import MultiReranker, MultiRerankerConfig
+from reranker.types import RankedDoc
 
 
 class _StubReranker:

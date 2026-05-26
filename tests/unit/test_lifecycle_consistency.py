@@ -2,11 +2,11 @@
 
 import pytest
 
-from reranker.protocols import RankedDoc
 from reranker.strategies.binary_reranker import BinaryQuantizedReranker
 from reranker.strategies.cascade import CascadeConfig, CascadeReranker
 from reranker.strategies.late_interaction import StaticColBERTReranker
 from reranker.strategies.splade import SPLADEReranker
+from reranker.types import RankedDoc
 
 
 class _MockReranker:

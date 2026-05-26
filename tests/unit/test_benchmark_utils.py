@@ -24,7 +24,7 @@ def test_evaluate_reranker_on_rows_none():
 
 def test_evaluate_reranker_on_rows_basic():
     from reranker.eval.benchmark_utils import evaluate_reranker_on_rows
-    from reranker.protocols import RankedDoc
+    from reranker.types import RankedDoc
 
     mock_reranker = MagicMock()
     mock_reranker.rerank.return_value = [
@@ -59,7 +59,7 @@ def test_evaluate_reranker_on_rows_basic():
 def test_evaluate_reranker_on_rows_tracks_queries_without_relevant_docs():
     """Test query counting/latency are still reported when no docs are relevant."""
     from reranker.eval.benchmark_utils import evaluate_reranker_on_rows
-    from reranker.protocols import RankedDoc
+    from reranker.types import RankedDoc
 
     mock_reranker = MagicMock()
     mock_reranker.rerank.return_value = [

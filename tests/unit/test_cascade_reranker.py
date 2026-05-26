@@ -1,7 +1,7 @@
 """Tests for CascadeReranker."""
 
-from reranker.protocols import RankedDoc
 from reranker.strategies import CascadeConfig, CascadeReranker, ConfidenceMetric
+from reranker.types import RankedDoc
 
 
 class MockReranker:

@@ -1,7 +1,7 @@
 """Regression test for C-1: pipeline zip misalignment."""
 
-from reranker.protocols import RankedDoc
 from reranker.strategies.pipeline import PipelineReranker, PipelineStage
+from reranker.types import RankedDoc
 
 
 class _FilterReranker:

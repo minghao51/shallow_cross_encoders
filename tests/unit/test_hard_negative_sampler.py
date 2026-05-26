@@ -1,7 +1,12 @@
 """Tests for hard negative sampler."""
 
+from __future__ import annotations
+
+import sys
+import types
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 
@@ -62,3 +67,53 @@ def test_prepare_benchmark_data_basic():
 
     # Just verify the function exists and is callable
     assert callable(prepare_benchmark_data_with_hard_negatives)
+
+
+def test_bm25_index_cache_get_or_build_round_trip(tmp_path: Path) -> None:
+    """Test cache miss then cache hit for tokenized corpus."""
+    from reranker.data.hard_negative_sampler import BM25IndexCache
+
+    cache = BM25IndexCache(tmp_path / "bm25")
+    corpus = ["alpha beta", "gamma delta"]
+    built = cache.get_or_build(corpus, build_fn=lambda: [text.split() for text in corpus])
+    loaded = cache.get_or_build(corpus, build_fn=lambda: [["should", "not"], ["run"]])
+    assert built == [["alpha", "beta"], ["gamma", "delta"]]
+    assert loaded == built
+
+
+def test_prepare_benchmark_data_with_mocked_bm25(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Test benchmark pair generation path with mocked rank_bm25 backend."""
+    from reranker.data.hard_negative_sampler import prepare_benchmark_data_with_hard_negatives
+
+    class FakeBM25:
+        def __init__(self, tokenized_corpus):
+            self._size = len(tokenized_corpus)
+
+        def get_scores(self, _tokenized_query):
+            return np.array([float(self._size - i) for i in range(self._size)])
+
+    fake_rank_bm25 = types.ModuleType("rank_bm25")
+    fake_rank_bm25.BM25Okapi = FakeBM25
+    monkeypatch.setitem(sys.modules, "rank_bm25", fake_rank_bm25)
+
+    dataset = {
+        "corpus": {
+            "d1": {"_id": "d1", "title": "", "text": "alpha beta"},
+            "d2": {"_id": "d2", "title": "", "text": "alpha gamma"},
+            "d3": {"_id": "d3", "title": "", "text": "delta epsilon"},
+        },
+        "queries": {"q1": "alpha"},
+        "qrels": {"q1": {"d1": 2}},
+    }
+
+    rows = prepare_benchmark_data_with_hard_negatives(
+        dataset,
+        num_queries=1,
+        docs_per_query=2,
+        hard_negative_ratio=0.5,
+        cache_dir=tmp_path / "bm25",
+    )
+    assert len(rows) == 2
+    assert all("query_id" in row and "doc_id" in row for row in rows)

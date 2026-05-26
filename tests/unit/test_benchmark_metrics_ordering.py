@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from benchmarks.runner import BenchmarkRunner
 from reranker.lexical import BM25Engine
-from reranker.protocols import RankedDoc
+from reranker.types import RankedDoc
 
 
 class _ReverseReranker:

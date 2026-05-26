@@ -2,9 +2,9 @@
 
 import pytest
 
-from reranker.protocols import RankedDoc
 from reranker.strategies.cascade import CascadeConfig, CascadeReranker, FallbackStrategy
 from reranker.strategies.hybrid import WeightingMode
+from reranker.types import RankedDoc
 
 
 class _MockReranker:

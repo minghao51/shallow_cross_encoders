@@ -58,3 +58,45 @@ def test_load_beir_simple_downloads_and_parses_dataset(
     assert queries == {"q1": "alpha"}
     assert corpus["d1"]["text"] == "alpha beta"
     assert qrels == {"q1": {"d1": 2}}
+
+
+def test_load_beir_comprehensive_tsv_with_qrels_four_column(tmp_path: Path) -> None:
+    """Test comprehensive loader with TSV corpus/queries and 4-column qrels format."""
+    from reranker.data.beir_loader import load_beir_comprehensive
+
+    dataset_dir = tmp_path / "beir_dataset"
+    dataset_dir.mkdir(parents=True)
+    (dataset_dir / "collection.tsv").write_text("d1\tbody text\ttitle text\n", encoding="utf-8")
+    (dataset_dir / "queries.tsv").write_text("q1\tsearch text\n", encoding="utf-8")
+    qrels_dir = dataset_dir / "qrels"
+    qrels_dir.mkdir()
+    (qrels_dir / "test.tsv").write_text(
+        "query-id\titer\tdoc-id\trelevance\nq1\t0\td1\t2\n",
+        encoding="utf-8",
+    )
+
+    loaded = load_beir_comprehensive(dataset_dir)
+    assert loaded["corpus"]["d1"]["title"] == "title text"
+    assert loaded["queries"]["q1"] == "search text"
+    assert loaded["qrels"] == {"q1": {"d1": 2}}
+
+
+def test_load_beir_comprehensive_finds_corpus_in_subdirectory(tmp_path: Path) -> None:
+    """Test comprehensive loader fallback search for corpus file in nested dirs."""
+    from reranker.data.beir_loader import load_beir_comprehensive
+
+    dataset_dir = tmp_path / "beir_nested"
+    nested = dataset_dir / "nested"
+    nested.mkdir(parents=True)
+    (nested / "my_corpus.jsonl").write_text(
+        json.dumps({"_id": "d1", "title": "", "text": "alpha"}) + "\n",
+        encoding="utf-8",
+    )
+    (dataset_dir / "queries.jsonl").write_text(
+        json.dumps({"_id": "q1", "text": "what is alpha"}) + "\n",
+        encoding="utf-8",
+    )
+
+    loaded = load_beir_comprehensive(dataset_dir)
+    assert loaded["corpus"]["d1"]["text"] == "alpha"
+    assert loaded["queries"]["q1"] == "what is alpha"
