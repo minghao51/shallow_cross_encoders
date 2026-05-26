@@ -106,7 +106,7 @@
 
 **Training Scripts:**
 - Location: `scripts/train_*.py`
-- Triggers: Manual execution (`uv run python scripts/train_hybrid.py`)
+- Triggers: Manual execution (`uv run scripts/train_hybrid.py`)
 - Responsibilities: Train models, save to `data/models/`
 
 **Benchmarking Scripts:**
@@ -116,7 +116,7 @@
 
 **Evaluation CLI:**
 - Location: `src/reranker/eval/__main__.py`
-- Triggers: `uv run python -m reranker.eval --strategy <name>`
+- Triggers: `uv run -m reranker.eval --strategy <name>`
 - Responsibilities: Evaluate strategies on datasets, output metrics
 
 **Data Generation Scripts:**
