@@ -23,7 +23,7 @@ CPU-native reranking and consistency-checking pipeline. See [`docs/technical-roa
 ```bash
 # Base install (all lightweight deps included)
 uv sync
-uv run python scripts/materialize_demo_data.py
+uv run scripts/materialize_demo_data.py
 uv run pytest
 
 # With dev tools (linting, type-checking, notebooks)
@@ -41,10 +41,10 @@ Generate soft labels from FlashRank cross-encoder teachers to train Hybrid Fusio
 uv sync
 
 # Generate labels on BEIR dataset (pairwise or pointwise method)
-uv run python scripts/distill_ensemble_to_hybrid.py --dataset beir --method pairwise
+uv run scripts/distill_ensemble_to_hybrid.py --dataset beir --method pairwise
 
 # Generate labels on custom dataset
-uv run python scripts/distill_ensemble_to_hybrid.py \
+uv run scripts/distill_ensemble_to_hybrid.py \
   --dataset custom \
   --custom-path data/custom_dataset.jsonl \
   --method pointwise
@@ -56,8 +56,8 @@ uv run python scripts/distill_ensemble_to_hybrid.py \
 
 **BEIR dataset support:**
 - `fluent-legal` and `scifact` added in recent update
-- Run: `uv run scripts/benchmarks/run_beir.py nfcorpus` for standard benchmarks
-- Use `uv run python scripts/download_beir.py nfcorpus` to materialize a local dataset copy
+- Run: `uv run benchmarks/run.py synthetic --quick` for quick benchmark validation
+- Use `uv run scripts/download_beir.py nfcorpus` to materialize a local dataset copy
 
 ### Synthetic Data Generation (OpenRouter)
 
@@ -65,9 +65,9 @@ Generate training data when you have no labeled examples:
 
 ```bash
 export OPENROUTER_MODEL=openai/gpt-4o-mini  # optional
-OPENROUTER_API_KEY=... uv run python scripts/generate_pairs.py --teacher --count 2000
-OPENROUTER_API_KEY=... uv run python scripts/generate_preferences.py --teacher --count 1500
-OPENROUTER_API_KEY=... uv run python scripts/generate_contradictions.py --teacher --count 500
+OPENROUTER_API_KEY=... uv run scripts/generate_pairs.py --teacher --count 2000
+OPENROUTER_API_KEY=... uv run scripts/generate_preferences.py --teacher --count 1500
+OPENROUTER_API_KEY=... uv run scripts/generate_contradictions.py --teacher --count 500
 ```
 
 **Use when:** Starting from scratch with no domain-specific training data. LLM generates synthetic query-doc pairs with relevance scores.
@@ -83,9 +83,9 @@ Compare all reranking methods (FlashRank, SentenceTransformers, local models):
 uv sync --extra sentence-transformers
 
 # Run speed/quality comparison
-uv run scripts/benchmarks/run_flashrank.py
-uv run scripts/benchmarks/run_beir.py nfcorpus
-uv run scripts/benchmarks/run_unified.py --quick
+uv run benchmarks/run.py synthetic --quick
+uv run benchmarks/run.py full
+uv run scripts/benchmark_beir_multi.py
 ```
 
 **Use when:** Choosing between FlashRank (ONNX), SentenceTransformers (PyTorch), or local models (Hybrid, Binary) for deployment.
@@ -118,17 +118,17 @@ Settings live in [`src/reranker/config.py`](src/reranker/config.py) and are over
 ## Runtime Scripts
 
 ```bash
-uv run python scripts/train_hybrid.py
-uv run python scripts/train_distilled.py
-uv run python scripts/train_late_interaction.py
-uv run python scripts/train_binary_reranker.py
-uv run python -m reranker.eval --strategy hybrid --split test
-uv run python -m reranker.eval --strategy distilled --split test
-uv run python -m reranker.eval --strategy late_interaction --split test
-uv run python -m reranker.eval --strategy binary_reranker --split test
-uv run python -m reranker.eval --strategy consistency --split test
-uv run scripts/benchmarks/measure_roi.py
-uv run scripts/benchmarks/run_unified.py --quick
+uv run scripts/train_hybrid.py
+uv run scripts/train_distilled.py
+uv run scripts/train_late_interaction.py
+uv run scripts/train_binary_reranker.py
+uv run -m reranker.eval --strategy hybrid --split test
+uv run -m reranker.eval --strategy distilled --split test
+uv run -m reranker.eval --strategy late_interaction --split test
+uv run -m reranker.eval --strategy binary_reranker --split test
+uv run -m reranker.eval --strategy consistency --split test
+uv run benchmarks/measure_roi.py
+uv run benchmarks/run.py synthetic --quick
 ```
 
 ### Environment Variables
@@ -167,7 +167,7 @@ uv run scripts/benchmarks/run_unified.py --quick
 | Late Interaction | 0.203 | **4ms** | Pre-indexed ColBERT |
 | Binary Quantized | 0.151 | **10ms** | Ultra-fast hash-based |
 
-\*Distilled methods use FlashRank as teacher. Run: `uv run python scripts/distill_ensemble_to_hybrid.py --dataset beir`
+\*Distilled methods use FlashRank as teacher. Run: `uv run scripts/distill_ensemble_to_hybrid.py --dataset beir`
 
 **Key findings:**
 - **Distillation wins:** FlashRank quality (0.34) + local speed (0.15-0.45ms) = 100-1000x speedup
@@ -184,7 +184,7 @@ uv run scripts/benchmarks/run_unified.py --quick
 
 [→ Full analysis with BEIR results](docs/20260415-benchmark-analysis.md)
 
-Run: `uv run scripts/benchmarks/run_flashrank.py` (speed) | `uv run scripts/benchmarks/run_beir.py nfcorpus` (quality)
+Run: `uv run benchmarks/run.py synthetic --quick` (speed sanity) | `uv run scripts/benchmark_beir_multi.py` (quality)
 
 ## Production Patterns
 

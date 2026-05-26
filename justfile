@@ -9,7 +9,7 @@ install:
 
 # Install with dev dependencies
 install-dev:
-    uv sync --group dev
+    uv sync --extra dev
 
 # Run all tests (excluding llm + slow)
 test:
@@ -91,7 +91,7 @@ benchmark-sweep config:
 
 # Run multi-dataset BEIR sweep (trec-covid, nfcorpus, scidocs, fiqa-qa, arguana)
 benchmark-beir:
-    uv run python scripts/benchmark_beir_multi.py
+    uv run scripts/benchmark_beir_multi.py
 
 # Generate all synthetic datasets
 generate-data:
