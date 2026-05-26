@@ -5,7 +5,9 @@ from typing import Any
 
 import numpy as np
 
-from reranker.protocols import RankedDoc, SaveableReranker
+from reranker.persistence_mixin import SaveableReranker
+from reranker.protocols import NotFittedError
+from reranker.types import RankedDoc
 from reranker.utils import rank_docs
 
 
@@ -63,7 +65,7 @@ class SPLADEReranker(SaveableReranker):
 
     def score(self, query: str, docs: list[str]) -> np.ndarray:
         if not self.is_fitted:
-            raise RuntimeError("SPLADEReranker must be fitted before scoring.")
+            raise NotFittedError("SPLADEReranker must be fitted before scoring.")
         if not docs:
             return np.zeros(0, dtype=np.float32)
 
@@ -100,7 +102,7 @@ class SPLADEReranker(SaveableReranker):
         if not docs:
             return []
         if not self.is_fitted:
-            raise RuntimeError("SPLADEReranker is not fitted. Call fit() or load() first.")
+            raise NotFittedError("SPLADEReranker is not fitted. Call fit() or load() first.")
         scores = self.score(query, docs)
         return rank_docs(docs, scores, "splade")
 

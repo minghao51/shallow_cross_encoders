@@ -8,7 +8,8 @@ from typing import Any
 from reranker.config import load_yaml_config, settings_from_dict, settings_from_yaml
 from reranker.embedding_cache import EmbeddingCache, get_shared_cache
 from reranker.heuristics.keyword import KeywordMatchAdapter
-from reranker.protocols import BaseReranker, HeuristicAdapter, RankedDoc
+from reranker.protocols import BaseReranker, HeuristicAdapter
+from reranker.types import RankedDoc
 
 __all__ = [
     "BaseReranker",

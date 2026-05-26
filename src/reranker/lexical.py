@@ -13,6 +13,7 @@ from collections.abc import Callable
 import numpy as np
 
 from reranker.deps import check_rank_bm25
+from reranker.utils import rank_docs
 
 
 class BM25Engine:
@@ -169,8 +170,6 @@ class BM25Engine:
         self._rebuild_bm25()
 
     def rerank(self, query: str, docs: list[str]) -> list:
-        from reranker.utils import rank_docs
-
         self.fit(docs)
         scores = self.score(query)
         return rank_docs(docs, scores, "bm25")

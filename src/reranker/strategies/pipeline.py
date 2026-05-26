@@ -6,7 +6,8 @@ from pathlib import Path
 from typing import Any
 
 from reranker.config import get_settings
-from reranker.protocols import RankedDoc, SaveableReranker
+from reranker.persistence_mixin import SaveableReranker
+from reranker.types import RankedDoc
 
 
 @dataclass

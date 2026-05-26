@@ -7,7 +7,8 @@ import numpy as np
 import structlog
 
 from reranker.data.hard_negative_sampler import prepare_benchmark_data_with_hard_negatives
-from reranker.protocols import RankedDoc, SaveableReranker
+from reranker.persistence_mixin import SaveableReranker
+from reranker.types import RankedDoc
 from reranker.utils import rank_docs
 
 logger = structlog.get_logger(__name__)

@@ -16,7 +16,9 @@ from sklearn.linear_model import LogisticRegression
 
 from reranker.config import get_settings
 from reranker.embedder import Embedder
-from reranker.protocols import RankedDoc, SaveableReranker
+from reranker.persistence_mixin import SaveableReranker
+from reranker.protocols import EmbedderProtocol, NotFittedError
+from reranker.types import RankedDoc
 from reranker.utils import rank_docs
 
 logger = structlog.get_logger(__name__)
@@ -29,7 +31,7 @@ class BinaryQuantizedReranker(SaveableReranker):
 
     def __init__(
         self,
-        embedder: Embedder | None = None,
+        embedder: EmbedderProtocol | None = None,
         hamming_top_k: int | None = None,
         bilinear_top_k: int | None = None,
         random_state: int | None = None,
@@ -146,7 +148,7 @@ class BinaryQuantizedReranker(SaveableReranker):
 
     def score(self, query: str, docs: list[str]) -> np.ndarray:
         if not self.is_fitted:
-            raise RuntimeError("BinaryQuantizedReranker must be fitted before scoring.")
+            raise NotFittedError("BinaryQuantizedReranker must be fitted before scoring.")
         if not docs:
             return np.zeros(0, dtype=np.float32)
 
@@ -194,7 +196,9 @@ class BinaryQuantizedReranker(SaveableReranker):
         if not docs:
             return []
         if not self.is_fitted:
-            raise RuntimeError("BinaryQuantizedReranker is not fitted. Call fit() or load() first.")
+            raise NotFittedError(
+                "BinaryQuantizedReranker is not fitted. Call fit() or load() first."
+            )
         scores = self.score(query, docs)
         return rank_docs(docs, scores, "binary_reranker")
 

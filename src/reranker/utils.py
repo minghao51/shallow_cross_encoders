@@ -9,6 +9,8 @@ from typing import Any
 
 import numpy as np
 
+from reranker.types import RankedDoc
+
 ARTIFACT_VERSION = 1
 
 try:
@@ -260,8 +262,6 @@ def rank_docs(
     Returns:
         List of RankedDoc sorted by score descending.
     """
-    from reranker.protocols import RankedDoc
-
     ranked = sorted(
         zip(docs, scores, strict=False),
         key=lambda item: float(item[1]),

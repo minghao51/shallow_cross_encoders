@@ -9,6 +9,7 @@ from sklearn.tree import DecisionTreeClassifier
 
 from reranker.config import get_settings
 from reranker.embedder import Embedder
+from reranker.protocols import EmbedderProtocol
 
 WEIGHT_PROFILES: dict[str, dict[str, float]] = {
     "navigational": {
@@ -45,7 +46,7 @@ DEFAULT_PROFILE = "balanced"
 
 @dataclass(slots=True)
 class MetaRouter:
-    embedder: Embedder = field(default_factory=Embedder)
+    embedder: EmbedderProtocol = field(default_factory=Embedder)
     model: Any = None
     is_fitted: bool = False
     n_categories: int = 2

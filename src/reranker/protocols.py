@@ -6,29 +6,28 @@ persistence-aware component must satisfy.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from pathlib import Path
-from typing import Any, Protocol, runtime_checkable
+from typing import Protocol, runtime_checkable
 
-from reranker.persistence import save_safe, try_load_safe_or_warn
-from reranker.utils import load_pickle
+import numpy as np
+
+from reranker.persistence_mixin import SaveableReranker as SaveableReranker
+from reranker.types import RankedDoc as RankedDoc
 
 
-@dataclass(slots=True)
-class RankedDoc:
-    """A single ranked document result.
+class NotFittedError(RuntimeError):
+    """Raised when a strategy's rerank()/score() is called before fit()."""
 
-    Attributes:
-        doc: The document text.
-        score: Relevance score (higher = more relevant).
-        rank: 1-based rank position.
-        metadata: Arbitrary metadata (strategy name, stage info, etc.).
-    """
 
-    doc: str
-    score: float
-    rank: int
-    metadata: dict[str, Any] = field(default_factory=dict)
+@runtime_checkable
+class EmbedderProtocol(Protocol):
+    model_name: str
+    dimension: int
+    backend_name: str
+    normalize: bool
+
+    def encode(self, texts: list[str]) -> np.ndarray: ...
+    def tokenize(self, text: str) -> list[str]: ...
+    def similarity(self, a: np.ndarray, b: np.ndarray) -> float: ...
 
 
 @runtime_checkable
@@ -43,41 +42,3 @@ class BaseReranker(Protocol):
     """Common contract every ranking strategy must satisfy."""
 
     def rerank(self, query: str, docs: list[str]) -> list[RankedDoc]: ...
-
-
-class SaveableReranker:
-    """Base class providing DRY save/load via the persistence layer.
-
-    Subclasses define ``_artifact_type`` and override
-    ``_save_metadata()`` / ``_save_weights()`` to control what gets
-    serialized. The concrete ``save()`` method handles the rest.
-
-    Each subclass still provides its own ``load()`` classmethod since
-    reconstruction logic varies per strategy.
-    """
-
-    _artifact_type: str = ""
-
-    def _save_metadata(self) -> dict[str, Any]:
-        return {
-            "embedder_model_name": getattr(getattr(self, "embedder", None), "model_name", "unknown")
-        }
-
-    def _save_weights(self) -> dict[str, Any]:
-        return {}
-
-    def save(self, path: str | Path) -> None:
-        save_safe(
-            path,
-            artifact_type=self._artifact_type,
-            metadata=self._save_metadata(),
-            weights=self._save_weights(),
-        )
-
-    @staticmethod
-    def _load_payload(path: str | Path, expected_type: str) -> dict[str, Any]:
-        return try_load_safe_or_warn(
-            path,
-            expected_type=expected_type,
-            legacy_loader=load_pickle,
-        )

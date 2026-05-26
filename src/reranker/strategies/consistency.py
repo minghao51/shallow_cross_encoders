@@ -11,7 +11,8 @@ from scipy.spatial.distance import cdist
 
 from reranker.config import get_settings
 from reranker.embedder import Embedder
-from reranker.protocols import RankedDoc, SaveableReranker
+from reranker.persistence_mixin import SaveableReranker
+from reranker.protocols import EmbedderProtocol
 from reranker.strategies.patterns import (
     ENTITY_PATTERN,
     SENTENCE_SPLIT_PATTERN,
@@ -19,6 +20,7 @@ from reranker.strategies.patterns import (
     STRUCTURED_PATTERNS,
     VALUE_PATTERN,
 )
+from reranker.types import RankedDoc
 
 
 @dataclass(slots=True)
@@ -54,7 +56,7 @@ class ConsistencyEngine(SaveableReranker):
         self,
         sim_threshold: float | None = None,
         value_tolerance: float | None = None,
-        embedder: Embedder | None = None,
+        embedder: EmbedderProtocol | None = None,
     ) -> None:
         settings = get_settings()
         self.embedder = embedder or Embedder()

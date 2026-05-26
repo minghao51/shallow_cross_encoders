@@ -5,7 +5,8 @@ from pathlib import Path
 
 import numpy as np
 
-from reranker.protocols import BaseReranker, RankedDoc
+from reranker.protocols import BaseReranker
+from reranker.types import RankedDoc
 from reranker.utils import rrf_from_scores
 
 

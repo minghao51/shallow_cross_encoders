@@ -10,8 +10,10 @@ import numpy as np
 
 from reranker.config import get_settings
 from reranker.embedder import Embedder
-from reranker.protocols import RankedDoc, SaveableReranker
+from reranker.persistence_mixin import SaveableReranker
+from reranker.protocols import EmbedderProtocol, NotFittedError
 from reranker.quantization import QuantizationResult, dequantize, quantize
+from reranker.types import RankedDoc
 from reranker.utils import rank_docs
 
 
@@ -33,7 +35,7 @@ class StaticColBERTReranker(SaveableReranker):
 
     def __init__(
         self,
-        embedder: Embedder | None = None,
+        embedder: EmbedderProtocol | None = None,
         top_k_tokens: int | None = None,
         use_salience: bool | None = None,
         quantization_mode: str | None = None,
@@ -103,10 +105,30 @@ class StaticColBERTReranker(SaveableReranker):
 
     def fit(self, docs: list[str]) -> StaticColBERTReranker:
         self._index = []
+        all_tokens: list[str] = []
+        doc_token_lengths: list[int] = []
+        per_doc_tokens: list[list[str]] = []
         for doc in docs:
             tokens = self._tokenize(doc)
-            vectors = self._encode_tokens(tokens)
-            entry = self._prune_tokens(tokens, vectors, doc_text=doc)
+            per_doc_tokens.append(tokens)
+            all_tokens.extend(tokens)
+            doc_token_lengths.append(len(tokens))
+
+        if all_tokens:
+            all_vectors = self.embedder.encode(all_tokens)
+        else:
+            all_vectors = np.zeros((0, self.embedder.dimension), dtype=np.float32)
+
+        offset = 0
+        for i, doc in enumerate(docs):
+            n_tokens = doc_token_lengths[i]
+            token_vecs = (
+                all_vectors[offset : offset + n_tokens]
+                if n_tokens > 0
+                else np.zeros((0, self.embedder.dimension), dtype=np.float32)
+            )
+            offset += n_tokens
+            entry = self._prune_tokens(per_doc_tokens[i], token_vecs, doc_text=doc)
             if self.quantization_mode != "none" and entry.vectors.shape[0] > 0:
                 entry.quantized = quantize(
                     entry.vectors,
@@ -141,7 +163,7 @@ class StaticColBERTReranker(SaveableReranker):
         prebuilt_indices: list[TokenIndex] | None = None,
     ) -> np.ndarray:
         if not self.is_fitted:
-            raise RuntimeError("StaticColBERTReranker must be fitted before scoring.")
+            raise NotFittedError("StaticColBERTReranker must be fitted before scoring.")
         if not docs:
             return np.zeros(0, dtype=np.float32)
 
@@ -185,7 +207,7 @@ class StaticColBERTReranker(SaveableReranker):
         if not docs:
             return []
         if not self.is_fitted:
-            raise RuntimeError("StaticColBERTReranker is not fitted. Call fit() or load() first.")
+            raise NotFittedError("StaticColBERTReranker is not fitted. Call fit() or load() first.")
         scores = self.score(query, docs, prebuilt_indices=prebuilt_indices)
         return rank_docs(docs, scores, "late_interaction")
 
@@ -197,7 +219,7 @@ class StaticColBERTReranker(SaveableReranker):
         if not queries:
             return []
         if not self.is_fitted:
-            raise RuntimeError("StaticColBERTReranker is not fitted. Call fit() or load() first.")
+            raise NotFittedError("StaticColBERTReranker is not fitted. Call fit() or load() first.")
         all_query_tokens = [self._tokenize(q) for q in queries]
         flat_tokens = [t for tokens in all_query_tokens for t in tokens]
         if flat_tokens:

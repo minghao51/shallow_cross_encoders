@@ -13,7 +13,9 @@ from sklearn.linear_model import LogisticRegression
 
 from reranker.config import get_settings
 from reranker.embedder import Embedder
-from reranker.protocols import RankedDoc, SaveableReranker
+from reranker.persistence_mixin import SaveableReranker
+from reranker.protocols import EmbedderProtocol, NotFittedError
+from reranker.types import RankedDoc
 from reranker.utils import rank_docs
 
 logger = structlog.get_logger(__name__)
@@ -26,7 +28,7 @@ class DistilledPairwiseRanker(SaveableReranker):
 
     def __init__(
         self,
-        embedder: Embedder | None = None,
+        embedder: EmbedderProtocol | None = None,
         loss_type: Literal["pairwise", "listwise", "lambdaloss"] | None = None,
     ) -> None:
         settings = get_settings()
@@ -82,8 +84,20 @@ class DistilledPairwiseRanker(SaveableReranker):
         doc_bs: list[str],
         labels: list[int],
     ) -> None:
+        all_texts = list(set(queries) | set(doc_as) | set(doc_bs))
+        vec_map: dict[str, np.ndarray] = {}
+        if all_texts:
+            all_vecs = self.embedder.encode(all_texts)
+            vec_map = dict(zip(all_texts, all_vecs, strict=True))
+
         samples = [
-            self._build_pairwise_features(query, doc_a, doc_b)
+            self._pairwise_features_from_vectors(
+                vec_map[query],
+                vec_map[doc_a],
+                vec_map[doc_b],
+                len(self.embedder.tokenize(doc_a)),
+                len(self.embedder.tokenize(doc_b)),
+            )
             for query, doc_a, doc_b, _ in zip(queries, doc_as, doc_bs, labels, strict=False)
         ]
         if not samples:
@@ -231,7 +245,7 @@ class DistilledPairwiseRanker(SaveableReranker):
 
     def compare(self, query: str, doc_a: str, doc_b: str) -> float:
         if not self.is_fitted:
-            raise RuntimeError("DistilledPairwiseRanker must be fitted before comparison.")
+            raise NotFittedError("DistilledPairwiseRanker must be fitted before comparison.")
         if self.loss_type in ("listwise", "lambdaloss") and self._cross_encoder is not None:
             scores = self._score_cross_encoder(query, [doc_a, doc_b])
             return float(scores[0] - scores[1] + 0.5)
@@ -272,7 +286,7 @@ class DistilledPairwiseRanker(SaveableReranker):
 
     def rerank(self, query: str, docs: list[str]) -> list[RankedDoc]:
         if not self.is_fitted:
-            raise RuntimeError("DistilledPairwiseRanker must be fitted before reranking.")
+            raise NotFittedError("DistilledPairwiseRanker must be fitted before reranking.")
         if not docs:
             return []
 
@@ -280,8 +294,9 @@ class DistilledPairwiseRanker(SaveableReranker):
             scores = self._score_cross_encoder(query, docs)
             return rank_docs(docs, scores, f"distilled_{self.loss_type}")
 
-        q_vec = self.embedder.encode([query])[0]
-        d_vecs = self.embedder.encode(docs)
+        all_vecs = self.embedder.encode([query] + docs)
+        q_vec = all_vecs[0]
+        d_vecs = all_vecs[1:]
         doc_lens = [len(self.embedder.tokenize(doc)) for doc in docs]
         scores = np.zeros(len(docs), dtype=np.float32)
         if len(docs) <= self.full_tournament_max_docs:

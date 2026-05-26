@@ -9,7 +9,8 @@ from typing import Any
 
 import structlog
 
-from reranker.protocols import BaseReranker, RankedDoc
+from reranker.protocols import BaseReranker
+from reranker.types import RankedDoc
 
 logger = structlog.get_logger(__name__)
 
