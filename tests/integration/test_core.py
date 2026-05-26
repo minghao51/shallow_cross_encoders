@@ -1,6 +1,6 @@
 from reranker.embedder import Embedder
 from reranker.lexical import BM25Engine
-from reranker.protocols import RankedDoc
+from reranker.types import RankedDoc
 
 
 def test_embedder_encodes_and_normalizes() -> None:

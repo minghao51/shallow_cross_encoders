@@ -263,7 +263,7 @@ def test_run_sweep_validates_unknown_variant_key(monkeypatch, tmp_path: Path) ->
     try:
         try:
             benchmark_sweep.run_sweep(config_path)
-            assert False, "Expected ValueError for unknown variant key"
+            raise AssertionError("Expected ValueError for unknown variant key")
         except ValueError as exc:
             assert "Unsupported keys in variant" in str(exc)
     finally:
