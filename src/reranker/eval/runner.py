@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
 
@@ -126,6 +127,287 @@ def _metrics_for_rows(
     }
 
 
+# ---------------------------------------------------------------------------
+# Shared data loaders
+# ---------------------------------------------------------------------------
+
+
+def _load_pairs(
+    data_root: Path,
+    split: str,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Load pairs.jsonl, partition into ensured train + eval rows."""
+    rows = read_jsonl(data_root / "pairs.jsonl")
+    train_rows = partition_rows(
+        rows,
+        key_fn=lambda row: str(row["query"]),
+        split="train",
+        ratios=_split_ratios(),
+    )
+    train_rows = _ensure_train_rows(
+        rows,
+        train_rows,
+        lambda row: 1 if cast(int, row["score"]) >= 2 else 0,
+    )
+    eval_rows = partition_rows(
+        rows,
+        key_fn=lambda row: str(row["query"]),
+        split=split,
+        ratios=_split_ratios(),
+    )
+    if not eval_rows:
+        eval_rows = rows
+    return train_rows, eval_rows
+
+
+def _load_preferences(
+    data_root: Path,
+    split: str,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Load preferences.jsonl, partition into ensured train + eval rows."""
+    rows = read_jsonl(data_root / "preferences.jsonl")
+    train_rows = partition_rows(
+        rows,
+        key_fn=lambda row: str(row["query"]),
+        split="train",
+        ratios=_split_ratios(),
+    )
+    train_rows = _ensure_train_rows(
+        rows,
+        train_rows,
+        lambda row: 1 if row["preferred"] == "A" else 0,
+    )
+    eval_rows = partition_rows(
+        rows,
+        key_fn=lambda row: str(row["query"]),
+        split=split,
+        ratios=_split_ratios(),
+    )
+    if not eval_rows:
+        eval_rows = rows
+    return train_rows, eval_rows
+
+
+# ---------------------------------------------------------------------------
+# Registry
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class _EvalContext:
+    data_root: Path
+    model_root: Path
+    split: str
+
+
+_EVAL_HANDLERS: dict[str, Callable[[_EvalContext], dict[str, float | str]]] = {}
+
+
+def register_eval_handler(name: str) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    def decorator(fn: Callable[..., Any]) -> Callable[..., Any]:
+        _EVAL_HANDLERS[name] = fn
+        return fn
+
+    return decorator
+
+
+# ---------------------------------------------------------------------------
+# Strategy handlers
+# ---------------------------------------------------------------------------
+
+
+@register_eval_handler("hybrid")
+def _eval_hybrid(ctx: _EvalContext) -> dict[str, float | str]:
+    train_rows, eval_rows = _load_pairs(ctx.data_root, ctx.split)
+    binary_labels = [1 if cast(int, row["score"]) >= 2 else 0 for row in train_rows]
+    model_path = _hybrid_model_path(ctx.model_root)
+    if model_path.exists():
+        reranker = HybridFusionReranker.load(model_path, adapters=[KeywordMatchAdapter()])
+    else:
+        reranker = HybridFusionReranker(adapters=[KeywordMatchAdapter()]).fit_pointwise(
+            queries=[str(row["query"]) for row in train_rows],
+            docs=[str(row["doc"]) for row in train_rows],
+            scores=[float(label) for label in binary_labels],
+            use_regression=True,
+        )
+        model_path = ctx.model_root / "hybrid_reranker.pkl"
+        reranker.save(model_path)
+    return {
+        "strategy": "hybrid",
+        "split": ctx.split,
+        **_metrics_for_rows(cast(BaseReranker, reranker), eval_rows),
+    }
+
+
+@register_eval_handler("distilled")
+def _eval_distilled(ctx: _EvalContext) -> dict[str, float | str]:
+    train_rows, eval_rows = _load_preferences(ctx.data_root, ctx.split)
+    labels = [1 if row["preferred"] == "A" else 0 for row in train_rows]
+    model_path = ctx.model_root / "pairwise_ranker.pkl"
+    if model_path.exists():
+        ranker = DistilledPairwiseRanker.load(model_path)
+    else:
+        ranker = DistilledPairwiseRanker().fit(
+            queries=[str(row["query"]) for row in train_rows],
+            doc_as=[str(row["doc_a"]) for row in train_rows],
+            doc_bs=[str(row["doc_b"]) for row in train_rows],
+            labels=labels,
+        )
+        ranker.save(model_path)
+    latency = LatencyTracker()
+    preds: list[int] = []
+    eval_labels = [1 if row["preferred"] == "A" else 0 for row in eval_rows]
+    for row in eval_rows:
+        with latency.measure():
+            prob = ranker.compare(str(row["query"]), str(row["doc_a"]), str(row["doc_b"]))
+        preds.append(1 if prob >= 0.5 else 0)
+    summary = latency.summary()
+    return {
+        "strategy": "distilled",
+        "split": ctx.split,
+        "accuracy": round(accuracy(eval_labels, preds), 4),
+        "latency_p50_ms": round(summary["p50"], 4),
+        "latency_p99_ms": round(summary["p99"], 4),
+    }
+
+
+@register_eval_handler("late_interaction")
+def _eval_late_interaction(ctx: _EvalContext) -> dict[str, float | str]:
+    train_rows, eval_rows = _load_pairs(ctx.data_root, ctx.split)
+    unique_docs = list({str(row["doc"]) for row in train_rows})
+    model_path = ctx.model_root / "late_interaction_reranker.pkl"
+    late_reranker: BaseReranker
+    if model_path.exists():
+        late_reranker = StaticColBERTReranker.load(model_path)
+    else:
+        late_reranker = StaticColBERTReranker()
+        late_reranker.fit(unique_docs)
+        late_reranker.save(model_path)
+    return {
+        "strategy": "late_interaction",
+        "split": ctx.split,
+        **_metrics_for_rows(late_reranker, eval_rows),
+    }
+
+
+@register_eval_handler("binary_reranker")
+def _eval_binary_reranker(ctx: _EvalContext) -> dict[str, float | str]:
+    train_rows, eval_rows = _load_pairs(ctx.data_root, ctx.split)
+    labels = [1 if cast(int, row["score"]) >= 2 else 0 for row in train_rows]
+    model_path = ctx.model_root / "binary_reranker.pkl"
+    binary_reranker_inst = BinaryQuantizedReranker.load(model_path) if model_path.exists() else None
+    if binary_reranker_inst is None:
+        binary_reranker_inst = BinaryQuantizedReranker().fit(
+            queries=[str(row["query"]) for row in train_rows],
+            docs=[str(row["doc"]) for row in train_rows],
+            labels=labels,
+        )
+        binary_reranker_inst.save(model_path)
+    return {
+        "strategy": "binary_reranker",
+        "split": ctx.split,
+        **_metrics_for_rows(binary_reranker_inst, eval_rows),
+    }
+
+
+@register_eval_handler("splade")
+def _eval_splade(ctx: _EvalContext) -> dict[str, float | str]:
+    rows = read_jsonl(ctx.data_root / "pairs.jsonl")
+    eval_rows = partition_rows(
+        rows,
+        key_fn=lambda row: str(row["query"]),
+        split=ctx.split,
+        ratios=_split_ratios(),
+    )
+    if not eval_rows:
+        eval_rows = rows
+    unique_docs = list({str(row["doc"]) for row in eval_rows})
+    model_path = ctx.model_root / "splade_reranker.pkl"
+    splade_reranker: BaseReranker
+    if model_path.exists():
+        splade_reranker = SPLADEReranker.load(model_path)
+    else:
+        splade_reranker = SPLADEReranker()
+        splade_reranker.fit(unique_docs)
+        splade_reranker.save(model_path)
+    return {
+        "strategy": "splade",
+        "split": ctx.split,
+        **_metrics_for_rows(splade_reranker, eval_rows),
+    }
+
+
+@register_eval_handler("multi")
+def _eval_multi(ctx: _EvalContext) -> dict[str, float | str]:
+    train_rows, eval_rows = _load_pairs(ctx.data_root, ctx.split)
+    unique_docs = list({str(row["doc"]) for row in train_rows})
+    bm25_for_multi = BM25Engine()
+    bm25_for_multi.fit(unique_docs)
+    binary_reranker = BinaryQuantizedReranker().fit(
+        queries=[str(row["query"]) for row in train_rows],
+        docs=[str(row["doc"]) for row in train_rows],
+        labels=[1 if cast(int, row["score"]) >= 2 else 0 for row in train_rows],
+    )
+    late_reranker = StaticColBERTReranker()
+    late_reranker.fit(unique_docs)
+
+    rerankers: list[tuple[str, Any]] = [  # type: ignore[type-arg]
+        ("bm25", bm25_for_multi),
+        ("binary", binary_reranker),
+        ("late_interaction", late_reranker),
+    ]
+    multi_reranker = MultiReranker(
+        rerankers=rerankers,
+        config=MultiRerankerConfig(),
+    )
+    return {
+        "strategy": "multi",
+        "split": ctx.split,
+        **_metrics_for_rows(cast(BaseReranker, multi_reranker), eval_rows),
+    }
+
+
+@register_eval_handler("consistency")
+def _eval_consistency(ctx: _EvalContext) -> dict[str, float | str]:
+    rows = read_jsonl(ctx.data_root / "contradictions.jsonl")
+    eval_rows = partition_rows(
+        rows,
+        key_fn=lambda row: str(row["subject"]),
+        split=ctx.split,
+        ratios=_split_ratios(),
+    )
+    if not eval_rows:
+        eval_rows = rows
+    engine = ConsistencyEngine()
+    latency = LatencyTracker()
+    y_true: list[int] = []
+    y_pred: list[int] = []
+    for idx, row in enumerate(eval_rows):
+        docs = [str(row["doc_a"]), str(row["doc_b"])]
+        with latency.measure():
+            contradictions = engine.check(engine.extract_claims(docs, [f"{idx}_a", f"{idx}_b"]))
+        y_true.append(1 if row.get("is_contradiction", True) else 0)
+        y_pred.append(1 if contradictions else 0)
+    summary = latency.summary()
+    positives = [idx for idx, label in enumerate(y_true) if label == 1]
+    negatives = [idx for idx, label in enumerate(y_true) if label == 0]
+    recall = sum(y_pred[idx] for idx in positives) / max(len(positives), 1)
+    false_positive_rate = sum(y_pred[idx] for idx in negatives) / max(len(negatives), 1)
+    return {
+        "strategy": "consistency",
+        "split": ctx.split,
+        "recall": round(recall, 4),
+        "false_positive_rate": round(false_positive_rate, 4),
+        "latency_p50_ms": round(summary["p50"], 4),
+        "latency_p99_ms": round(summary["p99"], 4),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Public API
+# ---------------------------------------------------------------------------
+
+
 def evaluate_strategy(
     strategy: str,
     split: str,
@@ -153,272 +435,8 @@ def evaluate_strategy(
     model_root.mkdir(parents=True, exist_ok=True)
     _ensure_sample_data(data_root)
 
-    if strategy == "hybrid":
-        rows = read_jsonl(data_root / "pairs.jsonl")
-        train_rows = partition_rows(
-            rows,
-            key_fn=lambda row: str(row["query"]),
-            split="train",
-            ratios=_split_ratios(),
-        )
-        train_rows = _ensure_train_rows(
-            rows,
-            train_rows,
-            lambda row: 1 if cast(int, row["score"]) >= 2 else 0,
-        )
-        eval_rows = partition_rows(
-            rows,
-            key_fn=lambda row: str(row["query"]),
-            split=split,
-            ratios=_split_ratios(),
-        )
-        if not eval_rows:
-            eval_rows = rows
-        binary_labels = [1 if cast(int, row["score"]) >= 2 else 0 for row in train_rows]
-        model_path = _hybrid_model_path(model_root)
-        if model_path.exists():
-            reranker = HybridFusionReranker.load(model_path, adapters=[KeywordMatchAdapter()])
-        else:
-            reranker = HybridFusionReranker(adapters=[KeywordMatchAdapter()]).fit_pointwise(
-                queries=[str(row["query"]) for row in train_rows],
-                docs=[str(row["doc"]) for row in train_rows],
-                scores=[float(label) for label in binary_labels],
-                use_regression=True,
-            )
-            model_path = model_root / "hybrid_reranker.pkl"
-            reranker.save(model_path)
-        return {
-            "strategy": "hybrid",
-            "split": split,
-            **_metrics_for_rows(cast(BaseReranker, reranker), eval_rows),
-        }
-
-    if strategy == "distilled":
-        rows = read_jsonl(data_root / "preferences.jsonl")
-        train_rows = partition_rows(
-            rows,
-            key_fn=lambda row: str(row["query"]),
-            split="train",
-            ratios=_split_ratios(),
-        )
-        train_rows = _ensure_train_rows(
-            rows,
-            train_rows,
-            lambda row: 1 if row["preferred"] == "A" else 0,
-        )
-        eval_rows = partition_rows(
-            rows,
-            key_fn=lambda row: str(row["query"]),
-            split=split,
-            ratios=_split_ratios(),
-        )
-        if not eval_rows:
-            eval_rows = rows
-        labels = [1 if row["preferred"] == "A" else 0 for row in train_rows]
-        model_path = model_root / "pairwise_ranker.pkl"
-        if model_path.exists():
-            ranker = DistilledPairwiseRanker.load(model_path)
-        else:
-            ranker = DistilledPairwiseRanker().fit(
-                queries=[str(row["query"]) for row in train_rows],
-                doc_as=[str(row["doc_a"]) for row in train_rows],
-                doc_bs=[str(row["doc_b"]) for row in train_rows],
-                labels=labels,
-            )
-            ranker.save(model_path)
-        latency = LatencyTracker()
-        preds: list[int] = []
-        eval_labels = [1 if row["preferred"] == "A" else 0 for row in eval_rows]
-        for row in eval_rows:
-            with latency.measure():
-                prob = ranker.compare(str(row["query"]), str(row["doc_a"]), str(row["doc_b"]))
-            preds.append(1 if prob >= 0.5 else 0)
-        summary = latency.summary()
-        return {
-            "strategy": "distilled",
-            "split": split,
-            "accuracy": round(accuracy(eval_labels, preds), 4),
-            "latency_p50_ms": round(summary["p50"], 4),
-            "latency_p99_ms": round(summary["p99"], 4),
-        }
-
-    if strategy == "late_interaction":
-        rows = read_jsonl(data_root / "pairs.jsonl")
-        train_rows = partition_rows(
-            rows,
-            key_fn=lambda row: str(row["query"]),
-            split="train",
-            ratios=_split_ratios(),
-        )
-        train_rows = _ensure_train_rows(
-            rows,
-            train_rows,
-            lambda row: 1 if cast(int, row["score"]) >= 2 else 0,
-        )
-        eval_rows = partition_rows(
-            rows,
-            key_fn=lambda row: str(row["query"]),
-            split=split,
-            ratios=_split_ratios(),
-        )
-        if not eval_rows:
-            eval_rows = rows
-        unique_docs = list({str(row["doc"]) for row in train_rows})
-        model_path = model_root / "late_interaction_reranker.pkl"
-        late_reranker: BaseReranker
-        if model_path.exists():
-            late_reranker = StaticColBERTReranker.load(model_path)
-        else:
-            late_reranker = StaticColBERTReranker()
-            late_reranker.fit(unique_docs)
-            late_reranker.save(model_path)
-        return {
-            "strategy": "late_interaction",
-            "split": split,
-            **_metrics_for_rows(late_reranker, eval_rows),
-        }
-
-    if strategy == "binary_reranker":
-        rows = read_jsonl(data_root / "pairs.jsonl")
-        train_rows = partition_rows(
-            rows,
-            key_fn=lambda row: str(row["query"]),
-            split="train",
-            ratios=_split_ratios(),
-        )
-        train_rows = _ensure_train_rows(
-            rows,
-            train_rows,
-            lambda row: 1 if cast(int, row["score"]) >= 2 else 0,
-        )
-        eval_rows = partition_rows(
-            rows,
-            key_fn=lambda row: str(row["query"]),
-            split=split,
-            ratios=_split_ratios(),
-        )
-        if not eval_rows:
-            eval_rows = rows
-        labels = [1 if cast(int, row["score"]) >= 2 else 0 for row in train_rows]
-        model_path = model_root / "binary_reranker.pkl"
-        binary_reranker_inst = (
-            BinaryQuantizedReranker.load(model_path) if model_path.exists() else None
-        )
-        if binary_reranker_inst is None:
-            binary_reranker_inst = BinaryQuantizedReranker().fit(
-                queries=[str(row["query"]) for row in train_rows],
-                docs=[str(row["doc"]) for row in train_rows],
-                labels=labels,
-            )
-            binary_reranker_inst.save(model_path)
-        return {
-            "strategy": "binary_reranker",
-            "split": split,
-            **_metrics_for_rows(binary_reranker_inst, eval_rows),
-        }
-
-    if strategy == "splade":
-        rows = read_jsonl(data_root / "pairs.jsonl")
-        eval_rows = partition_rows(
-            rows,
-            key_fn=lambda row: str(row["query"]),
-            split=split,
-            ratios=_split_ratios(),
-        )
-        if not eval_rows:
-            eval_rows = rows
-        unique_docs = list({str(row["doc"]) for row in eval_rows})
-        model_path = model_root / "splade_reranker.pkl"
-        splade_reranker: BaseReranker
-        if model_path.exists():
-            splade_reranker = SPLADEReranker.load(model_path)
-        else:
-            splade_reranker = SPLADEReranker()
-            splade_reranker.fit(unique_docs)
-            splade_reranker.save(model_path)
-        return {
-            "strategy": "splade",
-            "split": split,
-            **_metrics_for_rows(splade_reranker, eval_rows),
-        }
-
-    if strategy == "multi":
-        rows = read_jsonl(data_root / "pairs.jsonl")
-        train_rows = partition_rows(
-            rows,
-            key_fn=lambda row: str(row["query"]),
-            split="train",
-            ratios=_split_ratios(),
-        )
-        train_rows = _ensure_train_rows(
-            rows,
-            train_rows,
-            lambda row: 1 if cast(int, row["score"]) >= 2 else 0,
-        )
-        eval_rows = partition_rows(
-            rows,
-            key_fn=lambda row: str(row["query"]),
-            split=split,
-            ratios=_split_ratios(),
-        )
-        if not eval_rows:
-            eval_rows = rows
-
-        unique_docs = list({str(row["doc"]) for row in train_rows})
-        bm25_for_multi = BM25Engine()
-        bm25_for_multi.fit(unique_docs)
-        binary_reranker = BinaryQuantizedReranker().fit(
-            queries=[str(row["query"]) for row in train_rows],
-            docs=[str(row["doc"]) for row in train_rows],
-            labels=[1 if cast(int, row["score"]) >= 2 else 0 for row in train_rows],
-        )
-        late_reranker = StaticColBERTReranker()
-        late_reranker.fit(unique_docs)
-
-        rerankers: list[tuple[str, Any]] = [  # type: ignore[type-arg]
-            ("bm25", bm25_for_multi),
-            ("binary", binary_reranker),
-            ("late_interaction", late_reranker),
-        ]
-        multi_reranker = MultiReranker(
-            rerankers=rerankers,
-            config=MultiRerankerConfig(),
-        )
-        return {
-            "strategy": "multi",
-            "split": split,
-            **_metrics_for_rows(cast(BaseReranker, multi_reranker), eval_rows),
-        }
-
-    rows = read_jsonl(data_root / "contradictions.jsonl")
-    eval_rows = partition_rows(
-        rows,
-        key_fn=lambda row: str(row["subject"]),
-        split=split,
-        ratios=_split_ratios(),
-    )
-    if not eval_rows:
-        eval_rows = rows
-    engine = ConsistencyEngine()
-    latency = LatencyTracker()
-    y_true: list[int] = []
-    y_pred: list[int] = []
-    for idx, row in enumerate(eval_rows):
-        docs = [str(row["doc_a"]), str(row["doc_b"])]
-        with latency.measure():
-            contradictions = engine.check(engine.extract_claims(docs, [f"{idx}_a", f"{idx}_b"]))
-        y_true.append(1 if row.get("is_contradiction", True) else 0)
-        y_pred.append(1 if contradictions else 0)
-    summary = latency.summary()
-    positives = [idx for idx, label in enumerate(y_true) if label == 1]
-    negatives = [idx for idx, label in enumerate(y_true) if label == 0]
-    recall = sum(y_pred[idx] for idx in positives) / max(len(positives), 1)
-    false_positive_rate = sum(y_pred[idx] for idx in negatives) / max(len(negatives), 1)
-    return {
-        "strategy": "consistency",
-        "split": split,
-        "recall": round(recall, 4),
-        "false_positive_rate": round(false_positive_rate, 4),
-        "latency_p50_ms": round(summary["p50"], 4),
-        "latency_p99_ms": round(summary["p99"], 4),
-    }
+    handler = _EVAL_HANDLERS.get(strategy)
+    if handler is None:
+        raise ValueError(f"Unknown strategy: {strategy!r}. Available: {sorted(_EVAL_HANDLERS)}")
+    ctx = _EvalContext(data_root=data_root, model_root=model_root, split=split)
+    return handler(ctx)
