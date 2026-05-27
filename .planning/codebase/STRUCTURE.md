@@ -36,8 +36,8 @@ shallow_cross_encoders/
 
 **src/reranker/data/:**
 - Purpose: Dataset loaders and synthetic data generation
-- Contains: BEIR loaders, OpenRouter/LiteLLM clients, generators (pairs, preferences, contradictions)
-- Key files: `client.py`, `litellm_client.py`, `custom_beir.py`
+- Contains: BEIR loaders, LLM clients (OpenRouter, LiteLLM, GenAI), generators (pairs, preferences, contradictions)
+- Key files: `client.py`, `litellm_client.py`, `genai_client.py`, `custom_beir.py`
 
 **src/reranker/eval/:**
 - Purpose: Evaluation framework and metrics

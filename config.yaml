@@ -1,0 +1,141 @@
+llm:
+  default_provider: "genai"  # "openrouter" | "litellm" | "genai"
+  # Each consumer module can override this with its own llm_provider field.
+
+openrouter:
+  model: "openrouter/@preset/basic"
+  base_url: "https://openrouter.ai/api/v1"
+  app_name: "shallow-cross-encoders"
+  timeout_seconds: 30.0
+
+google_genai:
+  model: "gemma-4-31b-it"
+  temperature: 0.2
+  max_retries: 3
+
+litellm:
+  model: "openrouter/google/gemma-4-31b-it"
+
+paths:
+  raw_data_dir: "data/raw"
+  processed_data_dir: "data/processed"
+  model_dir: "data/models"
+  api_cost_log: "data/logs/api_costs.jsonl"
+
+embedder:
+  model_name: "minishlab/potion-base-32M"
+  dimension: 256
+  normalize: true
+  cache_max_size: 10000
+  cache_ttl_seconds: 3600
+
+synthetic_data:
+  seed: 42
+  teacher_batch_size: 20
+  teacher_max_workers: 4
+  stream_chunk_size: 100
+  pair_count: 2000
+  preference_count: 1500
+  contradiction_count: 500
+  control_count: 200
+  # llm_provider not set → inherits from llm.default_provider
+  # to override: llm_provider: "genai"
+
+hybrid:
+  random_state: 42
+  xgb_n_estimators: 120
+  xgb_max_depth: 4
+  xgb_learning_rate: 0.08
+  xgb_subsample: 0.9
+  xgb_colsample_bytree: 0.9
+  weight_sem_score: 0.25
+  weight_bm25_score: 0.20
+  weight_token_overlap: 0.15
+  weight_query_coverage: 0.20
+  weight_shared_char: 0.10
+  weight_exact_phrase: 0.10
+  weight_keyword_hit: 0.05
+  ensemble_mode: "xgboost"
+  rrf_k: 60
+  weighting_mode: "static"
+
+distilled:
+  random_state: 42
+  logistic_c: 1.0
+  logistic_max_iter: 500
+  full_tournament_max_docs: 50
+  loss_type: "pairwise"
+  cross_encoder_model: "cross-encoder/ms-marco-MiniLM-L-6-v2"
+
+late_interaction:
+  top_k_tokens: 128
+  use_salience: true
+  quantization: "none"
+
+binary_reranker:
+  hamming_top_k: 500
+  bilinear_top_k: 50
+  random_state: 42
+
+splade:
+  model_name: "naver/splade-cocondenser-ensembledistil"
+  top_k_terms: 128
+
+meta_router:
+  enabled: false
+  model_type: "decision_tree"
+  n_categories: 3
+  min_samples_leaf: 5
+
+lsh:
+  enabled: false
+  ngram_size: 3
+  num_perm: 128
+  threshold: 0.5
+
+active_distillation:
+  enabled: false
+  mode: "oneshot"            # "oneshot" | "iterative"
+  mining_strategy: "contested"  # "contested" | "max_entropy" | "diversity"
+  active_iterations: 3
+  uncertainty_low: 0.4
+  uncertainty_high: 0.6
+  contested_rank_gap: 50
+  diversity_clusters: 10
+  # llm_provider not set → inherits from llm.default_provider
+  # to override: llm_provider: "litellm"
+  batch_size: 20
+
+pipeline:
+  default_stage_top_k: 200
+
+cascade:
+  confidence_threshold: 0.6
+  fallback_strategy: "flashrank"
+
+consistency:
+  sim_threshold: 0.95
+  value_tolerance: 0.01
+
+embedding_cache:
+  max_size: 50000
+  ttl_seconds: 3600
+
+roi:
+  llm_cost_per_judgment_usd: 0.0004
+  projected_monthly_queries: 10000
+
+benchmark:
+  sample_doc: "This is a sample document for latency measurement."
+  sample_size: 100
+  candidate_count: 20
+  embedding_target_ms_per_doc: 5.0
+  rerank_target_ms_per_query: 50.0
+  consistency_claim_count: 1000
+  consistency_target_ms_per_1000_claims: 50.0
+
+eval:
+  default_split: "test"
+  train_ratio: 0.7
+  validation_ratio: 0.15
+  test_ratio: 0.15

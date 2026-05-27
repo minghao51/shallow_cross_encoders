@@ -2,11 +2,11 @@
 
 ## LLM & AI Services
 
-### OpenRouter (via LiteLLM)
+### OpenRouter (via httpx)
 - **Purpose**: Synthetic training data generation when labeled data unavailable
 - **Client**: src/reranker/data/client.py (OpenRouterClient)
 - **API**: https://openrouter.ai/api/v1
-- **Library**: litellm
+- **Library**: httpx (raw API calls)
 - **Usage**:
   - Generate query-document pairs
   - Generate preference rankings
@@ -17,6 +17,31 @@
 - **Rate Limiting**: Batch processing (configurable batch size, max workers)
 - **Fallback**: None (required for teacher mode)
 - **Mock Support**: Yes (pytest mocks for testing)
+
+### LiteLLM
+- **Purpose**: Active distillation teacher model completions
+- **Client**: src/reranker/data/litellm_client.py (LiteLLMClient)
+- **Library**: litellm
+- **Usage**: Teacher labeling in active distillation loop
+- **Auth**: LITELLM_API_KEY (environment variable)
+- **Default Model**: openrouter/openai/gpt-4o-mini
+- **Provider Key**: "litellm" in config
+
+### Google GenAI (Gemini)
+- **Purpose**: Alternative LLM provider for synthetic data generation and active distillation
+- **Client**: src/reranker/data/genai_client.py (GenAIClient)
+- **SDK**: google-genai (client.models.generate_content)
+- **JSON Mode**: response_mime_type="application/json" via GenerateContentConfig
+- **Auth**: GOOGLE_GENAI_API_KEY (environment variable)
+- **Default Model**: gemini-2.5-flash
+- **Provider Key**: "genai" in config
+
+### Unified LLM Client
+- **Protocol**: LLMClient (runtime_checkable, .enabled + .complete_json)
+- **Type**: LLMClientType = OpenRouterClient | LiteLLMClient | GenAIClient
+- **Factory**: create_llm_client(provider) in src/reranker/data/__init__.py
+- **Config**: llm_provider field on each consumer's settings (synthetic_data.llm_provider, active_distillation.llm_provider)
+- **All three clients share the same complete_json(prompt) -> (dict, metadata) interface
 
 ## Model Providers
 
