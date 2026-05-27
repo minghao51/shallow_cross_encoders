@@ -9,9 +9,9 @@ from reranker.embedder import Embedder
 
 
 def test_settings_reads_env_overrides(monkeypatch) -> None:
-    monkeypatch.setenv("RERANKER_OPENROUTER_MODEL", "openai/gpt-4.1-mini")
-    monkeypatch.setenv("RERANKER_SYNTHETIC_DATA_SEED", "99")
-    monkeypatch.setenv("RERANKER_SYNTHETIC_DATA_PAIR_COUNT", "77")
+    monkeypatch.setenv("RERANKER_OPENROUTER__MODEL", "openai/gpt-4.1-mini")
+    monkeypatch.setenv("RERANKER_SYNTHETIC_DATA__SEED", "99")
+    monkeypatch.setenv("RERANKER_SYNTHETIC_DATA__PAIR_COUNT", "77")
     reset_settings_cache()
 
     settings = get_settings()
@@ -24,7 +24,7 @@ def test_settings_reads_env_overrides(monkeypatch) -> None:
 
 
 def test_embedder_uses_config_defaults(monkeypatch) -> None:
-    monkeypatch.setenv("RERANKER_EMBEDDER_MODEL_NAME", "custom/local-model")
+    monkeypatch.setenv("RERANKER_EMBEDDER__MODEL_NAME", "custom/local-model")
     reset_settings_cache()
 
     embedder = Embedder()

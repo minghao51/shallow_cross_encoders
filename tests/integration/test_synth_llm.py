@@ -32,6 +32,7 @@ class TestOpenRouterClient:
         assert client.enabled is True
 
         monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+        monkeypatch.delenv("RERANKER_OPENROUTER__API_KEY", raising=False)
         from reranker.config import reset_settings_cache
 
         reset_settings_cache()
@@ -242,7 +243,11 @@ class TestOpenRouterClient:
         }
 
         mock_client = Mock()
-        mock_client.post.side_effect = [strict_failure, relaxed_success]
+        mock_client.post.side_effect = [
+            strict_failure,
+            strict_failure,
+            relaxed_success,
+        ]
 
         _set_test_client(mock_client)
         try:
@@ -286,6 +291,7 @@ class TestSyntheticDataGeneratorLLM:
     def test_teacher_mode_requires_api_key(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Teacher mode should raise error without API key."""
         monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+        monkeypatch.delenv("RERANKER_OPENROUTER__API_KEY", raising=False)
         from reranker.config import reset_settings_cache
 
         reset_settings_cache()
@@ -535,6 +541,7 @@ class TestSyntheticDataGeneratorOffline:
 
         reset_settings_cache()
         monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+        monkeypatch.delenv("RERANKER_OPENROUTER__API_KEY", raising=False)
         reset_settings_cache()
 
         client_with_key = OpenRouterClient(api_key="test-key")

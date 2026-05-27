@@ -44,7 +44,7 @@ def test_settings_from_dict_applies_variant_weighting_mode(monkeypatch, tmp_path
         encoding="utf-8",
     )
 
-    monkeypatch.setenv("RERANKER_RAW_DATA_DIR", str(raw_dir))
+    monkeypatch.setenv("RERANKER_PATHS__RAW_DATA_DIR", str(raw_dir))
     reset_settings_cache()
 
     try:
@@ -82,7 +82,7 @@ def test_run_sweep_cli_executable(monkeypatch, tmp_path: Path) -> None:
         encoding="utf-8",
     )
 
-    monkeypatch.setenv("RERANKER_RAW_DATA_DIR", str(raw_dir))
+    monkeypatch.setenv("RERANKER_PATHS__RAW_DATA_DIR", str(raw_dir))
 
     project_root = Path(__file__).resolve().parents[2]
     result = subprocess.run(
@@ -130,7 +130,7 @@ def test_run_sweep_reports_variant_specific_metrics(monkeypatch, tmp_path: Path)
         encoding="utf-8",
     )
 
-    monkeypatch.setenv("RERANKER_RAW_DATA_DIR", str(raw_dir))
+    monkeypatch.setenv("RERANKER_PATHS__RAW_DATA_DIR", str(raw_dir))
     reset_settings_cache()
     benchmark_sweep = _load_benchmark_sweep_module()
 
@@ -200,7 +200,7 @@ def test_run_sweep_rebuilds_embedder_after_each_variant_override(
         encoding="utf-8",
     )
 
-    monkeypatch.setenv("RERANKER_RAW_DATA_DIR", str(raw_dir))
+    monkeypatch.setenv("RERANKER_PATHS__RAW_DATA_DIR", str(raw_dir))
     reset_settings_cache()
     benchmark_sweep = _load_benchmark_sweep_module()
     embedder_models: list[str] = []
@@ -257,7 +257,7 @@ def test_run_sweep_validates_unknown_variant_key(monkeypatch, tmp_path: Path) ->
         ),
         encoding="utf-8",
     )
-    monkeypatch.setenv("RERANKER_RAW_DATA_DIR", str(raw_dir))
+    monkeypatch.setenv("RERANKER_PATHS__RAW_DATA_DIR", str(raw_dir))
     benchmark_sweep = _load_benchmark_sweep_module()
 
     try:
@@ -317,7 +317,7 @@ def test_run_sweep_smoke_binary_cascade_distilled_pipeline(monkeypatch, tmp_path
         encoding="utf-8",
     )
 
-    monkeypatch.setenv("RERANKER_RAW_DATA_DIR", str(raw_dir))
+    monkeypatch.setenv("RERANKER_PATHS__RAW_DATA_DIR", str(raw_dir))
     benchmark_sweep = _load_benchmark_sweep_module()
 
     class StubEmbedder:

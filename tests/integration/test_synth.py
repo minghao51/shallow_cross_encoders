@@ -82,6 +82,7 @@ def test_teacher_generation_validates_payload_and_logs_usage(tmp_path: Path) -> 
 
 def test_teacher_mode_requires_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    monkeypatch.delenv("RERANKER_OPENROUTER__API_KEY", raising=False)
     from reranker.config import reset_settings_cache
 
     reset_settings_cache()
