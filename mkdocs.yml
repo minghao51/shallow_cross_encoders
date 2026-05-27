@@ -40,6 +40,16 @@ theme:
 
 plugins:
   - search
+  - mkdocs-jupyter:
+      execute: false
+      include: ["*.ipynb"]
+      show_input: true
+      no_prompt: false
+      allow_errors: false
+      include_source: true
+      highlight_extra_classes: "jupyter-code-cell"
+      cache: true
+      cache_dir: .cache/mkdocs-jupyter
   - mkdocstrings:
       handlers:
         python:
@@ -85,18 +95,18 @@ nav:
     - Heuristics: api/heuristics.md
   - Notebooks:
     - Overview: notebooks/index.md
-    - Architecture & Live Reranking: notebooks/01_interactive_reranking.md
-    - Feature Engineering Deep Dive: notebooks/02_consistency_engine_demo.md
-    - Pipeline & Composition Patterns: notebooks/03_feature_analysis_dashboard.md
-    - Consistency Engine: notebooks/04_methods_atlas.md
-    - Benchmark Analysis: notebooks/05_benchmark_analysis.md
+    - Architecture & Live Reranking: notebooks/01_interactive_reranking.ipynb
+    - Feature Engineering Deep Dive: notebooks/02_feature_deep_dive.ipynb
+    - Pipeline & Composition Patterns: notebooks/03_pipeline_patterns.ipynb
+    - Consistency Engine: notebooks/04_consistency_engine.ipynb
+    - Benchmark Analysis: notebooks/05_benchmark_analysis.ipynb
   - About: about.md
 
 extra_css:
-  - stylesheets/notebooks.css
+  - stylesheets/jupyter-fix.css
 
 extra_javascript:
-  - javascripts/notebooks.js
+  - javascripts/jupyter-theme-bridge.js
 
 markdown_extensions:
   - admonition
