@@ -9,7 +9,7 @@ from typing import Any, Protocol, TypedDict
 
 from pydantic import BaseModel
 
-from reranker.data.client import OpenRouterClient
+from reranker.data import LLMClientType
 
 JsonDict = dict[str, Any]
 
@@ -77,7 +77,7 @@ class GeneratorState(Protocol):
     """Protocol describing the minimal state needed by generator helpers."""
 
     seed: int
-    client: OpenRouterClient
+    client: LLMClientType
     log_path: str | Path
     random: random.Random
 

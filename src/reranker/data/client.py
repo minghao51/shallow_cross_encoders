@@ -18,7 +18,7 @@ from tenacity import (
 
 from reranker.config import get_settings
 
-DEFAULT_FALLBACK_OPENROUTER_MODEL = "openai/gpt-4o-mini"
+DEFAULT_FALLBACK_OPENROUTER_MODEL = "google/gemini-2.5-flash"
 
 _http_clients: dict[tuple[str, float], httpx.Client] = {}
 _test_client: httpx.Client | None = None
@@ -66,7 +66,8 @@ class OpenRouterClient:
 
     def __post_init__(self) -> None:
         if self.api_key is None:
-            self.api_key = get_settings().openrouter.api_key
+            key = get_settings().openrouter.api_key
+            self.api_key = key.get_secret_value() if key is not None else None
 
     @property
     def enabled(self) -> bool:

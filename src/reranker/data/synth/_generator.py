@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any, cast
 
 from reranker.config import get_settings
-from reranker.data.client import OpenRouterClient
+from reranker.data import LLMClientType, create_llm_client
 from reranker.data.synth import generator
 from reranker.data.synth.generator.types import BatchGenerator, JsonDict
 
@@ -23,7 +23,9 @@ class SyntheticDataGenerator:
     """
 
     seed: int = field(default_factory=lambda: get_settings().synthetic_data.seed)
-    client: OpenRouterClient = field(default_factory=OpenRouterClient)
+    client: LLMClientType = field(
+        default_factory=lambda: create_llm_client(get_settings().synthetic_data.llm_provider)
+    )
     log_path: str | Path = field(default_factory=lambda: get_settings().paths.api_cost_log)
     random: random.Random = field(init=False, repr=False)
 

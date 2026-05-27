@@ -1,4 +1,4 @@
-"""LiteLLM client wrapper for active distillation teacher calls."""
+"""LiteLLM client wrapper for teacher model completions with JSON mode."""
 
 from __future__ import annotations
 
@@ -25,7 +25,8 @@ def _get_litellm() -> Any:
             _litellm_module = litellm
         except ImportError as exc:
             raise ImportError(
-                "litellm is required for active distillation. Install with: uv pip install litellm"
+                "litellm is required for the litellm LLM provider. "
+                "Install with: uv pip install litellm"
             ) from exc
     return _litellm_module
 
@@ -38,15 +39,13 @@ class LiteLLMClient:
     extraction for cost tracking.
     """
 
-    model: str = field(default_factory=lambda: get_settings().active_distillation.litellm_model)
+    model: str = field(default_factory=lambda: get_settings().litellm.model)
     api_key: str | None = None
-    batch_size: int = field(
-        default_factory=lambda: get_settings().active_distillation.litellm_batch_size
-    )
 
     def __post_init__(self) -> None:
         if self.api_key is None:
-            self.api_key = get_settings().active_distillation.litellm_api_key
+            key = get_settings().litellm.api_key
+            self.api_key = key.get_secret_value() if key is not None else None
 
     @property
     def enabled(self) -> bool:

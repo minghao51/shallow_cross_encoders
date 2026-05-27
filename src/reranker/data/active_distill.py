@@ -16,7 +16,7 @@ import structlog
 from sklearn.cluster import MiniBatchKMeans
 
 from reranker.config import get_settings
-from reranker.data.litellm_client import LiteLLMClient
+from reranker.data import LLMClientType, create_llm_client
 from reranker.embedder import Embedder
 from reranker.lexical import BM25Engine
 from reranker.utils import append_jsonl
@@ -66,11 +66,11 @@ class ActiveDistiller:
     def __init__(
         self,
         embedder: Embedder | None = None,
-        client: LiteLLMClient | None = None,
+        client: LLMClientType | None = None,
     ) -> None:
         settings = get_settings().active_distillation
         self.embedder = embedder or Embedder()
-        self.client = client or LiteLLMClient()
+        self.client = client or create_llm_client(settings.llm_provider)
         self.mining_strategy = settings.mining_strategy
         self.active_iterations = settings.active_iterations
         self.uncertainty_low = settings.uncertainty_low

@@ -1,11 +1,18 @@
 """Configuration management for the reranker package.
 
 All settings are defined as frozen Pydantic models with environment variable
-overrides. The central :class:`Settings` model composes all sub-configurations
-and is accessed via :func:`get_settings`.
+overrides via pydantic-settings. The central :class:`Settings` model composes
+all sub-configurations and is accessed via :func:`get_settings`.
 
-Settings can be overridden at runtime via :func:`apply_settings_override`
-or loaded from YAML files via :func:`settings_from_yaml`.
+Settings resolution priority (highest first):
+  1. Init arguments
+  2. Environment variables (RERANKER_<SECTION>__<KEY>)
+  3. .env file (dotenvx encrypted)
+  4. config.yaml
+  5. Pydantic defaults
+
+Legacy env var names (OPENROUTER_API_KEY, LITELLM_API_KEY) are also supported
+for backward compatibility.
 """
 
 from __future__ import annotations
@@ -16,36 +23,17 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, SecretStr, field_validator, model_validator
+from pydantic_settings import (
+    BaseSettings,
+    PydanticBaseSettingsSource,
+    SettingsConfigDict,
+    YamlConfigSettingsSource,
+)
 
 _settings_override: contextvars.ContextVar[Settings | None] = contextvars.ContextVar(
     "_settings_override", default=None
 )
-
-
-def _compute_env_overrides(section: str, cls: type[BaseModel]) -> dict[str, Any]:
-    """Read env-var overrides for a settings class using naming convention.
-
-    Env vars follow the pattern ``RERANKER_<SECTION>_<KEY>``, e.g.
-    ``RERANKER_EMBEDDER_MODEL_NAME`` overrides ``EmbedderSettings.model_name``.
-    """
-    overrides: dict[str, Any] = {}
-    prefix = f"RERANKER_{section.upper()}_"
-    for field_name, field_info in cls.model_fields.items():
-        env_name = f"{prefix}{field_name.upper()}"
-        value = os.getenv(env_name)
-        if value is None:
-            continue
-        annotation = field_info.annotation
-        if annotation is bool:
-            overrides[field_name] = value.strip().lower() in {"1", "true", "yes", "on"}
-        elif annotation is int:
-            overrides[field_name] = int(value)
-        elif annotation is float:
-            overrides[field_name] = float(value)
-        else:
-            overrides[field_name] = value
-    return overrides
 
 
 class OpenRouterSettings(BaseModel):
@@ -53,8 +41,8 @@ class OpenRouterSettings(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
-    api_key: str | None = None
-    model: str = "openai/gpt-4o-mini"
+    api_key: SecretStr | None = None
+    model: str = "openrouter/@preset/basic"
     base_url: str = "https://openrouter.ai/api/v1"
     app_name: str = "shallow-cross-encoders"
     timeout_seconds: float = 30.0
@@ -83,6 +71,42 @@ class EmbedderSettings(BaseModel):
     cache_ttl_seconds: int = 3600
 
 
+class GoogleGenAISettings(BaseModel):
+    """Google GenAI (Gemini) LLM provider configuration."""
+
+    model_config = ConfigDict(frozen=True)
+
+    api_key: SecretStr | None = None
+    model: str = "gemma-4-31b-it"
+    temperature: float = 0.2
+    max_retries: int = 3
+
+
+class LiteLMSSettings(BaseModel):
+    """LiteLLM provider configuration.
+
+    LiteLLM routes requests to multiple providers via its prefix system
+    (e.g. "gemini/gemini-2.5-flash", "openai/gpt-4", "vertex_ai/gemini-pro").
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    api_key: SecretStr | None = None
+    model: str = "gemini/gemini-2.5-flash"
+
+
+class LLMSettings(BaseModel):
+    """Top-level LLM provider selection.
+
+    Each consumer module can override ``default_provider`` by setting its
+    own ``llm_provider`` field.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    default_provider: str = "genai"
+
+
 class SyntheticDataSettings(BaseModel):
     """Controls for LLM-based synthetic data generation."""
 
@@ -96,6 +120,7 @@ class SyntheticDataSettings(BaseModel):
     preference_count: int = 1500
     contradiction_count: int = 500
     control_count: int = 200
+    llm_provider: str | None = None  # None → inherits from llm.default_provider
 
 
 class HybridSettings(BaseModel):
@@ -198,9 +223,8 @@ class ActiveDistillationSettings(BaseModel):
     uncertainty_high: float = 0.6
     contested_rank_gap: int = 50
     diversity_clusters: int = 10
-    litellm_model: str = "openrouter/openai/gpt-4o-mini"
-    litellm_api_key: str | None = None
-    litellm_batch_size: int = 20
+    llm_provider: str | None = None  # None → inherits from llm.default_provider
+    batch_size: int = 20
 
 
 class PipelineSettings(BaseModel):
@@ -279,72 +303,96 @@ class EvalSettings(BaseModel):
         return v
 
 
-class Settings(BaseModel):
-    """Root configuration composing all sub-configurations."""
+class Settings(BaseSettings):
+    """Root configuration composing all sub-configurations.
 
-    model_config = ConfigDict(frozen=True)
+    Settings are resolved from multiple sources in priority order:
+    init args > env vars > .env file > config.yaml > Python defaults.
+    """
 
-    openrouter: OpenRouterSettings
-    paths: PathSettings
-    embedder: EmbedderSettings
-    synthetic_data: SyntheticDataSettings
-    hybrid: HybridSettings
-    distilled: DistilledSettings
-    late_interaction: LateInteractionSettings
-    binary_reranker: BinaryRerankerSettings
-    pipeline: PipelineSettings
-    cascade: CascadeSettings
-    consistency: ConsistencySettings
-    embedding_cache: EmbeddingCacheSettings
-    roi: RoiSettings
-    benchmark: BenchmarkSettings
-    eval: EvalSettings
-    splade: SPLADESettings
-    meta_router: MetaRouterSettings
-    lsh: LSHSettings
-    active_distillation: ActiveDistillationSettings
+    model_config = SettingsConfigDict(
+        env_prefix="RERANKER_",
+        env_nested_delimiter="__",
+        yaml_file="config.yaml",
+        extra="ignore",
+        frozen=True,
+    )
 
+    openrouter: OpenRouterSettings = OpenRouterSettings()
+    google_genai: GoogleGenAISettings = GoogleGenAISettings()
+    litellm: LiteLMSSettings = LiteLMSSettings()
+    llm: LLMSettings = LLMSettings()
+    paths: PathSettings = PathSettings()
+    embedder: EmbedderSettings = EmbedderSettings()
+    synthetic_data: SyntheticDataSettings = SyntheticDataSettings()
+    hybrid: HybridSettings = HybridSettings()
+    distilled: DistilledSettings = DistilledSettings()
+    late_interaction: LateInteractionSettings = LateInteractionSettings()
+    binary_reranker: BinaryRerankerSettings = BinaryRerankerSettings()
+    pipeline: PipelineSettings = PipelineSettings()
+    cascade: CascadeSettings = CascadeSettings()
+    consistency: ConsistencySettings = ConsistencySettings()
+    embedding_cache: EmbeddingCacheSettings = EmbeddingCacheSettings()
+    roi: RoiSettings = RoiSettings()
+    benchmark: BenchmarkSettings = BenchmarkSettings()
+    eval: EvalSettings = EvalSettings()
+    splade: SPLADESettings = SPLADESettings()
+    meta_router: MetaRouterSettings = MetaRouterSettings()
+    lsh: LSHSettings = LSHSettings()
+    active_distillation: ActiveDistillationSettings = ActiveDistillationSettings()
 
-_SUB_SETTINGS_CLASSES: dict[str, type[BaseModel]] = {
-    "openrouter": OpenRouterSettings,
-    "paths": PathSettings,
-    "embedder": EmbedderSettings,
-    "synthetic_data": SyntheticDataSettings,
-    "hybrid": HybridSettings,
-    "distilled": DistilledSettings,
-    "late_interaction": LateInteractionSettings,
-    "binary_reranker": BinaryRerankerSettings,
-    "pipeline": PipelineSettings,
-    "cascade": CascadeSettings,
-    "consistency": ConsistencySettings,
-    "embedding_cache": EmbeddingCacheSettings,
-    "roi": RoiSettings,
-    "benchmark": BenchmarkSettings,
-    "eval": EvalSettings,
-    "splade": SPLADESettings,
-    "meta_router": MetaRouterSettings,
-    "lsh": LSHSettings,
-    "active_distillation": ActiveDistillationSettings,
-}
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ) -> tuple[PydanticBaseSettingsSource, ...]:
+        return (
+            init_settings,
+            env_settings,
+            dotenv_settings,
+            YamlConfigSettingsSource(settings_cls),
+        )
 
-
-def _build_sub_settings(name: str) -> BaseModel:
-    """Build a sub-settings instance with env-var overrides applied."""
-    cls = _SUB_SETTINGS_CLASSES[name]
-    overrides = _compute_env_overrides(name, cls)
-    if name == "openrouter":
-        overrides.setdefault("api_key", os.getenv("OPENROUTER_API_KEY"))
-    if name == "active_distillation":
-        overrides.setdefault("litellm_api_key", os.getenv("LITELLM_API_KEY"))
-    if name == "paths":
-        overrides = {k: Path(v) if k != "api_cost_log" else Path(v) for k, v in overrides.items()}
-    return cls(**overrides)
+    @model_validator(mode="before")
+    @classmethod
+    def inject_legacy_env_vars(cls, data: Any) -> Any:
+        """Support legacy env var names (OPENROUTER_API_KEY, LITELLM_API_KEY)."""
+        if not isinstance(data, dict):
+            return data
+        openrouter = data.get("openrouter", {})
+        if isinstance(openrouter, dict) and not openrouter.get("api_key"):
+            val = os.getenv("OPENROUTER_API_KEY")
+            if val:
+                openrouter["api_key"] = val
+                data["openrouter"] = openrouter
+        ad = data.get("active_distillation", {})
+        if isinstance(ad, dict) and not ad.get("litellm_api_key"):
+            val = os.getenv("LITELLM_API_KEY")
+            if val:
+                ad["litellm_api_key"] = val
+                data["active_distillation"] = ad
+        gg = data.get("google_genai", {})
+        if isinstance(gg, dict) and not gg.get("api_key"):
+            val = os.getenv("GOOGLE_GENAI_API_KEY")
+            if val:
+                gg["api_key"] = val
+                data["google_genai"] = gg
+        lt = data.get("litellm", {})
+        if isinstance(lt, dict) and not lt.get("api_key"):
+            val = os.getenv("LITELLM_API_KEY")
+            if val:
+                lt["api_key"] = val
+                data["litellm"] = lt
+        return data
 
 
 @lru_cache(maxsize=1)
 def _cached_settings() -> Settings:
-    kwargs = {name: _build_sub_settings(name) for name in _SUB_SETTINGS_CLASSES}
-    return Settings(**kwargs)  # type: ignore[arg-type]
+    return Settings()
 
 
 def get_settings() -> Settings:
