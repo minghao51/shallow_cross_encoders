@@ -136,8 +136,20 @@ class HybridPersistence:
         if isinstance(router_data, MetaRouter):
             instance._router = router_data
         elif isinstance(router_data, bytes):
+            import os
             import pickle
 
+            allow_legacy_pickle = os.getenv("RERANKER_ALLOW_LEGACY_PICKLE", "").strip().lower() in {
+                "1",
+                "true",
+                "yes",
+                "on",
+            }
+            if not allow_legacy_pickle:
+                raise RuntimeError(
+                    "Legacy byte-encoded MetaRouter loading is disabled by default. "
+                    "Set RERANKER_ALLOW_LEGACY_PICKLE=1 to load legacy artifacts."
+                )
             warnings.warn(
                 "Loading legacy byte-encoded MetaRouter payload. Re-save model to migrate.",
                 UserWarning,

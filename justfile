@@ -123,3 +123,22 @@ changelog-draft:
 # Run pre-commit on all files
 pre-commit:
     uv run pre-commit run --all-files
+
+# Execute all notebooks (requires --extra dev)
+notebooks:
+    @for nb in docs/notebooks/*.ipynb; do \
+        echo "=== $$(basename $$nb) ==="; \
+        uv run jupyter nbconvert --to notebook --execute \
+            --ExecutePreprocessor.timeout=180 \
+            --ExecutePreprocessor.allow_errors=True \
+            --ClearOutputPreprocessor.enabled=True \
+            "$$nb" --output "$$nb"; \
+    done
+
+# Execute a single notebook
+notebook notebook:
+    uv run jupyter nbconvert --to notebook --execute \
+        --ExecutePreprocessor.timeout=180 \
+        --ExecutePreprocessor.allow_errors=True \
+        --ClearOutputPreprocessor.enabled=True \
+        "{{notebook}}" --output "{{notebook}}"

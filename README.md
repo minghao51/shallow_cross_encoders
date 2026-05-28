@@ -21,13 +21,10 @@ CPU-native reranking and consistency-checking pipeline. See [`docs/technical-roa
 ## Quickstart
 
 ```bash
-# Base install (all lightweight deps included)
-uv sync
-uv run scripts/materialize_demo_data.py
-uv run pytest
-
-# With dev tools (linting, type-checking, notebooks)
+# Install with dev tools (required for pytest, ruff, mypy)
 uv sync --extra dev
+uv run scripts/materialize_demo_data.py
+uv run -- python -m pytest
 ```
 
 ## Optional Features

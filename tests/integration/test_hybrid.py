@@ -84,7 +84,7 @@ def test_hybrid_pickle_round_trip_preserves_artifact_metadata(tmp_path: Path) ->
     assert isinstance(weights.get("router"), MetaRouter) or weights.get("router") is None
 
 
-def test_hybrid_load_rejects_legacy_router_bytes_with_wrong_type(tmp_path: Path) -> None:
+def test_hybrid_load_rejects_legacy_router_bytes_by_default(tmp_path: Path) -> None:
     model_path = tmp_path / "hybrid_legacy.pkl"
     reranker = HybridFusionReranker()
     reranker.is_fitted = True
@@ -98,6 +98,27 @@ def test_hybrid_load_rejects_legacy_router_bytes_with_wrong_type(tmp_path: Path)
         weights={"model": reranker.model, "router": pickle.dumps({"legacy": "router"})},
     )
 
+    with pytest.raises(RuntimeError, match="Legacy byte-encoded MetaRouter loading is disabled"):
+        HybridFusionReranker.load(model_path)
+
+
+def test_hybrid_load_legacy_router_bytes_with_opt_in_env(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    model_path = tmp_path / "hybrid_legacy_optin.pkl"
+    reranker = HybridFusionReranker()
+    reranker.is_fitted = True
+
+    import pickle
+
+    save_safe(
+        model_path,
+        artifact_type="hybrid_reranker",
+        metadata=reranker._save_metadata(),
+        weights={"model": reranker.model, "router": pickle.dumps({"legacy": "router"})},
+    )
+    monkeypatch.setenv("RERANKER_ALLOW_LEGACY_PICKLE", "1")
     with (
         pytest.warns(UserWarning, match="legacy byte-encoded"),
         pytest.raises(TypeError, match="Expected MetaRouter"),

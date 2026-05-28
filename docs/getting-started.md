@@ -6,7 +6,7 @@ Install, rerank your first documents, train a model, and run a benchmark — in 
 
 ```bash
 git clone <repo-url> && cd shallow_cross_encoders
-uv sync
+uv sync --extra dev
 ```
 
 ## Quick Rerank (no training required)
@@ -20,9 +20,9 @@ reranker = HybridFusionReranker(adapters=[KeywordMatchAdapter()])
 # Train on a few labeled examples
 queries = ["python tutorial"] * 4
 docs    = ["Python beginner guide", "Java basics", "Python data science", "Cooking tips"]
-labels  = [1, 0, 1, 0]
+scores  = [1.0, 0.0, 1.0, 0.0]
 
-reranker.fit(queries=queries, docs=docs, labels=labels)
+reranker.fit_pointwise(queries=queries, docs=docs, scores=scores)
 
 # Rerank
 results = reranker.rerank("python tutorial", [
