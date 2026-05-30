@@ -9,6 +9,7 @@ from typing import Any
 
 import joblib
 import numpy as np
+from cachetools import LRUCache
 from sklearn.dummy import DummyClassifier
 from sklearn.ensemble import GradientBoostingClassifier, GradientBoostingRegressor
 
@@ -23,7 +24,7 @@ from reranker.protocols import (
     RankedDoc,
     SaveableReranker,
 )
-from reranker.strategies.meta_router import MetaRouter
+from reranker.strategies.meta_router import DEFAULT_PROFILE, WEIGHT_PROFILES, MetaRouter
 from reranker.utils import (
     build_artifact_metadata,
     rank_docs,
@@ -36,6 +37,10 @@ __all__ = [
     "HybridFusionReranker",
     "WeightingMode",
 ]
+
+_BM25_CACHE_MAX_SIZE = 128
+_BM25_CACHE_THRESHOLD = 500
+_AUTO_LABEL_SCORE_GAP_RATIO = 0.1
 
 
 class WeightingMode(StrEnum):
@@ -330,7 +335,7 @@ class HybridTrainer:
             if router_categories >= 3:
                 score_gap = abs(bm25_best - sem_score)
                 score_scale = max(abs(bm25_best), abs(sem_score), 1.0)
-                if score_gap <= 0.1 * score_scale:
+                if score_gap <= _AUTO_LABEL_SCORE_GAP_RATIO * score_scale:
                     category_by_query[query] = 2
                     continue
             category_by_query[query] = 0 if bm25_best > sem_score else 1
@@ -487,7 +492,8 @@ class HybridFusionReranker(SaveableReranker):
         self.model_backend = "xgboost" if _is_xgboost_model(self.model) else "sklearn"
         self.is_fitted = False
         self._router: MetaRouter | None = None
-        self._bm25_cache: dict[tuple[str, ...], BM25Engine] = {}
+        self._bm25_cache: LRUCache = LRUCache(maxsize=_BM25_CACHE_MAX_SIZE)
+        self._cached_feature_map: dict[str, int | None] | None = None
 
         self._feature_builder = HybridFeatureBuilder(self.embedder, self.adapters)
         self._trainer = HybridTrainer(self)
@@ -553,15 +559,8 @@ class HybridFusionReranker(SaveableReranker):
             and self._router.is_fitted
         ):
             weights = self._router.get_weights(query)
-            return {
-                "sem_score": weights.get("sem_score", 0.25),
-                "bm25_score": weights.get("bm25_score", 0.20),
-                "token_overlap_ratio": weights.get("token_overlap_ratio", 0.15),
-                "query_coverage_ratio": weights.get("query_coverage_ratio", 0.20),
-                "shared_token_char_sum": weights.get("shared_token_char_sum", 0.10),
-                "exact_phrase_match": weights.get("exact_phrase_match", 0.10),
-                "keyword_hit_rate": weights.get("keyword_hit_rate", 0.05),
-            }
+            fallback = WEIGHT_PROFILES[DEFAULT_PROFILE]
+            return {key: weights.get(key, fallback[key]) for key in fallback}
 
         if weighting_mode == WeightingMode.LEARNED:
             return {}
@@ -576,6 +575,16 @@ class HybridFusionReranker(SaveableReranker):
             "keyword_hit_rate": settings.weights.keyword_hit_rate,
         }
 
+    _FEATURE_WEIGHT_KEYS = (
+        "sem_score",
+        "bm25_score",
+        "token_overlap_ratio",
+        "query_coverage_ratio",
+        "shared_token_char_sum",
+        "exact_phrase_match",
+        "keyword_hit_rate",
+    )
+
     def _apply_weights(
         self,
         X: np.ndarray,
@@ -583,17 +592,12 @@ class HybridFusionReranker(SaveableReranker):
         query: str,
     ) -> np.ndarray:
         blended = np.zeros(X.shape[0], dtype=np.float32)
-        feature_map = {
-            "sem_score": self._feature_registry.get("sem_score"),
-            "bm25_score": self._feature_registry.get("bm25_score"),
-            "token_overlap_ratio": self._feature_registry.get("token_overlap_ratio"),
-            "query_coverage_ratio": self._feature_registry.get("query_coverage_ratio"),
-            "shared_token_char_sum": self._feature_registry.get("shared_token_char_sum"),
-            "exact_phrase_match": self._feature_registry.get("exact_phrase_match"),
-            "keyword_hit_rate": self._feature_registry.get("keyword_hit_rate"),
-        }
+        if self._cached_feature_map is None:
+            self._cached_feature_map = {
+                name: self._feature_registry.get(name) for name in self._FEATURE_WEIGHT_KEYS
+            }
         for name, weight in weight_map.items():
-            idx = feature_map.get(name)
+            idx = self._cached_feature_map.get(name)
             if idx is None or weight == 0.0:
                 continue
             if name == "shared_token_char_sum":
@@ -625,6 +629,7 @@ class HybridFusionReranker(SaveableReranker):
     ) -> np.ndarray:
         if not docs:
             return np.zeros(0, dtype=np.float32)
+        self._require_fitted("HybridFusionReranker")
         X = self._build_features(query, docs, bm25=bm25, query_vec=query_vec, d_vecs=d_vecs)
         weighting_mode = WeightingMode(get_settings().hybrid.weighting_mode)
 
@@ -633,8 +638,6 @@ class HybridFusionReranker(SaveableReranker):
             blended = self._apply_weights(X, weight_map, query)
         else:
             blended = np.zeros(X.shape[0], dtype=np.float32)
-
-        self._require_fitted("HybridFusionReranker")
 
         if weighting_mode == WeightingMode.LEARNED:
             return self._model_predict(self.model, X)
@@ -657,11 +660,8 @@ class HybridFusionReranker(SaveableReranker):
         if lexical is None and docs:
             lexical = BM25Engine(tokenize_fn=self.embedder.tokenize)
             lexical.fit(docs)
-            if len(docs) <= 500:
+            if len(docs) <= _BM25_CACHE_THRESHOLD:
                 self._bm25_cache[cache_key] = lexical
-        if lexical is None and docs:
-            lexical = BM25Engine(tokenize_fn=self.embedder.tokenize)
-            lexical.fit(docs)
         scores = self.score(query, docs, bm25=lexical, query_vec=query_vec, d_vecs=d_vecs)
         return rank_docs(docs, scores, "hybrid")
 
@@ -694,7 +694,7 @@ class HybridFusionReranker(SaveableReranker):
             if lexical is None:
                 lexical = BM25Engine(tokenize_fn=self.embedder.tokenize)
                 lexical.fit(docs)
-                if len(docs) <= 500:
+                if len(docs) <= _BM25_CACHE_THRESHOLD:
                     self._bm25_cache[cache_key] = lexical
             q_vec = query_vectors[q_idx]
             d_vecs = np.stack([doc_vec_map[doc] for doc in docs])

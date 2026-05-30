@@ -4,10 +4,13 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+from cachetools import LRUCache
 
 from reranker.persistence_mixin import SaveableReranker
 from reranker.types import RankedDoc
 from reranker.utils import rank_docs
+
+_QUERY_CACHE_MAX_SIZE = 256
 
 
 class SPLADEReranker(SaveableReranker):
@@ -29,7 +32,7 @@ class SPLADEReranker(SaveableReranker):
         self.top_k_terms = top_k_terms
         self._encoder: Any = None
         self._index: list[dict[str, float]] = []
-        self._query_cache: dict[str, dict[str, float]] = {}
+        self._query_cache: LRUCache = LRUCache(maxsize=_QUERY_CACHE_MAX_SIZE)
         self.is_fitted = False
 
     def _load_encoder(self) -> None:

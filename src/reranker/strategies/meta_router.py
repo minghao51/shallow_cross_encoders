@@ -4,12 +4,15 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import numpy as np
+from cachetools import LRUCache
 from sklearn.neural_network import MLPClassifier
 from sklearn.tree import DecisionTreeClassifier
 
 from reranker.config import get_settings
 from reranker.embedder import Embedder
 from reranker.protocols import EmbedderProtocol
+
+_FEATURE_CACHE_MAX_SIZE = 256
 
 WEIGHT_PROFILES: dict[str, dict[str, float]] = {
     "navigational": {
@@ -51,7 +54,9 @@ class MetaRouter:
     is_fitted: bool = False
     n_categories: int = 2
     min_samples_leaf: int = 5
-    _query_feature_cache: dict[str, np.ndarray] = field(default_factory=dict, repr=False)
+    _query_feature_cache: LRUCache = field(
+        default_factory=lambda: LRUCache(maxsize=_FEATURE_CACHE_MAX_SIZE), repr=False
+    )
 
     def __post_init__(self) -> None:
         settings = get_settings().meta_router

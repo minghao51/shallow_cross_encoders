@@ -81,6 +81,7 @@ class _LazyModelWrapper(SaveableReranker):
 
     def __init__(self, model_name: str) -> None:
         self.model_name = model_name
+        self.is_fitted = True
 
     def _load_backend(self) -> Any:
         raise NotImplementedError
