@@ -1,6 +1,8 @@
 # ruff: noqa: B008
 from __future__ import annotations
 
+import os
+import sys
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -19,6 +21,31 @@ _STRATEGIES = {
     "splade",
 }
 
+_AUTO_CONFIRM_ENV_VAR = "RERANKER_AUTO_CONFIRM_SYNTHETIC_DATA"
+_YES_VALUES = {"1", "true", "yes", "y", "on"}
+_NO_VALUES = {"0", "false", "no", "n", "off"}
+
+
+def _prompt_user(prompt: str) -> str:
+    return input(prompt)
+
+
+def _should_generate_synthetic_data(prompt: str) -> bool:
+    value = os.environ.get(_AUTO_CONFIRM_ENV_VAR)
+    if value is not None:
+        normalized = value.strip().lower()
+        if normalized in _YES_VALUES:
+            return True
+        if normalized in _NO_VALUES:
+            return False
+        raise ValueError(f"{_AUTO_CONFIRM_ENV_VAR} must be one of yes/no values, got {value!r}")
+
+    if not sys.stdin.isatty():
+        return False
+
+    response = _prompt_user(prompt).strip().lower()
+    return response in _YES_VALUES
+
 
 def _load_rows(
     config: Path | None,
@@ -35,6 +62,13 @@ def _load_rows(
     data_root = dataset or Path(settings.paths.raw_data_dir)
     data_root.mkdir(parents=True, exist_ok=True)
     if not (data_root / required_file).exists():
+        if not _should_generate_synthetic_data(
+            f"Missing {required_file} in {data_root}. Generate synthetic data now? [y/N] "
+        ):
+            raise RuntimeError(
+                f"Required dataset file not found: {data_root / required_file}. "
+                "Generation declined."
+            )
         SyntheticDataGenerator().materialize_all(data_root)
     rows = read_jsonl(data_root / required_file)
     return settings, data_root, rows
