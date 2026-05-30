@@ -6,7 +6,6 @@ from typing import Any
 import numpy as np
 
 from reranker.persistence_mixin import SaveableReranker
-from reranker.protocols import NotFittedError
 from reranker.types import RankedDoc
 from reranker.utils import rank_docs
 
@@ -30,6 +29,7 @@ class SPLADEReranker(SaveableReranker):
         self.top_k_terms = top_k_terms
         self._encoder: Any = None
         self._index: list[dict[str, float]] = []
+        self._query_cache: dict[str, dict[str, float]] = {}
         self.is_fitted = False
 
     def _load_encoder(self) -> None:
@@ -64,23 +64,26 @@ class SPLADEReranker(SaveableReranker):
         return self
 
     def score(self, query: str, docs: list[str]) -> np.ndarray:
-        if not self.is_fitted:
-            raise NotFittedError("SPLADEReranker must be fitted before scoring.")
+        self._require_fitted("SPLADEReranker")
         if not docs:
             return np.zeros(0, dtype=np.float32)
 
-        query_sparse = self._encoder.encode(
-            [query],
-            batch_size=1,
-            show_progress_bar=False,
-            convert_to_dict=True,
-        )
-        if isinstance(query_sparse, list):
-            query_dict = query_sparse[0] if query_sparse else {}
+        if query in self._query_cache:
+            query_terms = self._query_cache[query]
         else:
-            query_dict = query_sparse or {}
+            query_sparse = self._encoder.encode(
+                [query],
+                batch_size=1,
+                show_progress_bar=False,
+                convert_to_dict=True,
+            )
+            if isinstance(query_sparse, list):
+                query_dict = query_sparse[0] if query_sparse else {}
+            else:
+                query_dict = query_sparse or {}
 
-        query_terms = {str(k): float(v) for k, v in query_dict.items()}
+            query_terms = {str(k): float(v) for k, v in query_dict.items()}
+            self._query_cache[query] = query_terms
         scores = np.zeros(len(docs), dtype=np.float32)
 
         for idx, doc_dict in enumerate(self._index):
@@ -101,8 +104,7 @@ class SPLADEReranker(SaveableReranker):
     def rerank(self, query: str, docs: list[str]) -> list[RankedDoc]:
         if not docs:
             return []
-        if not self.is_fitted:
-            raise NotFittedError("SPLADEReranker is not fitted. Call fit() or load() first.")
+        self._require_fitted("SPLADEReranker")
         scores = self.score(query, docs)
         return rank_docs(docs, scores, "splade")
 

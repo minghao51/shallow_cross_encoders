@@ -3,8 +3,11 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from collections.abc import Iterator
+
+import httpx
 
 from reranker.config import get_settings
 from reranker.data.synth._models import (
@@ -118,7 +121,7 @@ def iter_hard_negatives(
                     )
                     yield core.validate_record(HardNegativeRecord, record)
                 core.log_cost(gen, metadata, "hard_negatives")
-            except Exception:
+            except (httpx.HTTPError, json.JSONDecodeError, ValueError):
                 logger.warning(
                     "Hard-negative batch generation failed; splitting batch.",
                     extra={"chunk_size": len(chunk), "batch_size": batch_size},
@@ -223,7 +226,7 @@ def iter_listwise_preferences(
                     )
                     yield core.validate_record(ListwisePreferenceRecord, record)
                 core.log_cost(gen, metadata, "listwise_preferences")
-            except Exception:
+            except (httpx.HTTPError, json.JSONDecodeError, ValueError):
                 logger.warning(
                     "Listwise preference batch generation failed; skipping chunk.",
                     extra={"chunk_size": len(chunk), "batch_size": batch_size},
@@ -305,7 +308,7 @@ def iter_query_expansions(
                     )
                     yield core.validate_record(QueryExpansionRecord, record)
                 core.log_cost(gen, metadata, "query_expansions")
-            except Exception:
+            except (httpx.HTTPError, json.JSONDecodeError, ValueError):
                 logger.warning(
                     "Query expansion batch generation failed; skipping chunk.",
                     extra={"chunk_size": len(chunk), "batch_size": batch_size},

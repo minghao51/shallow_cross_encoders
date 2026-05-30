@@ -14,7 +14,7 @@ from sklearn.linear_model import LogisticRegression
 from reranker.config import get_settings
 from reranker.embedder import Embedder
 from reranker.persistence_mixin import SaveableReranker
-from reranker.protocols import EmbedderProtocol, NotFittedError
+from reranker.protocols import EmbedderProtocol
 from reranker.types import RankedDoc
 from reranker.utils import rank_docs
 
@@ -244,8 +244,7 @@ class DistilledPairwiseRanker(SaveableReranker):
         return np.asarray(scores, dtype=np.float32)
 
     def compare(self, query: str, doc_a: str, doc_b: str) -> float:
-        if not self.is_fitted:
-            raise NotFittedError("DistilledPairwiseRanker must be fitted before comparison.")
+        self._require_fitted("DistilledPairwiseRanker")
         if self.loss_type in ("listwise", "lambdaloss") and self._cross_encoder is not None:
             scores = self._score_cross_encoder(query, [doc_a, doc_b])
             return float(scores[0] - scores[1] + 0.5)
@@ -285,8 +284,8 @@ class DistilledPairwiseRanker(SaveableReranker):
         return merged
 
     def rerank(self, query: str, docs: list[str]) -> list[RankedDoc]:
-        if not self.is_fitted:
-            raise NotFittedError("DistilledPairwiseRanker must be fitted before reranking.")
+        self._validate_inputs(query, docs)
+        self._require_fitted("DistilledPairwiseRanker")
         if not docs:
             return []
 

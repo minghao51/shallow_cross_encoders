@@ -24,6 +24,7 @@ class FlashRankEnsemble(SaveableReranker):
             raise ValueError("models list cannot be empty")
         self.models = models
         self._rankers: list[Any] | None = None
+        self.is_fitted = True
 
     def _load_rankers(self) -> list[Any]:
         if self._rankers is not None:
@@ -73,16 +74,50 @@ class FlashRankEnsemble(SaveableReranker):
         return cls(models=payload.get("models", []))
 
 
-class FlashRankWrapper(SaveableReranker):
+class _LazyModelWrapper(SaveableReranker):
+    """Base for lazy-loading cross-encoder wrappers."""
+
+    _artifact_type = "lazy_model_wrapper"
+
+    def __init__(self, model_name: str) -> None:
+        self.model_name = model_name
+
+    def _load_backend(self) -> Any:
+        raise NotImplementedError
+
+    def _predict_scores(self, query: str, docs: list[str]) -> list[tuple[int, float]]:
+        raise NotImplementedError
+
+    def rerank(self, query: str, docs: list[str]) -> list[RankedDoc]:
+        if not docs:
+            return []
+        indexed_scores = self._predict_scores(query, docs)
+        indexed_scores.sort(key=lambda x: x[1], reverse=True)
+        return [
+            RankedDoc(
+                doc=docs[idx],
+                score=float(score),
+                rank=rank,
+                metadata={"strategy": self._strategy_name},
+            )
+            for rank, (idx, score) in enumerate(indexed_scores, start=1)
+        ]
+
+    @property
+    def _strategy_name(self) -> str:
+        return type(self).__name__
+
+
+class FlashRankWrapper(_LazyModelWrapper):
     """Single-model FlashRank wrapper for benchmarking baselines."""
 
     _artifact_type = "flashrank_wrapper"
 
-    def __init__(self, model_name: str = "ms-marco-TinyBERT-L-2-v2"):
-        self.model_name = model_name
+    def __init__(self, model_name: str = "ms-marco-TinyBERT-L-2-v2") -> None:
+        super().__init__(model_name)
         self._ranker: Any = None
 
-    def _load_ranker(self) -> Any:
+    def _load_backend(self) -> Any:
         if self._ranker is not None:
             return self._ranker
         try:
@@ -94,36 +129,26 @@ class FlashRankWrapper(SaveableReranker):
         self._ranker = Ranker(model_name=self.model_name)
         return self._ranker
 
-    def rerank(self, query: str, docs: list[str]) -> list[RankedDoc]:
-        if not docs:
-            return []
-        ranker = self._load_ranker()
+    def _predict_scores(self, query: str, docs: list[str]) -> list[tuple[int, float]]:
+        ranker = self._load_backend()
         from flashrank import RerankRequest
 
         passages = [{"id": str(i), "text": doc} for i, doc in enumerate(docs)]
         request = RerankRequest(query=query, passages=passages)
         results = ranker.rerank(request)
-        return [
-            RankedDoc(
-                doc=docs[int(result["id"])],
-                score=float(result.get("score", 0.0)),
-                rank=rank,
-                metadata={"strategy": "flashrank"},
-            )
-            for rank, result in enumerate(results, start=1)
-        ]
+        return [(int(result["id"]), float(result.get("score", 0.0))) for result in results]
 
 
-class SentenceTransformerWrapper(SaveableReranker):
+class SentenceTransformerWrapper(_LazyModelWrapper):
     """SentenceTransformer cross-encoder adapter for benchmarking."""
 
     _artifact_type = "sentence_transformer_wrapper"
 
-    def __init__(self, model_name: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"):
-        self.model_name = model_name
+    def __init__(self, model_name: str = "cross-encoder/ms-marco-MiniLM-L-6-v2") -> None:
+        super().__init__(model_name)
         self._model: Any = None
 
-    def _load_model(self) -> Any:
+    def _load_backend(self) -> Any:
         if self._model is not None:
             return self._model
         try:
@@ -136,23 +161,11 @@ class SentenceTransformerWrapper(SaveableReranker):
         self._model = CrossEncoder(self.model_name)
         return self._model
 
-    def rerank(self, query: str, docs: list[str]) -> list[RankedDoc]:
-        if not docs:
-            return []
-        model = self._load_model()
+    def _predict_scores(self, query: str, docs: list[str]) -> list[tuple[int, float]]:
+        model = self._load_backend()
         pairs = [[query, doc] for doc in docs]
         scores = model.predict(pairs)
-        indexed_scores = list(enumerate(scores))
-        indexed_scores.sort(key=lambda x: x[1], reverse=True)
-        return [
-            RankedDoc(
-                doc=docs[idx],
-                score=float(score),
-                rank=rank,
-                metadata={"strategy": "cross_encoder"},
-            )
-            for rank, (idx, score) in enumerate(indexed_scores, start=1)
-        ]
+        return list(enumerate(scores))
 
 
 class HardNegativeFlashRankEnsemble(FlashRankEnsemble):

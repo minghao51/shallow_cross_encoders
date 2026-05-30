@@ -15,6 +15,31 @@ import structlog
 
 logger = structlog.get_logger(__name__)
 
+KNOWN_BEIR_DATASETS = frozenset(
+    {
+        "nfcorpus",
+        "scifact",
+        "arguana",
+        "scidocs",
+        "fiqa",
+        "trec-covid",
+        "webis-touche2020",
+        "quora",
+        "dbpedia-entity",
+        "fever",
+        "climate-fever",
+        "hotpotqa",
+        "trec-news",
+        "robust04",
+        "signal1m",
+        "bioasq",
+        "cqadupstack",
+        "msmarco",
+        "nq",
+        "fiqa-qa",
+    }
+)
+
 
 def load_beir_simple(dataset_name: str = "nfcorpus") -> tuple[dict, dict, dict]:
     """Load BEIR dataset in simple format for distillation.
@@ -34,12 +59,17 @@ def load_beir_simple(dataset_name: str = "nfcorpus") -> tuple[dict, dict, dict]:
     Raises:
         FileNotFoundError: If BEIR dataset not found.
         ImportError: If beir package not installed.
-        ValueError: If dataset format is invalid.
+        ValueError: If dataset format is invalid or dataset_name unknown.
 
     Example:
         >>> queries, corpus, qrels = load_beir_simple("nfcorpus")
         >>> print(f"Loaded {len(queries)} queries, {len(corpus)} docs")
     """
+    if dataset_name not in KNOWN_BEIR_DATASETS:
+        raise ValueError(
+            f"Unknown BEIR dataset '{dataset_name}'. Must be one of: {sorted(KNOWN_BEIR_DATASETS)}"
+        )
+
     try:
         from beir import util
     except ImportError as e:

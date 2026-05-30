@@ -101,7 +101,14 @@ class Embedder:
         except Exception:
             return
         if probe_vectors.ndim == 2 and probe_vectors.shape[1] > 0:
-            self.dimension = int(probe_vectors.shape[1])
+            new_dim = int(probe_vectors.shape[1])
+            if new_dim != self.dimension:
+                logger.warning(
+                    "Embedder dimension changed from %d to %d by backend model.",
+                    self.dimension,
+                    new_dim,
+                )
+                self.dimension = new_dim
 
     def _encode_hashed(self, texts: list[str]) -> np.ndarray:
         matrix = np.zeros((len(texts), self.dimension), dtype=np.float32)
@@ -131,7 +138,14 @@ class Embedder:
         vectors = self._backend.encode(texts, normalize=self.normalize)
         vectors = np.asarray(vectors, dtype=np.float32)
         if vectors.ndim == 2 and vectors.shape[1] > 0:
-            self.dimension = int(vectors.shape[1])
+            new_dim = int(vectors.shape[1])
+            if new_dim != self.dimension:
+                logger.warning(
+                    "Embedder dimension changed from %d to %d during encoding.",
+                    self.dimension,
+                    new_dim,
+                )
+                self.dimension = new_dim
         return vectors
 
     def encode(self, texts: list[str]) -> np.ndarray:

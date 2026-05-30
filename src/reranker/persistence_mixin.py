@@ -8,6 +8,9 @@ from typing import Any
 from reranker.persistence import save_safe, try_load_safe_or_warn
 from reranker.utils import load_pickle
 
+MAX_QUERY_LENGTH = 10000
+MAX_DOCS = 10000
+
 
 class SaveableReranker:
     """Base class providing DRY save/load via the persistence layer.
@@ -45,3 +48,17 @@ class SaveableReranker:
             expected_type=expected_type,
             legacy_loader=load_pickle,
         )
+
+    def _require_fitted(self, strategy_name: str | None = None) -> None:
+        if not getattr(self, "is_fitted", False):
+            name = strategy_name or type(self).__name__
+            from reranker.protocols import NotFittedError
+
+            raise NotFittedError(f"{name} is not fitted. Call fit() or load() first.")
+
+    @staticmethod
+    def _validate_inputs(query: str, docs: list[str]) -> None:
+        if len(query) > MAX_QUERY_LENGTH:
+            raise ValueError(f"Query exceeds max length {MAX_QUERY_LENGTH}")
+        if len(docs) > MAX_DOCS:
+            raise ValueError(f"Too many documents ({len(docs)} > {MAX_DOCS})")

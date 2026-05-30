@@ -59,7 +59,7 @@ class OpenRouterClient:
     """
 
     model: str = field(default_factory=lambda: get_settings().openrouter.model)
-    api_key: str | None = None
+    api_key: str | None = field(default=None, repr=False)
     base_url: str = field(default_factory=lambda: get_settings().openrouter.base_url)
     app_name: str = field(default_factory=lambda: get_settings().openrouter.app_name)
     timeout: float = field(default_factory=lambda: get_settings().openrouter.timeout_seconds)

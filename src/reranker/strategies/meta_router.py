@@ -51,6 +51,7 @@ class MetaRouter:
     is_fitted: bool = False
     n_categories: int = 2
     min_samples_leaf: int = 5
+    _query_feature_cache: dict[str, np.ndarray] = field(default_factory=dict, repr=False)
 
     def __post_init__(self) -> None:
         settings = get_settings().meta_router
@@ -70,13 +71,15 @@ class MetaRouter:
             )
 
     def _query_features(self, query: str) -> np.ndarray:
+        if query in self._query_feature_cache:
+            return self._query_feature_cache[query]
         tokens = self.embedder.tokenize(query.lower())
         q_vec = self.embedder.encode([query])[0]
         avg_token_len = np.mean([len(t) for t in tokens]) if tokens else 0.0
         has_numbers = float(any(c.isdigit() for c in query))
         has_special = float(any(not c.isalnum() and not c.isspace() for c in query))
         capital_ratio = sum(1 for c in query if c.isupper()) / max(len(query), 1)
-        return np.array(
+        features = np.array(
             [
                 float(len(tokens)),
                 avg_token_len,
@@ -88,6 +91,8 @@ class MetaRouter:
             ],
             dtype=np.float32,
         )
+        self._query_feature_cache[query] = features
+        return features
 
     def fit(self, queries: list[str], categories: list[int]) -> MetaRouter:
         if len(set(categories)) < 2:

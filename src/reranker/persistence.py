@@ -20,6 +20,15 @@ from reranker.utils import build_artifact_metadata, ensure_parent, validate_arti
 SAFE_FORMAT_VERSION = 2
 
 
+def is_legacy_pickle_allowed() -> bool:
+    return os.getenv("RERANKER_ALLOW_LEGACY_PICKLE", "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+
+
 def _meta_path(path: str | Path) -> Path:
     return Path(path).with_suffix(".meta.json")
 
@@ -35,6 +44,8 @@ def save_safe(
     weights: dict[str, Any],
 ) -> None:
     """Save model weights as joblib and metadata as JSON."""
+    import hashlib
+
     target = Path(path)
     ensure_parent(target)
 
@@ -49,8 +60,9 @@ def save_safe(
     weights_path = _weights_path(target)
     joblib.dump(weights, weights_path)
 
-    # Create an empty marker file with the original extension so callers
-    # that check path.exists() continue to work.
+    sha_path = target.with_suffix(target.suffix + ".sha256")
+    sha_path.write_text(hashlib.sha256(weights_path.read_bytes()).hexdigest())
+
     target.touch(exist_ok=True)
 
 
@@ -95,12 +107,7 @@ def try_load_safe_or_warn(
         return payload
 
     if allow_legacy_pickle is None:
-        allow_legacy_pickle = os.getenv("RERANKER_ALLOW_LEGACY_PICKLE", "").strip().lower() in {
-            "1",
-            "true",
-            "yes",
-            "on",
-        }
+        allow_legacy_pickle = is_legacy_pickle_allowed()
     if not allow_legacy_pickle:
         raise RuntimeError(
             "Legacy pickle loading is disabled by default. "

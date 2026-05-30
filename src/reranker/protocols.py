@@ -41,4 +41,6 @@ class HeuristicAdapter(Protocol):
 class BaseReranker(Protocol):
     """Common contract every ranking strategy must satisfy."""
 
+    is_fitted: bool
+
     def rerank(self, query: str, docs: list[str]) -> list[RankedDoc]: ...

@@ -67,8 +67,6 @@ class EmbedderSettings(BaseModel):
     model_name: str = "minishlab/potion-base-32M"
     dimension: int = 256
     normalize: bool = True
-    cache_max_size: int = 10000
-    cache_ttl_seconds: int = 3600
 
 
 class GoogleGenAISettings(BaseModel):
@@ -123,6 +121,20 @@ class SyntheticDataSettings(BaseModel):
     llm_provider: str | None = None  # None → inherits from llm.default_provider
 
 
+class WeightProfile(BaseModel):
+    """Hybrid feature weight configuration."""
+
+    model_config = ConfigDict(frozen=True)
+
+    sem_score: float = 0.25
+    bm25_score: float = 0.20
+    token_overlap_ratio: float = 0.15
+    query_coverage_ratio: float = 0.20
+    shared_token_char_sum: float = 0.10
+    exact_phrase_match: float = 0.10
+    keyword_hit_rate: float = 0.05
+
+
 class HybridSettings(BaseModel):
     """XGBoost/sklearn hybrid fusion reranker parameters."""
 
@@ -134,13 +146,7 @@ class HybridSettings(BaseModel):
     xgb_learning_rate: float = 0.08
     xgb_subsample: float = 0.9
     xgb_colsample_bytree: float = 0.9
-    weight_sem_score: float = 0.25
-    weight_bm25_score: float = 0.20
-    weight_token_overlap: float = 0.15
-    weight_query_coverage: float = 0.20
-    weight_shared_char: float = 0.10
-    weight_exact_phrase: float = 0.10
-    weight_keyword_hit: float = 0.05
+    weights: WeightProfile = WeightProfile()
     ensemble_mode: str = "xgboost"
     rrf_k: int = 60
     weighting_mode: str = "static"
@@ -177,15 +183,6 @@ class BinaryRerankerSettings(BaseModel):
     hamming_top_k: int = 500
     bilinear_top_k: int = 50
     random_state: int = 42
-
-
-class SPLADESettings(BaseModel):
-    """SPLADE sparse lexical reranker parameters."""
-
-    model_config = ConfigDict(frozen=True)
-
-    model_name: str = "naver/splade-cocondenser-ensembledistil"
-    top_k_terms: int = 128
 
 
 class MetaRouterSettings(BaseModel):
@@ -235,15 +232,6 @@ class PipelineSettings(BaseModel):
     default_stage_top_k: int = 200
 
 
-class CascadeSettings(BaseModel):
-    """Cascade reranker confidence thresholding."""
-
-    model_config = ConfigDict(frozen=True)
-
-    confidence_threshold: float = 0.6
-    fallback_strategy: str = "flashrank"
-
-
 class ConsistencySettings(BaseModel):
     """Consistency engine similarity and tolerance thresholds."""
 
@@ -269,20 +257,6 @@ class RoiSettings(BaseModel):
 
     llm_cost_per_judgment_usd: float = 0.0004
     projected_monthly_queries: int = 10000
-
-
-class BenchmarkSettings(BaseModel):
-    """Benchmark timing targets and sample configuration."""
-
-    model_config = ConfigDict(frozen=True)
-
-    sample_doc: str = "This is a sample document for latency measurement."
-    sample_size: int = 100
-    candidate_count: int = 20
-    embedding_target_ms_per_doc: float = 5.0
-    rerank_target_ms_per_query: float = 50.0
-    consistency_claim_count: int = 1000
-    consistency_target_ms_per_1000_claims: float = 50.0
 
 
 class EvalSettings(BaseModel):
@@ -330,13 +304,10 @@ class Settings(BaseSettings):
     late_interaction: LateInteractionSettings = LateInteractionSettings()
     binary_reranker: BinaryRerankerSettings = BinaryRerankerSettings()
     pipeline: PipelineSettings = PipelineSettings()
-    cascade: CascadeSettings = CascadeSettings()
     consistency: ConsistencySettings = ConsistencySettings()
     embedding_cache: EmbeddingCacheSettings = EmbeddingCacheSettings()
     roi: RoiSettings = RoiSettings()
-    benchmark: BenchmarkSettings = BenchmarkSettings()
     eval: EvalSettings = EvalSettings()
-    splade: SPLADESettings = SPLADESettings()
     meta_router: MetaRouterSettings = MetaRouterSettings()
     lsh: LSHSettings = LSHSettings()
     active_distillation: ActiveDistillationSettings = ActiveDistillationSettings()

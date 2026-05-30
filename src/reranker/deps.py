@@ -34,7 +34,7 @@ def _check_dep(
         mod = importlib.import_module(module_name)
         result = getattr(mod, attr) if attr else mod
         return result, DepStatus(name=name, available=True, backend=name, fallback_description="")
-    except Exception:
+    except (ImportError, ModuleNotFoundError, AttributeError):
         status = DepStatus(
             name=name,
             available=False,

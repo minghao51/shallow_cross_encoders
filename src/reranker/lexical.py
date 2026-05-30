@@ -30,6 +30,7 @@ class BM25Engine:
         self._bm25 = None
         self._doc_freqs: Counter[str] = Counter()
         self._avgdl = 0.0
+        self.is_fitted = False
         self.backend_name = "pure_python"
         self._tokenize_fn = tokenize_fn or (lambda text: text.lower().split())
 
@@ -54,6 +55,7 @@ class BM25Engine:
         else:
             self._bm25 = None
             self.backend_name = "pure_python"
+        self.is_fitted = True
 
     def _fallback_scores(self, query: str) -> np.ndarray:
         """Compute BM25 scores using pure-Python implementation.

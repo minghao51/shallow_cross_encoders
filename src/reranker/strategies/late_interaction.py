@@ -9,9 +9,9 @@ from typing import Any
 import numpy as np
 
 from reranker.config import get_settings
-from reranker.embedder import Embedder
+from reranker.embedder import Embedder, _normalize_rows
 from reranker.persistence_mixin import SaveableReranker
-from reranker.protocols import EmbedderProtocol, NotFittedError
+from reranker.protocols import EmbedderProtocol
 from reranker.quantization import QuantizationResult, dequantize, quantize
 from reranker.types import RankedDoc
 from reranker.utils import rank_docs
@@ -81,7 +81,7 @@ class StaticColBERTReranker(SaveableReranker):
             return TokenIndex(
                 text=doc_text or " ".join(tokens),
                 tokens=tokens,
-                vectors=vectors,
+                vectors=_normalize_rows(vectors),
                 salience=salience,
             )
 
@@ -91,7 +91,7 @@ class StaticColBERTReranker(SaveableReranker):
             return TokenIndex(
                 text=doc_text or " ".join([tokens[i] for i in top_indices]),
                 tokens=[tokens[i] for i in top_indices],
-                vectors=vectors[top_indices],
+                vectors=_normalize_rows(vectors[top_indices]),
                 salience=salience[top_indices],
             )
 
@@ -99,7 +99,7 @@ class StaticColBERTReranker(SaveableReranker):
         return TokenIndex(
             text=doc_text or " ".join([tokens[i] for i in top_indices]),
             tokens=[tokens[i] for i in top_indices],
-            vectors=vectors[top_indices],
+            vectors=_normalize_rows(vectors[top_indices]),
             salience=None,
         )
 
@@ -144,14 +144,10 @@ class StaticColBERTReranker(SaveableReranker):
             return 0.0
 
         q_norms = np.linalg.norm(query_vectors, axis=1, keepdims=True)
-        d_norms = np.linalg.norm(doc_vectors, axis=1, keepdims=True)
         q_norms = np.where(q_norms == 0, 1.0, q_norms)
-        d_norms = np.where(d_norms == 0, 1.0, d_norms)
-
         q_normalized = query_vectors / q_norms
-        d_normalized = doc_vectors / d_norms
 
-        sim_matrix = q_normalized @ d_normalized.T
+        sim_matrix = q_normalized @ doc_vectors.T
         max_sims = np.max(sim_matrix, axis=1)
         return float(np.sum(max_sims))
 
@@ -162,8 +158,7 @@ class StaticColBERTReranker(SaveableReranker):
         *,
         prebuilt_indices: list[TokenIndex] | None = None,
     ) -> np.ndarray:
-        if not self.is_fitted:
-            raise NotFittedError("StaticColBERTReranker must be fitted before scoring.")
+        self._require_fitted("StaticColBERTReranker")
         if not docs:
             return np.zeros(0, dtype=np.float32)
 
@@ -206,8 +201,7 @@ class StaticColBERTReranker(SaveableReranker):
     ) -> list[RankedDoc]:
         if not docs:
             return []
-        if not self.is_fitted:
-            raise NotFittedError("StaticColBERTReranker is not fitted. Call fit() or load() first.")
+        self._require_fitted("StaticColBERTReranker")
         scores = self.score(query, docs, prebuilt_indices=prebuilt_indices)
         return rank_docs(docs, scores, "late_interaction")
 
@@ -218,8 +212,7 @@ class StaticColBERTReranker(SaveableReranker):
     ) -> list[list[RankedDoc]]:
         if not queries:
             return []
-        if not self.is_fitted:
-            raise NotFittedError("StaticColBERTReranker is not fitted. Call fit() or load() first.")
+        self._require_fitted("StaticColBERTReranker")
         all_query_tokens = [self._tokenize(q) for q in queries]
         flat_tokens = [t for tokens in all_query_tokens for t in tokens]
         if flat_tokens:

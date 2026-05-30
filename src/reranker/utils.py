@@ -115,10 +115,24 @@ def dump_pickle(path: str | Path, obj: Any) -> None:
 
 
 def load_pickle(path: str | Path) -> Any:
-    # SECURITY NOTE: pickle can execute arbitrary code on deserialization.
-    # Only load pickles from trusted sources. Consider using joblib for sklearn models
-    # or implementing a schema-validated alternative for untrusted input.
+    import hashlib
     import warnings
+
+    target = Path(path)
+    sha_path = target.with_suffix(target.suffix + ".sha256")
+
+    if sha_path.exists():
+        data = target.read_bytes()
+        expected_hash = sha_path.read_text().strip()
+        actual_hash = hashlib.sha256(data).hexdigest()
+        if actual_hash != expected_hash:
+            raise ValueError(f"Integrity check failed for {target}: hash mismatch")
+    else:
+        warnings.warn(
+            f"No integrity file found for {target}. ",
+            RuntimeWarning,
+            stacklevel=2,
+        )
 
     warnings.warn(
         f"Loading pickle from '{path}' can execute arbitrary code. "
@@ -126,7 +140,7 @@ def load_pickle(path: str | Path) -> Any:
         RuntimeWarning,
         stacklevel=2,
     )
-    with Path(path).open("rb") as handle:
+    with target.open("rb") as handle:
         if cloudpickle is not None:
             return cloudpickle.load(handle)
         return pickle.load(handle)

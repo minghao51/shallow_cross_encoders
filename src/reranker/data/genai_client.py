@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
+import httpx
 import structlog
 
 from reranker.config import get_settings
@@ -14,6 +15,17 @@ from reranker.config import get_settings
 logger = structlog.get_logger(__name__)
 
 _genai_client: Any = None
+
+try:
+    from google.genai.errors import APIError
+
+    RETRYABLE_EXCEPTIONS: tuple[type[BaseException], ...] = (
+        APIError,
+        httpx.HTTPError,
+        json.JSONDecodeError,
+    )
+except ImportError:
+    RETRYABLE_EXCEPTIONS = (Exception,)
 
 
 def _get_genai_client(api_key: str | None) -> Any:
@@ -45,7 +57,7 @@ class GenAIClient:
     """
 
     model: str = field(default_factory=lambda: get_settings().google_genai.model)
-    api_key: str | None = None
+    api_key: str | None = field(default=None, repr=False)
     temperature: float = field(default_factory=lambda: get_settings().google_genai.temperature)
     max_retries: int = field(default_factory=lambda: get_settings().google_genai.max_retries)
 
@@ -73,7 +85,7 @@ class GenAIClient:
             response_mime_type="application/json",
         )
 
-        last_error: Exception | None = None
+        last_error: BaseException | None = None
         response: Any = None
 
         for attempt in range(self.max_retries):
@@ -84,7 +96,7 @@ class GenAIClient:
                     config=config,
                 )
                 break
-            except Exception as exc:
+            except RETRYABLE_EXCEPTIONS as exc:
                 last_error = exc
                 logger.warning(
                     "GenAI request failed (attempt %d/%d): %s",

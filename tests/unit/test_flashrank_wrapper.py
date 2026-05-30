@@ -23,6 +23,6 @@ def test_flashrank_wrapper_return_type():
     from reranker.strategies.flashrank_ensemble import FlashRankWrapper
 
     wrapper = FlashRankWrapper()
-    assert hasattr(wrapper, "_load_ranker")
+    assert hasattr(wrapper, "_load_backend")
     assert hasattr(wrapper, "rerank")
     assert callable(wrapper.rerank)

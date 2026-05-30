@@ -19,7 +19,7 @@ class EmbeddingCache:
         self._max_size = max_size or settings.max_size
         self._ttl_seconds = ttl_seconds or settings.ttl_seconds
         self._cache: Any = None
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         if TTLCache is not None:
             self._cache = TTLCache(maxsize=self._max_size, ttl=self._ttl_seconds)
 
@@ -98,7 +98,7 @@ class EmbeddingCache:
 
 
 _global_cache: EmbeddingCache | None = None
-_global_cache_lock = threading.Lock()
+_global_cache_lock = threading.RLock()
 
 
 def get_shared_cache() -> EmbeddingCache:

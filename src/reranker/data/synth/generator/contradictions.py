@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Iterator
+
+import httpx
 
 from reranker.config import get_settings
 from reranker.data.synth._models import ContradictionRecord
@@ -120,7 +123,7 @@ def teacher_contradiction_records(
                 items_json=core.batch_prompt_payload(batch_specs),
             )
         )
-    except Exception:
+    except (httpx.HTTPError, json.JSONDecodeError, ValueError):
         midpoint = len(batch_specs) // 2
         return teacher_contradiction_records(
             gen,
