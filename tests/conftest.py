@@ -106,8 +106,8 @@ def mock_embedding_dim() -> int:
 @pytest.fixture
 def mock_embeddings(mock_embedding_dim: int) -> np.ndarray:
     """Mock embedding vectors for testing."""
-    np.random.seed(42)
-    return np.random.randn(10, mock_embedding_dim).astype(np.float32)
+    rng = np.random.default_rng(42)
+    return rng.standard_normal((10, mock_embedding_dim), dtype=np.float32)
 
 
 @pytest.fixture

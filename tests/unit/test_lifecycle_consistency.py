@@ -10,6 +10,8 @@ from reranker.types import RankedDoc
 
 
 class _MockReranker:
+    is_fitted = True
+
     def rerank(self, query: str, docs: list[str]) -> list[RankedDoc]:
         return [RankedDoc(doc=d, score=1.0, rank=i + 1) for i, d in enumerate(docs)]
 

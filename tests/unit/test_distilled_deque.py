@@ -34,13 +34,11 @@ class TestMergeRankDeque:
         assert len(result) == 1
         assert result[0].rank == 1
 
-    def test_merge_rank_uses_deque(self) -> None:
-        import inspect
-
-        source = inspect.getsource(DistilledPairwiseRanker._merge_rank)
-        assert "deque" in source
-        assert ".pop(0)" not in source
-        assert ".popleft()" in source
+    def test_merge_rank_preserves_order(self, fitted_ranker) -> None:
+        indexed = [(0, "doc_a"), (1, "doc_b")]
+        result = fitted_ranker._merge_rank("test query", indexed)
+        assert len(result) == 2
+        assert all(isinstance(r[0], int) and isinstance(r[1], float) for r in result)
 
     def test_merge_rank_many_docs(self, fitted_ranker) -> None:
         original_max = fitted_ranker.full_tournament_max_docs

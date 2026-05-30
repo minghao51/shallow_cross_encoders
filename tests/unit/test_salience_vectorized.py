@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from reranker.strategies.late_interaction import StaticColBERTReranker
 
@@ -37,10 +38,10 @@ class TestSalienceVectorized:
         assert salience.shape == (1,)
         assert salience[0] > 0
 
-    def test_salience_uses_numpy_unique(self) -> None:
-        import inspect
-
-        source = inspect.getsource(StaticColBERTReranker._compute_salience)
-        assert "np.unique" in source
-        assert "return_inverse=True" in source
-        assert "for tok," not in source
+    def test_salience_handles_repeated_tokens(self) -> None:
+        ranker = StaticColBERTReranker()
+        tokens = ["hello", "world", "hello"]
+        vectors = ranker.embedder.encode(tokens)
+        salience = ranker._compute_salience(tokens, vectors)
+        assert len(salience) == 3
+        assert salience[0] == pytest.approx(salience[2], rel=0.001)

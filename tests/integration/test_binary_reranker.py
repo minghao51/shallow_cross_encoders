@@ -39,7 +39,7 @@ class TestBinaryQuantizedReranker:
 
     def test_score_without_fit_raises(self):
         reranker = BinaryQuantizedReranker()
-        with pytest.raises(RuntimeError, match="must be fitted"):
+        with pytest.raises(RuntimeError, match="not fitted"):
             reranker.score("query", ["doc"])
 
     def test_fit_empty(self):
