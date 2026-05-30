@@ -48,13 +48,14 @@ hybrid:
   xgb_learning_rate: 0.08
   xgb_subsample: 0.9
   xgb_colsample_bytree: 0.9
-  weight_sem_score: 0.25
-  weight_bm25_score: 0.20
-  weight_token_overlap: 0.15
-  weight_query_coverage: 0.20
-  weight_shared_char: 0.10
-  weight_exact_phrase: 0.10
-  weight_keyword_hit: 0.05
+  weights:
+    sem_score: 0.25
+    bm25_score: 0.20
+    token_overlap_ratio: 0.15
+    query_coverage_ratio: 0.20
+    shared_token_char_sum: 0.10
+    exact_phrase_match: 0.10
+    keyword_hit_rate: 0.05
   ensemble_mode: "xgboost"
   rrf_k: 60
   weighting_mode: "static"

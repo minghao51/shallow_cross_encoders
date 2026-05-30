@@ -1,101 +1,83 @@
 # Shallow Cross Encoders
 
-CPU-native reranking and consistency-checking pipeline. See [`docs/technical-roadmap.md`](docs/technical-roadmap.md) for architecture details.
+CPU-native reranking and consistency-checking toolkit focused on fast local inference, distillation, and reproducible evaluation.
 
-## Features
+See [architecture](docs/technical-roadmap.md) and [full docs](docs/index.md) for deep dives.
 
-- **Rerankers:** Hybrid (semantic + lexical), Distilled pairwise, Late Interaction, Binary quantized, Multi-stage pipeline
-- **Distillation:** Train fast local models from FlashRank cross-encoder teachers (FlashRank quality + sub-ms latency)
-- **Consistency:** Contradiction detection across extracted claims
-- **Data:** Synthetic generation when labeled data unavailable
-- **Training:** Hard negative mining, listwise preferences, query expansion
+## What This Repo Covers
 
-### Why Distillation Matters
-
-**Problem:** Cross-encoders (FlashRank) are accurate but slow—must score every query-doc pair. Local models (Hybrid, Binary) are faster but need training data.
-
-**Solution:** Use FlashRank as teacher → generate soft labels → train local student models. Result: FlashRank quality with Hybrid/Binary speed (sub-millisecond).
-
-**Why OpenRouter?** Generates synthetic training data when you don't have labeled relevance judgments. FlashRank is the teacher for distillation; OpenRouter is the data generator.
+- Multiple reranking strategies: hybrid, distilled pairwise, late interaction, binary quantized, pipeline, and cascade
+- Teacher-student distillation from FlashRank teachers into fast local models
+- Synthetic data generation for pairs, preferences, and contradiction samples
+- Evaluation and benchmarking for quality, latency, and statistical comparison
+- Config-driven workflows via Pydantic settings and environment overrides
 
 ## Quickstart
 
 ```bash
-# Install with dev tools (required for pytest, ruff, mypy)
 uv sync --extra dev
 uv run scripts/materialize_demo_data.py
-uv run -- python -m pytest
+uv run -m pytest
 ```
 
-## Optional Features
+## Common Workflows
 
-### Label Generation (FlashRank as Teacher)
-
-Generate soft labels from FlashRank cross-encoder teachers to train Hybrid Fusion Reranker:
+### Train local models
 
 ```bash
-# FlashRank is included in the base install — no extra flag needed
+uv run scripts/train_hybrid.py
+uv run scripts/train_distilled.py
+uv run scripts/train_late_interaction.py
+uv run scripts/train_binary_reranker.py
+```
+
+### Evaluate strategies
+
+```bash
+uv run -m reranker.eval --strategy hybrid --split test
+uv run -m reranker.eval --strategy distilled --split test
+uv run -m reranker.eval --strategy late_interaction --split test
+uv run -m reranker.eval --strategy binary_reranker --split test
+uv run -m reranker.eval --strategy consistency --split test
+```
+
+### Run benchmarks
+
+```bash
+uv run benchmarks/run.py synthetic --quick
+uv run benchmarks/run.py full
+uv run scripts/benchmark_beir_multi.py
+```
+
+### Distill labels from FlashRank teachers
+
+```bash
 uv sync
-
-# Generate labels on BEIR dataset (pairwise or pointwise method)
 uv run scripts/distill_ensemble_to_hybrid.py --dataset beir --method pairwise
+```
 
-# Generate labels on custom dataset
+Custom dataset:
+
+```bash
 uv run scripts/distill_ensemble_to_hybrid.py \
   --dataset custom \
   --custom-path data/custom_dataset.jsonl \
   --method pointwise
 ```
 
-**Use when:** You have query-doc pairs but no relevance labels. FlashRank provides high-quality soft labels that capture ranking nuance better than binary judgments.
-
-**Expected results:** 95-98% of teacher ensemble NDCG@10 with ~0.45ms latency for distilled models (vs ~40ms for teacher). See [Ensemble Distillation Guide](docs/guides/ensemble-distillation-guide.md) for details.
-
-**BEIR dataset support:**
-- `fluent-legal` and `scifact` added in recent update
-- Run: `uv run benchmarks/run.py synthetic --quick` for quick benchmark validation
-- Use `uv run scripts/download_beir.py nfcorpus` to materialize a local dataset copy
-
-### Synthetic Data Generation (OpenRouter)
-
-Generate training data when you have no labeled examples:
+### Generate synthetic training data (OpenRouter)
 
 ```bash
-export OPENROUTER_MODEL=openai/gpt-4o-mini  # optional
 OPENROUTER_API_KEY=... uv run scripts/generate_pairs.py --teacher --count 2000
 OPENROUTER_API_KEY=... uv run scripts/generate_preferences.py --teacher --count 1500
 OPENROUTER_API_KEY=... uv run scripts/generate_contradictions.py --teacher --count 500
 ```
 
-**Use when:** Starting from scratch with no domain-specific training data. LLM generates synthetic query-doc pairs with relevance scores.
+## Benchmark Artifacts
 
-Metadata written to `data/raw/manifest.json`, `data/processed/label_distribution_summary.json`, `data/logs/api_costs.jsonl`.
+`uv run reranker benchmark run` writes `benchmark_results.json` with aggregate metrics and per-query vectors.
 
-### Benchmarking
-
-Compare all reranking methods (FlashRank, SentenceTransformers, local models):
-
-```bash
-# SentenceTransformers (PyTorch) requires the extra
-uv sync --extra sentence-transformers
-
-# Run speed/quality comparison
-uv run benchmarks/run.py synthetic --quick
-uv run benchmarks/run.py full
-uv run scripts/benchmark_beir_multi.py
-```
-
-**Use when:** Choosing between FlashRank (ONNX), SentenceTransformers (PyTorch), or local models (Hybrid, Binary) for deployment.
-
-#### Benchmark Artifact Schema
-
-`uv run reranker benchmark run` writes `benchmark_results.json` with:
-
-- `metrics`: aggregate strategy metrics (`ndcg@10`, `mrr`, latency, etc.)
-- `per_query_metrics`: paired per-query vectors used for statistical comparison
-
-`uv run reranker benchmark compare ...` requires paired per-query vectors
-(`per_query_<metric>`) for both strategies. Aggregate-only artifacts are rejected.
+Use paired comparisons with:
 
 ```bash
 uv run reranker benchmark compare hybrid binary_reranker \
@@ -103,137 +85,29 @@ uv run reranker benchmark compare hybrid binary_reranker \
   --metric ndcg@10
 ```
 
-### Configuration
-Settings live in [`src/reranker/config.py`](src/reranker/config.py) and are overridden via environment variables.
-
-### Training Scripts
-- `train_hybrid.py`: Hybrid Fusion Reranker with soft labels
-- `train_distilled.py`: Distilled pairwise reranker from FlashRank
-- `train_late_interaction.py`: ColBERT-based late interaction
-- `train_binary_reranker.py`: Binary quantized reranker
-
-## Runtime Scripts
-
-```bash
-uv run scripts/train_hybrid.py
-uv run scripts/train_distilled.py
-uv run scripts/train_late_interaction.py
-uv run scripts/train_binary_reranker.py
-uv run -m reranker.eval --strategy hybrid --split test
-uv run -m reranker.eval --strategy distilled --split test
-uv run -m reranker.eval --strategy late_interaction --split test
-uv run -m reranker.eval --strategy binary_reranker --split test
-uv run -m reranker.eval --strategy consistency --split test
-uv run benchmarks/measure_roi.py
-uv run benchmarks/run.py synthetic --quick
-```
-
-### Environment Variables
-- `OPENROUTER_MODEL`: Override default teacher model (default: `openai/gpt-4o-mini`)
-- `RERANKER_PAIR_COUNT`: Number of generated pair samples (default: `2000`)
-- `RERANKER_PREFERENCE_COUNT`: Number of generated preference samples (default: `1500`)
-- `RERANKER_CONTRADICTION_COUNT`: Number of generated contradiction samples (default: `500`)
-- `RERANKER_CONTROL_COUNT`: Number of generated control samples (default: `200`)
-- `OPENROUTER_API_KEY`: Required for synthetic data generation
-
-## Benchmarks
-
-### Speed (20 docs per query)
-
-| Method | Latency (p50) | Speedup vs ST |
-|--------|---------------|---------------|
-| [Late Interaction](docs/methodology/static_colbert_reranker.md) | **0.02ms** | 1,168x ⚡ |
-| [Binary Quantized](docs/methodology/binary_quantized_reranker.md) | **0.09ms** | 259x ⚡ |
-| [Distilled Pairwise](docs/methodology/distilled_pairwise_reranker.md) | **0.15ms** | 156x ⚡ |
-| [Hybrid Fusion](docs/methodology/hybrid_fusion_reranker.md) | **0.45ms** | 52x ⚡ |
-| FlashRank TinyBERT | **0.58ms** | 40x |
-| FlashRank MiniLM | **4.48ms** | 5x |
-| ST TinyBERT | 16.46ms | 1.4x |
-| ST MiniLM-L-6 | 23.36ms | baseline |
-
-### Quality (BEIR nfcorpus, 50 queries)
-
-| Method | NDCG@10 | Latency | Notes |
-|--------|---------|---------|-------|
-| **FlashRank MiniLM** | **0.3464** | 832ms | Best quality (teacher) |
-| **FlashRank TinyBERT** | **0.331** | 40ms | Fast + good quality |
-| Hybrid Fusion (distilled*) | ~0.34 | **0.45ms** | 95-98% of teacher, 100x faster |
-| Distilled Pairwise (distilled*) | ~0.33 | **0.15ms** | Preference learning from FlashRank |
-| Hybrid Fusion (non-distilled) | 0.320 | 54ms | Trained on demo data |
-| Distilled Pairwise (non-distilled) | ~0.31 | 0.15ms | Trained on synthetic preferences |
-| Late Interaction | 0.203 | **4ms** | Pre-indexed ColBERT |
-| Binary Quantized | 0.151 | **10ms** | Ultra-fast hash-based |
-
-\*Distilled methods use FlashRank as teacher. Run: `uv run scripts/distill_ensemble_to_hybrid.py --dataset beir`
-
-**Key findings:**
-- **Distillation wins:** FlashRank quality (0.34) + local speed (0.15-0.45ms) = 100-1000x speedup
-- **FlashRank (ONNX)** is 5-28x faster than SentenceTransformers (PyTorch)
-- **Local ML methods** achieve sub-ms latency with competitive quality
-
-**Distillation support:**
-- ✅ **Hybrid Fusion** - Soft label regression (pointwise)
-- ✅ **Distilled Pairwise** - Preference learning from FlashRank comparisons
-- ⚠️ **Binary Quantized** - Limited (binary labels only)
-- ❌ **Late Interaction** - Not applicable (pre-indexed)
-
-**Production tip:** Use cascading strategy - distilled models for 70-90% of queries (fast path), FlashRank fallback for low-confidence cases (quality path). See [analysis](docs/20260415-benchmark-analysis.md#cascading-strategy-fast--smart) for details.
-
-[→ Full analysis with BEIR results](docs/20260415-benchmark-analysis.md)
-
-Run: `uv run benchmarks/run.py synthetic --quick` (speed sanity) | `uv run scripts/benchmark_beir_multi.py` (quality)
+More details: [benchmark summary](docs/benchmarks/benchmark_summary.md), [comprehensive analysis](docs/benchmarks/20260426-comprehensive-benchmark-results.md).
 
 ## Production Patterns
 
-### CascadeReranker: Confidence-Based Fallback
+- `CascadeReranker`: fast model first, fallback on low confidence
+- `PipelineReranker`: progressive filtering for larger candidate sets
+- Combined pipeline + cascade: higher efficiency with quality guardrails
 
-Balance speed and quality by using fast distilled models for common cases, falling back to FlashRank only when confidence is low.
+Reference: [cascading strategy analysis](docs/benchmarks/20260415-benchmark-analysis.md#cascading-strategy-fast--smart).
 
-```python
-from reranker.strategies import CascadeReranker, CascadeConfig, HybridFusionReranker, ConfidenceMetric
-from reranker.strategies.flashrank_ensemble import FlashRankEnsemble
+## Environment Variables
 
-# Fast distilled model (0.15-0.45ms)
-primary = HybridFusionReranker()
+- `OPENROUTER_API_KEY`: required for synthetic generation
+- `OPENROUTER_MODEL`: optional model override (default `openai/gpt-4o-mini`)
+- `RERANKER_PAIR_COUNT`: generated pair count (default `2000`)
+- `RERANKER_PREFERENCE_COUNT`: generated preference count (default `1500`)
+- `RERANKER_CONTRADICTION_COUNT`: generated contradiction count (default `500`)
+- `RERANKER_CONTROL_COUNT`: generated control count (default `200`)
 
-# Slow but accurate teacher (4-40ms)
-fallback = FlashRankEnsemble(models=["ms-marco-TinyBERT-L-2-v2"])
+## Key References
 
-# Cascade with confidence threshold
-cascade = CascadeReranker(
-    primary,
-    fallback,
-    config=CascadeConfig(
-        confidence_threshold=0.6,
-        confidence_metric=ConfidenceMetric.MAX_SCORE
-    )
-)
-
-# Use cascade
-results = cascade.rerank("python tutorial", docs)
-
-# Check stats
-stats = cascade.get_stats()
-print(f"Fallback rate: {stats['fallback_rate']:.1%}")
-```
-
-**Expected performance:**
-- 70-90% queries: 0.15-0.45ms (distilled)
-- 10-30% queries: 4-40ms (FlashRank)
-- **Average: 1-5ms** vs 40-832ms (FlashRank alone)
-
-**Confidence metrics:**
-- `MAX_SCORE`: Highest relevance score (simple, default)
-- `TOP_MARGIN`: Difference between top-2 scores (robustness)
-- `SCORE_VARIANCE`: Variance of all scores (uncertainty)
-
-
-
-### Choosing Between Patterns
-
-| Pattern | When to Use | Benefit |
-|---------|-------------|---------|
-| **CascadeReranker** | Need quality guarantees with speed | Confidence-based routing, observability |
-| **PipelineReranker** | Large candidate sets, need filtering | Reduces compute progressively |
-| **Standalone** | Small candidate sets, simple use case | Easiest to deploy |
-| **Combine** | Production systems with SLAs | Pipeline → Cascade for maximum efficiency |
+- [Getting started](docs/getting-started.md)
+- [Ensemble distillation guide](docs/guides/ensemble-distillation-guide.md)
+- [API reference guide](docs/guides/api-reference.md)
+- [Methodology docs](docs/methodology/)
+- [Architecture overview](ARCHITECTURE.md)
