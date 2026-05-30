@@ -19,6 +19,56 @@ def test_auto_label_meta_router_categories() -> None:
     assert train._auto_label_meta_router_categories(rows) == [0, 1, 2]
 
 
+@pytest.mark.parametrize(
+    ("env_value", "expected"),
+    [
+        ("yes", True),
+        ("1", True),
+        ("No", False),
+        ("off", False),
+    ],
+)
+def test_should_generate_synthetic_data_uses_env_values(
+    monkeypatch: pytest.MonkeyPatch, env_value: str, expected: bool
+) -> None:
+    monkeypatch.setenv("RERANKER_AUTO_CONFIRM_SYNTHETIC_DATA", env_value)
+    assert train._should_generate_synthetic_data("ignored") is expected
+
+
+def test_should_generate_synthetic_data_rejects_invalid_env_value(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("RERANKER_AUTO_CONFIRM_SYNTHETIC_DATA", "maybe")
+    with pytest.raises(ValueError, match="RERANKER_AUTO_CONFIRM_SYNTHETIC_DATA"):
+        train._should_generate_synthetic_data("ignored")
+
+
+def test_should_generate_synthetic_data_non_tty_defaults_false(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("RERANKER_AUTO_CONFIRM_SYNTHETIC_DATA", raising=False)
+    monkeypatch.setattr(train.sys.stdin, "isatty", lambda: False)
+    assert train._should_generate_synthetic_data("ignored") is False
+
+
+@pytest.mark.parametrize(
+    ("response", "expected"),
+    [
+        ("y", True),
+        ("YES", True),
+        ("n", False),
+        ("", False),
+    ],
+)
+def test_should_generate_synthetic_data_interactive_prompt(
+    monkeypatch: pytest.MonkeyPatch, response: str, expected: bool
+) -> None:
+    monkeypatch.delenv("RERANKER_AUTO_CONFIRM_SYNTHETIC_DATA", raising=False)
+    monkeypatch.setattr(train.sys.stdin, "isatty", lambda: True)
+    monkeypatch.setattr(train, "_prompt_user", lambda _prompt: response)
+    assert train._should_generate_synthetic_data("prompt") is expected
+
+
 def test_partition_train_rows_falls_back_when_needed(monkeypatch: pytest.MonkeyPatch) -> None:
     class Eval:
         train_ratio = 0.7
@@ -102,7 +152,7 @@ def test_print_train_summary_exception(
     assert "evaluation_skipped: boom" in captured.err
 
 
-def _settings_with_model_dir(model_dir: Path):
+def _settings_with_model_dir(model_dir: Path) -> object:
     class Eval:
         train_ratio = 0.7
         validation_ratio = 0.15
@@ -130,10 +180,10 @@ def test_train_hybrid_runs_with_stubbed_dependencies(
     class StubReranker:
         model_backend = "sklearn"
 
-        def fit_pointwise(self, queries, docs, scores):
+        def fit_pointwise(self, queries: list[str], docs: list[str], scores: list[float]) -> None:
             assert queries and docs and scores
 
-        def save(self, path):
+        def save(self, path: Path) -> None:
             Path(path).write_text("ok", encoding="utf-8")
 
     monkeypatch.setattr(hybrid_module, "HybridFusionReranker", lambda adapters=None: StubReranker())
@@ -153,19 +203,21 @@ def test_train_distilled_and_binary_run_with_stubs(
     from reranker.strategies import distilled as distilled_module
 
     class StubDistilled:
-        def fit(self, queries, doc_as, doc_bs, labels):
+        def fit(
+            self, queries: list[str], doc_as: list[str], doc_bs: list[str], labels: list[int]
+        ) -> object:
             assert queries and doc_as and doc_bs and labels
             return self
 
-        def save(self, path):
+        def save(self, path: Path) -> None:
             Path(path).write_text("ok", encoding="utf-8")
 
     class StubBinary:
-        def fit(self, queries, docs, labels):
+        def fit(self, queries: list[str], docs: list[str], labels: list[int]) -> object:
             assert queries and docs and labels
             return self
 
-        def save(self, path):
+        def save(self, path: Path) -> None:
             Path(path).write_text("ok", encoding="utf-8")
 
     monkeypatch.setattr(distilled_module, "DistilledPairwiseRanker", StubDistilled)
@@ -201,30 +253,30 @@ def test_train_late_interaction_splade_cascade_meta_router(
     from reranker.strategies import splade as splade_module
 
     class StubLI:
-        def fit(self, docs):
+        def fit(self, docs: list[str]) -> None:
             assert docs
 
-        def save(self, path):
+        def save(self, path: Path) -> None:
             Path(path).write_text("ok", encoding="utf-8")
 
     class StubSplade:
-        def __init__(self, top_k_terms=128):
+        def __init__(self, top_k_terms: int = 128) -> None:
             self.top_k_terms = top_k_terms
 
-        def fit(self, docs):
+        def fit(self, docs: list[str]) -> None:
             assert docs and self.top_k_terms == 64
 
-        def save(self, path):
+        def save(self, path: Path) -> None:
             Path(path).write_text("ok", encoding="utf-8")
 
     class StubHybrid:
-        def __init__(self, adapters=None):
+        def __init__(self, adapters: object = None) -> None:
             self.adapters = adapters
 
-        def fit_pointwise(self, queries, docs, scores):
+        def fit_pointwise(self, queries: list[str], docs: list[str], scores: list[float]) -> None:
             assert queries and docs and scores
 
-        def save(self, path):
+        def save(self, path: Path) -> None:
             Path(path).write_text("ok", encoding="utf-8")
 
     class StubRouter:
@@ -235,14 +287,14 @@ def test_train_late_interaction_splade_cascade_meta_router(
             self.model = {"ok": True}
             self.is_fitted = False
 
-        def fit(self, queries, categories):
+        def fit(self, queries: list[str], categories: list[int]) -> None:
             assert queries and categories
             self.is_fitted = True
 
     monkeypatch.setattr(li_module, "StaticColBERTReranker", StubLI)
     monkeypatch.setattr(splade_module, "SPLADEReranker", StubSplade)
     monkeypatch.setattr(hybrid_module, "HybridFusionReranker", StubHybrid)
-    monkeypatch.setattr(cascade_module, "CascadeReranker", lambda **kwargs: object())
+    monkeypatch.setattr(cascade_module, "CascadeReranker", lambda **_kwargs: object())
     monkeypatch.setattr(mr_module, "MetaRouter", StubRouter)
 
     saved_paths: list[Path] = []

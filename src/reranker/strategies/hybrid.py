@@ -3,14 +3,12 @@
 from __future__ import annotations
 
 import warnings
-from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
 import joblib
 import numpy as np
 from cachetools import LRUCache
-from sklearn.dummy import DummyClassifier
 from sklearn.ensemble import GradientBoostingClassifier, GradientBoostingRegressor
 
 from reranker.config import get_settings
@@ -23,6 +21,12 @@ from reranker.protocols import (
     HeuristicAdapter,
     RankedDoc,
     SaveableReranker,
+)
+from reranker.strategies.hybrid_features import HybridFeatureBuilder
+from reranker.strategies.hybrid_training import (
+    HybridTrainer,
+    WeightingMode,
+    auto_label_queries,
 )
 from reranker.strategies.meta_router import DEFAULT_PROFILE, WEIGHT_PROFILES, MetaRouter
 from reranker.utils import (
@@ -40,13 +44,6 @@ __all__ = [
 
 _BM25_CACHE_MAX_SIZE = 128
 _BM25_CACHE_THRESHOLD = 500
-_AUTO_LABEL_SCORE_GAP_RATIO = 0.1
-
-
-class WeightingMode(StrEnum):
-    STATIC = "static"
-    LEARNED = "learned"
-    META_ROUTER = "meta_router"
 
 
 def _is_xgboost_model(model: Any) -> bool:
@@ -85,261 +82,6 @@ def _make_classifier(random_state: int | None = None) -> Any:
 
 def _make_regressor(random_state: int | None = None) -> Any:
     return _make_model(regress=True, random_state=random_state)
-
-
-BASE_FEATURES = [
-    "sem_score",
-    "bm25_score",
-    "vec_norm_diff",
-    "token_overlap_ratio",
-    "query_coverage_ratio",
-    "shared_token_char_sum",
-    "exact_phrase_match",
-    "query_len",
-    "doc_len",
-]
-
-
-class HybridFeatureBuilder:
-    """Builds feature matrices from query-document pairs."""
-
-    def __init__(
-        self,
-        embedder: EmbedderProtocol,
-        adapters: list[HeuristicAdapter] | None = None,
-    ) -> None:
-        self.embedder = embedder
-        self.adapters = adapters or []
-        self._feature_registry: dict[str, int] = {}
-
-    def init_feature_registry(self, adapter_names: list[str] | None = None) -> None:
-        self._feature_registry = {name: idx for idx, name in enumerate(BASE_FEATURES)}
-        if adapter_names:
-            for name in adapter_names:
-                if name not in self._feature_registry:
-                    self._feature_registry[name] = len(self._feature_registry)
-
-    def _get_feature_index(self, name: str) -> int:
-        if name not in self._feature_registry:
-            self._feature_registry[name] = len(self._feature_registry)
-        return self._feature_registry[name]
-
-    def _adapter_feature_names(self, query: str, doc: str) -> list[str]:
-        names: list[str] = []
-        for adapter in self.adapters:
-            names.extend(adapter.compute(query, doc).keys())
-        return names
-
-    def register_adapter_feature_names(self, query: str, docs: list[str]) -> None:
-        if not self._feature_registry:
-            self.init_feature_registry()
-        for doc in docs:
-            for name in self._adapter_feature_names(query, doc):
-                self._get_feature_index(name)
-
-    def build_features(
-        self,
-        query: str,
-        docs: list[str],
-        *,
-        bm25: BM25Engine | None = None,
-        query_vec: np.ndarray | None = None,
-        d_vecs: np.ndarray | None = None,
-        is_fitted: bool = False,
-    ) -> np.ndarray:
-        if not docs:
-            if not self._feature_registry:
-                self.init_feature_registry()
-            return np.zeros((0, len(self._feature_registry)), dtype=np.float32)
-
-        q_vec = query_vec if query_vec is not None else self.embedder.encode([query])[0]
-        d_vecs = d_vecs if d_vecs is not None else self.embedder.encode(docs)
-        lexical = bm25
-        if lexical is None:
-            lexical = BM25Engine(tokenize_fn=self.embedder.tokenize)
-            lexical.fit(docs)
-        bm25_scores = lexical.score(query)
-
-        query_lower = query.lower()
-        query_tokens = self.embedder.tokenize(query_lower)
-        query_terms = set(query_tokens)
-        query_len = float(len(query_tokens))
-
-        rows: list[dict[str, float]] = []
-        for idx, doc in enumerate(docs):
-            doc_lower = doc.lower()
-            doc_tokens = self.embedder.tokenize(doc_lower)
-            doc_terms = set(doc_tokens)
-            shared_terms = query_terms & doc_terms
-            overlap = len(shared_terms)
-            row_dict: dict[str, float] = {
-                "sem_score": float(np.dot(q_vec, d_vecs[idx])),
-                "bm25_score": float(bm25_scores[idx]) if bm25_scores.size else 0.0,
-                "vec_norm_diff": float(np.linalg.norm(q_vec - d_vecs[idx])),
-                "token_overlap_ratio": float(overlap / max(len(query_terms | doc_terms), 1)),
-                "query_coverage_ratio": float(overlap / max(len(query_terms), 1)),
-                "shared_token_char_sum": float(sum(len(term) for term in shared_terms)),
-                "exact_phrase_match": float(1.0 if query_lower in doc_lower else 0.0),
-                "query_len": query_len,
-                "doc_len": float(len(doc_tokens)),
-            }
-            for adapter in self.adapters:
-                row_dict.update(adapter.compute(query, doc))
-            rows.append(row_dict)
-
-        if not self._feature_registry:
-            self.init_feature_registry()
-        if not is_fitted:
-            for row_dict in rows:
-                for name in row_dict:
-                    self._get_feature_index(name)
-
-        feature_names = list(self._feature_registry.keys())
-        n_features = len(feature_names)
-        result = np.zeros((len(rows), n_features), dtype=np.float32)
-        for i, row_dict in enumerate(rows):
-            for name, value in row_dict.items():
-                idx_feat = self._feature_registry.get(name)
-                if idx_feat is not None and idx_feat < n_features:
-                    result[i, idx_feat] = value
-        return result
-
-    @property
-    def feature_names(self) -> list[str]:
-        return list(self._feature_registry.keys())
-
-    @property
-    def feature_registry(self) -> dict[str, int]:
-        return self._feature_registry
-
-    @feature_registry.setter
-    def feature_registry(self, value: dict[str, int]) -> None:
-        self._feature_registry = value
-
-
-class HybridTrainer:
-    """Encapsulates pairwise and pointwise training for the hybrid reranker."""
-
-    def __init__(self, reranker: HybridFusionReranker) -> None:
-        self._reranker = reranker
-
-    def fit(
-        self, queries: list[str], doc_as: list[str], doc_bs: list[str], labels: list[int]
-    ) -> HybridFusionReranker:
-        reranker = self._reranker
-        fb = reranker._feature_builder
-        fb.init_feature_registry()
-        for query, doc_a, doc_b in zip(queries, doc_as, doc_bs, strict=False):
-            fb.register_adapter_feature_names(query, [doc_a, doc_b])
-
-        samples = []
-        for query, doc_a, doc_b in zip(queries, doc_as, doc_bs, strict=False):
-            features_a = fb.build_features(query, [doc_a], is_fitted=reranker.is_fitted)[0]
-            features_b = fb.build_features(query, [doc_b], is_fitted=reranker.is_fitted)[0]
-            samples.append(features_a - features_b)
-
-        if not samples:
-            fb.init_feature_registry()
-            feature_count = len(fb.feature_registry)
-            samples = [np.zeros(feature_count, dtype=np.float32)]
-            labels = [0]
-        X = np.vstack(samples)
-        y = np.asarray(labels[: len(samples)], dtype=np.int32)
-        if len(set(y.tolist())) < 2:
-            reranker.model = DummyClassifier(strategy="constant", constant=int(y[0]))
-        reranker.model.fit(X, y)
-        reranker.model_backend = "xgboost" if _is_xgboost_model(reranker.model) else "sklearn"
-        reranker.is_fitted = True
-        return reranker
-
-    def fit_pointwise(
-        self,
-        queries: list[str],
-        docs: list[str],
-        scores: list[float],
-        use_regression: bool = True,
-    ) -> HybridFusionReranker:
-        reranker = self._reranker
-        fb = reranker._feature_builder
-        fb.init_feature_registry()
-        for query, doc in zip(queries, docs, strict=False):
-            fb.register_adapter_feature_names(query, [doc])
-
-        samples = [
-            fb.build_features(query, [doc], is_fitted=reranker.is_fitted)[0]
-            for query, doc in zip(queries, docs, strict=False)
-        ]
-        if not samples:
-            return reranker
-
-        X = np.vstack(samples)
-        y = np.asarray(scores[: len(samples)], dtype=np.float32)
-
-        if use_regression:
-            reranker.model = _make_regressor(random_state=get_settings().hybrid.random_state)
-            reranker.model.fit(X, y)
-            reranker.model_backend = "xgboost" if _is_xgboost_model(reranker.model) else "sklearn"
-        else:
-            reranker.model = _make_classifier(random_state=get_settings().hybrid.random_state)
-            threshold = np.median(y)
-            y_binary = (y >= threshold).astype(int)
-            reranker.model.fit(X, y_binary)
-
-        reranker.is_fitted = True
-
-        settings = get_settings()
-        if (
-            settings.meta_router.enabled
-            and WeightingMode(settings.hybrid.weighting_mode) == WeightingMode.META_ROUTER
-        ):
-            reranker._router = MetaRouter(embedder=reranker.embedder)
-            router_categories = self._reranker._auto_label_queries(queries, docs, scores)
-            reranker._router.fit(queries, router_categories)
-
-        return reranker
-
-    def _auto_label_queries(
-        self, queries: list[str], docs: list[str], scores: list[float]
-    ) -> list[int]:
-        reranker = self._reranker
-        router_categories = max(1, min(get_settings().meta_router.n_categories, 3))
-        query_groups: dict[str, list[tuple[str, float]]] = {}
-        for q, d, s in zip(queries, docs, scores, strict=False):
-            query_groups.setdefault(q, []).append((d, s))
-        category_by_query: dict[str, int] = {}
-        query_embedding_cache: dict[str, np.ndarray] = {}
-
-        for query, group in query_groups.items():
-            if len(group) < 2:
-                category_by_query[query] = 0
-                continue
-            group_docs = [d for d, _ in group]
-            group_scores = np.array([s for _, s in group], dtype=np.float32)
-            # Resolve BM25 at call time so tests can monkeypatch reranker.lexical.BM25Engine.
-            from reranker import lexical as lexical_module
-
-            bm25 = lexical_module.BM25Engine(tokenize_fn=reranker.embedder.tokenize)
-            bm25.fit(group_docs)
-            bm25_scores = bm25.score(query)
-            query_vec = query_embedding_cache.setdefault(
-                query, reranker.embedder.encode([query])[0]
-            )
-            doc_vectors = reranker.embedder.encode(group_docs)
-            sem_score = float(
-                reranker.embedder.similarity(
-                    query_vec,
-                    doc_vectors[int(np.argmax(group_scores))],
-                )
-            )
-            bm25_best = float(bm25_scores.max()) if bm25_scores.size > 0 else 0.0
-            if router_categories >= 3:
-                score_gap = abs(bm25_best - sem_score)
-                score_scale = max(abs(bm25_best), abs(sem_score), 1.0)
-                if score_gap <= _AUTO_LABEL_SCORE_GAP_RATIO * score_scale:
-                    category_by_query[query] = 2
-                    continue
-            category_by_query[query] = 0 if bm25_best > sem_score else 1
-        return [category_by_query.get(query, 0) for query in queries]
 
 
 class HybridPersistence:
@@ -496,7 +238,7 @@ class HybridFusionReranker(SaveableReranker):
         self._cached_feature_map: dict[str, int | None] | None = None
 
         self._feature_builder = HybridFeatureBuilder(self.embedder, self.adapters)
-        self._trainer = HybridTrainer(self)
+        self._trainer = HybridTrainer(self.embedder, self._feature_builder)
         self._persistence = HybridPersistence(self)
 
     @property
@@ -533,7 +275,21 @@ class HybridFusionReranker(SaveableReranker):
     def fit(
         self, queries: list[str], doc_as: list[str], doc_bs: list[str], labels: list[int]
     ) -> HybridFusionReranker:
-        return self._trainer.fit(queries, doc_as, doc_bs, labels)
+        result = self._trainer.fit(
+            queries,
+            doc_as,
+            doc_bs,
+            labels,
+            is_fitted=self.is_fitted,
+            make_classifier=lambda: _make_classifier(
+                random_state=get_settings().hybrid.random_state
+            ),
+            is_xgboost=_is_xgboost_model,
+        )
+        self.model = result.model
+        self.model_backend = result.model_backend
+        self.is_fitted = True
+        return self
 
     def fit_pointwise(
         self,
@@ -542,12 +298,31 @@ class HybridFusionReranker(SaveableReranker):
         scores: list[float],
         use_regression: bool = True,
     ) -> HybridFusionReranker:
-        return self._trainer.fit_pointwise(queries, docs, scores, use_regression)
+        result = self._trainer.fit_pointwise(
+            queries,
+            docs,
+            scores,
+            is_fitted=self.is_fitted,
+            make_classifier=lambda: _make_classifier(
+                random_state=get_settings().hybrid.random_state
+            ),
+            make_regressor=lambda: _make_regressor(random_state=get_settings().hybrid.random_state),
+            is_xgboost=_is_xgboost_model,
+            use_regression=use_regression,
+        )
+        if result is None:
+            return self
+        self.model = result.model
+        self.model_backend = result.model_backend
+        self.is_fitted = True
+        if result.router is not None:
+            self._router = result.router
+        return self
 
     def _auto_label_queries(
         self, queries: list[str], docs: list[str], scores: list[float]
     ) -> list[int]:
-        return self._trainer._auto_label_queries(queries, docs, scores)
+        return auto_label_queries(self.embedder, queries, docs, scores)
 
     def _resolve_weights(self, query: str) -> dict[str, float]:
         settings = get_settings().hybrid

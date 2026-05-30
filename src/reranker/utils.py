@@ -116,13 +116,14 @@ def dump_pickle(path: str | Path, obj: Any) -> None:
 
 def load_pickle(path: str | Path) -> Any:
     import hashlib
+    import io
     import warnings
 
     target = Path(path)
     sha_path = target.with_suffix(target.suffix + ".sha256")
 
+    data = target.read_bytes()
     if sha_path.exists():
-        data = target.read_bytes()
         expected_hash = sha_path.read_text().strip()
         actual_hash = hashlib.sha256(data).hexdigest()
         if actual_hash != expected_hash:
@@ -140,10 +141,10 @@ def load_pickle(path: str | Path) -> Any:
         RuntimeWarning,
         stacklevel=2,
     )
-    with target.open("rb") as handle:
+    with io.BytesIO(data) as buf:
         if cloudpickle is not None:
-            return cloudpickle.load(handle)
-        return pickle.load(handle)
+            return cloudpickle.load(buf)
+        return pickle.load(buf)
 
 
 def to_serializable(value: Any) -> Any:
